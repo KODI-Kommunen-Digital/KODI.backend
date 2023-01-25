@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "mysql": "^2.18.1"
+  },
+  "name": "smart-region-m.backend",
+  "description": "To make it easy for you to get started with GitLab, here's a list of recommended next steps.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/heidi-heimat-digital/smart-region-m.backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend/issues"
+  },
+  "homepage": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend#readme"
+}
