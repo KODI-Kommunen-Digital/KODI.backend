@@ -3,7 +3,9 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const port = 3000;
+const AppError = require("./utils/appError");
+const errorHandler = require("./utils/errorHandler");
+const port = 3001;
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
 
@@ -35,15 +37,12 @@ app.get('/', (req, res) => {
 app.use('/listings', listingsRouter);
 app.use('/users', usersRouter);
 
-// error handler middleware
-app.use((err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
-    console.error(err.message, err.stack);
-    res.status(statusCode).json({ message: err.message });
-    return;
-  });
+app.all("*", (req, res, next) => {
+next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
+});
+app.use(errorHandler);
 
 // starting the server
 app.listen(port, () => {
-    console.log('listening on port 3000');
+    console.log('listening on port 3001');
 });
