@@ -7,8 +7,7 @@ async function get(table, params) {
   connection.connect();
   let query = `SELECT * FROM ${table} `;
   let queryParams = [];
-  if (params) 
-  {
+  if (params) {
     query += "WHERE "
     for (var key in params) {
       query += `${key} = ?,`
@@ -23,9 +22,12 @@ async function get(table, params) {
 
 
 async function create(table, data) {
-  const connection = mysql.createConnection(config.db); 
+  const connection = await mysql.createConnection(config.db); 
   connection.connect();
-  let query = `SELECT * FROM ${table} `;
+  let query = `INSERT INTO ${table} SET ?`;
+  let response = await connection.query(query, data);
+  connection.end();
+  return { id: response[0].insertId };
 }
 
 
