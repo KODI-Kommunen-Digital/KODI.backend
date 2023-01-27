@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const connection = require('../services/database');
+const database = require('../services/database');
+const { USER_TABLE } = require('../constants/tableNames');
 const AppError = require("../utils/appError");
 
 router.get('/:id', async function(req, res, next) {
@@ -11,11 +12,8 @@ router.get('/:id', async function(req, res, next) {
         return;
     }
 
-    let query = `SELECT * FROM users where id = ?`;
-    connection.query(query, [id], (err, data, fields) => {
-        if (err) {
-            return next(new AppError(err));
-        }
+    database.get(USER_TABLE, {id}).then((response) => {
+        let data = response.rows;
         if (!data || data.length == 0) {
             return next(new AppError(`User with id ${id} does not exist`, 404));
         }
@@ -24,6 +22,8 @@ router.get('/:id', async function(req, res, next) {
             length: data?.length,
             data: data[0],
         });
+    }).catch((err) => {
+        return next(new AppError(err));
     });
 });
 
