@@ -30,5 +30,13 @@ async function create(table, data) {
   return { id: response[0].insertId };
 }
 
+async function update(table, data, conditions) {
+  const connection = await mysql.createConnection(config.db); 
+  connection.connect();
+  let query = `UPDATE ${table} SET ? WHERE ?`;
+  let response = await connection.query(query, [data, conditions]);
+  connection.end();
+}
 
-module.exports = {get, create};
+
+module.exports = {get, create, update};

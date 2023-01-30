@@ -1,4 +1,4 @@
-const USER_TABLE = 'users';
 module.exports = {
-  USER_TABLE
+  USER_TABLE: 'users',
+  ROLES_TABLE: 'roles'
 }
