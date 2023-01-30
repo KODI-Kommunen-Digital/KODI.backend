@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const database = require('../services/database');
 const tables = require('../constants/tableNames');
+const storedProcedures = require('../constants/storedProcedures');
 const config = require('../config');
 const AppError = require("../utils/appError");
 const fs = require('fs');
@@ -187,7 +188,7 @@ router.post('/', async function(req, res, next) {
     });
 });
 
-router.get('/:id', async function(req, res, next) {
+router.delete('/:id', async function(req, res, next) {
     const id = req.params.id;
 
     if(isNaN(Number(id)) || Number(id) <= 0) {
@@ -195,18 +196,24 @@ router.get('/:id', async function(req, res, next) {
         return;
     }
 
-    database.get(tables.USER_TABLE, {id}).then((response) => {
+    try {
+        var response = await database.get(tables.USER_TABLE, { id })
         let data = response.rows;
-        if (!data || data.length == 0) {
+        if (data && data.length == 0) {
             return next(new AppError(`User with id ${id} does not exist`, 404));
         }
+
+        var filePath = `./${config.imagePath}/user_${id}`
+        fs.rmSync(filePath, { recursive: true, force: true });
+
+        var response = await database.callStoredProcedure(storedProcedures.DELETE_USER, [ id ])  
+
         res.status(200).json({
-            status: "success",
-            data: data[0],
+            status: "success"
         });
-    }).catch((err) => {
+    } catch (err) {
         return next(new AppError(err));
-    });
+    };
 });
 
 router.post('/:id/imageUpload', async function(req, res, next) {

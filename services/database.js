@@ -38,5 +38,16 @@ async function update(table, data, conditions) {
   connection.end();
 }
 
+async function callStoredProcedure(spName, parameters) {
+  let query = `CALL ${spName}`;
+  if (parameters && parameters.length > 0) {
+    query += `(${Array(parameters.length).fill('?')})`
+  }
+  const connection = await mysql.createConnection(config.db); 
+  connection.connect();
+  await connection.query(query, parameters);
+  connection.end();
+}
 
-module.exports = {get, create, update};
+
+module.exports = {get, create, update, callStoredProcedure};
