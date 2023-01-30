@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const database = require('../services/database');
 const tables = require('../constants/tableNames');
+const config = require('../config');
 const AppError = require("../utils/appError");
+const fs = require('fs');
 
 router.get('/:id', async function(req, res, next) {
     const id = req.params.id;
@@ -207,6 +209,48 @@ router.get('/:id', async function(req, res, next) {
     });
 });
 
+router.post('/:id/imageUpload', async function(req, res, next) {
+    const id = req.params.id;
 
+    if(isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+
+    const { image } = req.files;
+    
+    if (!image) {
+        next(new AppError(`Image not uploaded`, 400));
+        return;
+    }
+    
+    if (!/^image/.test(image.mimetype)) {
+        next(new AppError(`Please upload an image only`, 400));
+        return;
+    }
+
+    try {
+        var response = await database.get(tables.USER_TABLE, { id })
+        let data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`User with id ${id} does not exist`, 404));
+        }
+
+        var filePath = `./${config.imagePath}/user_${id}`
+        var fileName = `user_${id}_${Date.now()}.jpg`
+
+        if (!fs.existsSync(filePath)){
+            fs.mkdirSync(filePath, { recursive: true });
+        }
+
+        await image.mv(`${filePath}/${fileName}`)    
+        res.status(200).json({
+            status: "success",
+            fileName: `./user_${id}/${fileName}`,
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    };
+});
 
 module.exports = router;

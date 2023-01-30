@@ -8,6 +8,7 @@ const errorHandler = require("./utils/errorHandler");
 const port = 3001;
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
+const fileUpload = require('express-fileupload');
 
 // defining the Express app
 const app = express();
@@ -28,6 +29,15 @@ app.use(cors());
 
 // adding morgan to log HTTP requests
 app.use(morgan('combined'));
+
+app.use(
+    fileUpload({
+        limits: {
+            fileSize: 10000000,
+        },
+        abortOnLimit: true,
+    })
+);
 
 // defining an endpoint to return all ads
 app.get('/', (req, res) => {
