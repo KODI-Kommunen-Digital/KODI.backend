@@ -57,6 +57,18 @@ router.patch('/:id', async function(req, res, next){
     if (payload.media) {
         updationData.media = payload.media
     }
+    if (payload.categoryId){
+        try {
+            var response = await database.get(ROLES_TABLE, {id: payload.categoryId})
+            let data = response.rows;
+            if (data && data.length > 0) {
+                return next(new AppError(`Invalid Category '${payload.categoryId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        updationData.categoryId = payload.categoryId
+    }
     if (payload.address) {
         updationData.address = payload.address
     }
@@ -111,6 +123,118 @@ router.patch('/:id', async function(req, res, next){
     }).catch((err) => {
         return next(new AppError(err));
     });
+})
+
+router.post('/', async function(req, res, next){
+    var payload = req.body
+    var insertionData = {}
+    if (!payload) {
+        return next(new AppError(`Empty payload sent`, 400));
+    }
+
+    if (!payload.userId) {
+        return next(new AppError(`userId is not present`, 400));
+    } else {
+        insertionData.userId = payload.userId
+    }
+
+    if (!payload.title) {
+        return next(new AppError(`Title is not present`, 400));
+    } else {
+        insertionData.title = payload.title
+    }
+    if (!payload.place) {
+        return next(new AppError(`Place is not present`, 400));
+    } else {
+        insertionData.place = payload.place
+    }
+    if (payload.description) {
+        insertionData.description = payload.description
+    }
+    if (payload.socialMedia) {
+        insertionData.socialMedia = payload.socialMedia
+    }
+    if (payload.media) {
+        insertionData.media = payload.media
+    }
+    if (!payload.categoryId) {
+        return next(new AppError(`Category is not present`, 400));
+    } else {
+        try {
+            var response = await database.get(ROLES_TABLE, {id: payload.categoryId})
+            let data = response.rows;
+            if (data && data.length > 0) {
+                return next(new AppError(`Invalid Category '${payload.categoryId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        insertionData.categoryId = payload.categoryId
+    }
+    if (payload.address) {
+        insertionData.address = payload.address
+    }
+    if (payload.email) {
+        insertionData.email = payload.email
+    }
+    if (payload.phone) {
+        let re = /^[+][(]{0,1}[0-9]{1,3}[)]{0,1}[-\s./0-9]$/g
+        if (!re.test(payload.phone)) {
+            return next(new AppError(`Invalid Phone number given`, 400));
+        }
+        insertionData.phone = payload.phone
+    }
+    if (payload.website) {
+        insertionData.website = payload.website
+    }
+    if (payload.price) {
+        insertionData.price = payload.price
+    }
+    if (payload.discountPrice) {
+        insertionData.discountPrice = payload.discountPrice
+    }
+    if (!payload.logo) {
+        return next(new AppError(`Logo is not present`, 400));
+    } else {
+        insertionData.logo = payload.logo
+    }
+    if (!payload.statusId) {
+        return next(new AppError(`Status is not present`, 400));
+    } else {
+        try {
+            var response = await database.get(STAUSES_TABLE, {id: payload.statusId})
+            let data = response.rows;
+            if (data && data.length > 0) {
+                return next(new AppError(`Invalid Status '${payload.statusId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        insertionData.statusId = payload.statusId
+    }
+    if (payload.longitude) {
+        insertionData.longitude = payload.longitude
+    }
+    if (payload.lattitude) {
+        insertionData.lattitude = payload.lattitude
+    }
+    if (!payload.cityId) {
+        return next(new AppError(`Status is not present`, 400));
+    } else {
+        try {
+            var response = await database.get(CITIES_TABLE, {id: payload.cityId})
+            let data = response.rows;
+            if (data && data.length > 0) {
+                return next(new AppError(`Invalid Status '${payload.cityId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        insertionData.cityId = payload.cityId
+    }
+    //To Input DATES
+    //TO DO: Need to implement dates as per category input from user.
+
 })
 
 module.exports = router;
