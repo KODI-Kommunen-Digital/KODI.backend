@@ -4,7 +4,8 @@ module.exports = {
   LISTINGS_TABLE: 'listings',
   CITIES_TABLE: 'cities',
   CATEGORIES_TABLE: 'categories',
+  SUBCATEGORIES_TABLE: 'subcategories',
   ROLESS_TABLE: 'roles',
-  STAUSES_TABLE: 'statuses',
+  STATUSES_TABLE: 'statuses',
   SOURCES_TABLE: 'sources'
 }
