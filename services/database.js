@@ -38,6 +38,23 @@ async function update(table, data, conditions) {
   connection.end();
 }
 
+async function deleteData(table, params) {
+  const connection = await mysql.createConnection(config.db); 
+  connection.connect();
+  let query = `DELETE FROM ${table} `;
+  let queryParams = [];
+  if (params) {
+    query += "WHERE "
+    for (var key in params) {
+      query += `${key} = ?,`
+      queryParams.push(params[key])
+    }
+    query = query.slice(0, -1);
+  }
+  await connection.execute(query, queryParams);
+  connection.end();
+}
+
 async function callStoredProcedure(spName, parameters) {
   let query = `CALL ${spName}`;
   if (parameters && parameters.length > 0) {
@@ -50,4 +67,4 @@ async function callStoredProcedure(spName, parameters) {
 }
 
 
-module.exports = {get, create, update, callStoredProcedure};
+module.exports = {get, create, update,deleteData, callStoredProcedure};
