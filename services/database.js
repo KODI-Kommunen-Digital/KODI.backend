@@ -1,9 +1,8 @@
 let mysql = require('mysql2/promise');
 const config = require('../config');
 
-
 async function get(table, params) {
-  const connection = await mysql.createConnection(config.db); 
+  const connection = await mysql.createConnection(config.config.db); 
   connection.connect();
   let query = `SELECT * FROM ${table} `;
   let queryParams = [];
@@ -16,6 +15,16 @@ async function get(table, params) {
     query = query.slice(0, -1);
   }
   let [rows, fields] = await connection.execute(query, queryParams);
+  connection.end();
+  return {rows, fields};
+}
+
+async function getAll(table) {
+  const connection = await mysql.createConnection(config.config.db); 
+  connection.connect();
+  let query = `SELECT * FROM ${table} `;
+  //let queryParams = [];
+  let [rows, fields] = await connection.query(query);
   connection.end();
   return {rows, fields};
 }
@@ -67,4 +76,4 @@ async function callStoredProcedure(spName, parameters) {
 }
 
 
-module.exports = {get, create, update,deleteData, callStoredProcedure};
+module.exports = {get, getAll, create, update,deleteData, callStoredProcedure};

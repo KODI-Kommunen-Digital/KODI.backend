@@ -3,6 +3,7 @@ const router = express.Router();
 const database = require('../services/database');
 const tables = require('../constants/tableNames');
 const AppError = require("../utils/appError");
+const radiusSearch = require('../services/handler')
 
 
 router.get('/:id', async function(req, res, next) {
@@ -11,7 +12,9 @@ router.get('/:id', async function(req, res, next) {
         next(new AppError(`Invalid UserId ${id}`, 404));
         return;
     }
-
+    console.log("-----------------")
+    console.log(radiusSearch(246.65,22.456,100000))
+    console.log('-----------------')
     database.get(tables.LISTINGS_TABLE, {id}).then((response) => {
         let data = response.rows;
         if (!data || data.length == 0) {

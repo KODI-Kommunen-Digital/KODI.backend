@@ -9,7 +9,6 @@ const fs = require('fs');
 
 router.get('/:id', async function(req, res, next) {
     const id = req.params.id;
-
     if(isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid UserId ${id}`, 404));
         return;
