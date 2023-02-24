@@ -7,7 +7,7 @@ const tables = require('../constants/tableNames');
 const radiusSearch= (latitude,longitude, radius)=> {
   const R = 6371; // Radius of the earth in km
   const points = [];
-  database.getAll(tables.LISTINGS_TABLE).then((response)=>{
+  database.get(tables.LISTINGS_TABLE).then((response)=>{
     const data = response.rows
     for (let i = 0; i < data.length; i++) {
         const dLat = toRad(data[i].lattitude - latitude);

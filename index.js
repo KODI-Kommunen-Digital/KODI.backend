@@ -5,13 +5,10 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const AppError = require("./utils/appError");
 const errorHandler = require("./utils/errorHandler");
-const port = 3001;
+const port = 8001;
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
 const citiesRouter = require('./routes/cities');
-const categoriesRouter = require('./routes/categories');
-const rolesRouter = require('./routes/roles');
-const sourcesRouter = require('./routes/sources');
 const fileUpload = require('express-fileupload');
 
 // defining the Express app
@@ -48,12 +45,9 @@ app.get('/', (req, res) => {
     res.send(message);
 });
 
-app.use('/listings', listingsRouter);
 app.use('/users', usersRouter);
 app.use('/cities', citiesRouter);
-app.use('/categories', categoriesRouter);
-app.use('/roles', rolesRouter);
-app.use('/sources', sourcesRouter);
+app.use('/listings', listingsRouter);
 
 app.all("*", (req, res, next) => {
 next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
@@ -62,5 +56,5 @@ app.use(errorHandler);
 
 // starting the server
 app.listen(port, () => {
-    console.log('listening on port 3001');
+    console.log('listening on port 8001');
 });
