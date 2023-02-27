@@ -4,35 +4,20 @@ const AppError = require("../utils/appError");
 const tables = require('../constants/tableNames');
 
 
-const radiusSearch= (latitude,longitude, radius)=> {
-  const R = 6371; // Radius of the earth in km
-  const points = [];
-  database.get(tables.LISTINGS_TABLE).then((response)=>{
-    const data = response.rows
-    for (let i = 0; i < data.length; i++) {
-        const dLat = toRad(data[i].lattitude - latitude);
-        const dLon = toRad(data[i].longitude - longitude);
-        //console.log(dLat)
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(toRad(latitude)) *
-            Math.cos(toRad(data[i].latitude)) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-    
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = R * c;
-    
-        if (distance <= radius) {
-          points.push(data[i])
-        }
-      }
-  })
-   console.log(points)
-  return points;
-}
-function toRad(value) {
-  return (value * Math.PI) / 180;
+async function radiusSearch(lat0, lon0, D, cityId) {
+  const connection = await getConnection(cityId);
+  connection.connect();
+  const query = `SELECT * FROM Data WHERE 6371 * 2 * ASIN(SQRT(POWER(SIN((? - abs(latitude)) * pi()/180 / 2), 2) + COS(?) * COS(abs(latitude) * pi()/180) * POWER(SIN((? - longitude) * pi()/180 / 2), 2))) <= ?`;
+  const queryParams = [lat0, lat0 * Math.PI/180, lon0, D];
+  const [rows, fields] = await connection.execute(query, queryParams);
+  connection.end();
+  return {rows, fields};
 }
 
 module.exports = radiusSearch;
+
+
+
+// SELECT *
+// FROM Data
+// WHERE 6371 * 2 * ASIN(SQRT(POWER(SIN((lat0 - abs(latitude)) * pi()/180 / 2), 2) + COS(lat0 * pi()/180) * COS(abs(latitude) * pi()/180) * POWER(SIN((lon0 - longitude) * pi()/180 / 2), 2))) <= D;
