@@ -9,6 +9,7 @@ const port = 8001;
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
 const citiesRouter = require('./routes/cities');
+const villageRouter = require('./routes/village');
 const fileUpload = require('express-fileupload');
 
 // defining the Express app
@@ -47,6 +48,14 @@ app.get('/', (req, res) => {
 
 app.use('/users', usersRouter);
 app.use('/cities', citiesRouter);
+app.use('/cities/:cityId/villages', function (req, res, next) {
+
+    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    next();
+}, villageRouter);
 app.use('/cities/:cityId/listings', function (req, res, next) {
 
     if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
