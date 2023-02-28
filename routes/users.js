@@ -259,4 +259,30 @@ router.post('/:id/imageUpload', async function(req, res, next) {
     };
 });
 
+router.get('/:id/listings', async function(req, res, next) {
+    const id = req.params.id;
+    if(isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+
+
+    try {
+        var cityUsers = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id })
+        let data = cityUsers.rows;
+        let allListings = [];
+        for (var element of data) {
+            var cityListings = await database.get(tables.LISTINGS_TABLE, { userId: element.cityUserId }, null, element.cityId)
+            allListings.push(cityListings.rows)
+        }        
+        
+        res.status(200).json({
+            status: "success",
+            data: allListings
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    };
+});
+
 module.exports = router;

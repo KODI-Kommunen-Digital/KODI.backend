@@ -6,14 +6,95 @@ const categories = require('../constants/categories');
 const AppError = require("../utils/appError");
 const radiusSearch = require('../services/handler')
 
+router.get('/', async function(req, res, next) {
+    const params = req.query;
+    const cityId = req.cityId;
+    const filters = {};
+
+    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+        return next(new AppError(`City is not present`, 404));
+    } else {
+        try {
+            var response = await database.get(tables.CITIES_TABLE, {id: cityId})
+            if (response.rows && response.rows.length == 0) {
+                return next(new AppError(`Invalid City '${cityId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    if (params.statusId) {
+        try {
+            var response = await database.get(tables.STATUS_TABLE, {id: params.statusId}, null, cityId)
+            let data = response.rows;
+            if (data && data.length == 0) {
+                return next(new AppError(`Invalid Status '${params.statusId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.statusId = payload.statusId
+    }
+
+    if (params.categoryId) {
+        try {
+            var response = await database.get(tables.CATEGORIES_TABLE, {id: params.categoryId}, null, cityId)
+            let data = response.rows;
+            if (data && data.length == 0) {
+                return next(new AppError(`Invalid Category '${params.categoryId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.categoryId = params.categoryId
+    }
+
+    if (params.userId) {
+        try {
+            var response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: params.userId, cityId}, null)
+            let data = response.rows;
+            if (data) {
+                filters.userId = data[0].cityUserId
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    database.get(tables.LISTINGS_TABLE, filters, null, cityId).then((response) => {
+        let data = response.rows;
+        res.status(200).json({
+            status: "success",
+            data: data,
+        });
+    }).catch((err) => {
+        return next(new AppError(err));
+    });
+});
 
 router.get('/:id', async function(req, res, next) {
     const id = req.params.id;
-    if(isNaN(Number(id)) || Number(id) <= 0) {
+    const cityId = req.cityId;
+    if (isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid ListingsId ${id}`, 404));
         return;
     }
-    database.get(tables.LISTINGS_TABLE, {id}, null, id).then((response) => {
+
+    if (isNaN(Number(id)) || Number(cityId) <= 0) {
+        return next(new AppError(`City is not present`, 404));
+    } else {
+        try {
+            var response = await database.get(tables.CITIES_TABLE, {id: cityId})
+            if (response.rows && response.rows.length == 0) {
+                return next(new AppError(`Invalid City '${cityId}' given`, 404));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    database.get(tables.LISTINGS_TABLE, {id}, null, cityId).then((response) => {
         let data = response.rows;
         if (!data || data.length == 0) {
             return next(new AppError(`Listings with id ${id} does not exist`, 404));
@@ -29,10 +110,10 @@ router.get('/:id', async function(req, res, next) {
 
 router.post('/', async function(req, res, next){
     var payload = req.body
+    var cityId = req.cityId;
     var insertionData = {}
     var user = {}
     var city = {}
-    var cityId = 1;
 
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400));
@@ -62,6 +143,20 @@ router.post('/', async function(req, res, next){
                 return next(new AppError(`Invalid User '${payload.userId}' given`, 400));
             }
             user = data[0];
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    if (!payload.villageId) {
+        return next(new AppError(`UserId is not present`, 400));  
+    } else {
+        try {
+            var response = await database.get(tables.VILLAGE_TABLE, {id: payload.villageId })
+            let data = response.rows;
+            if (data && data.length == 0) {
+                return next(new AppError(`Invalid Village id '${payload.villageId}' given`, 400));
+            }
         } catch (err) {
             return next(new AppError(err));
         }
@@ -113,6 +208,37 @@ router.post('/', async function(req, res, next){
         }
         insertionData.subCategoryId = payload.subCategoryId
     }
+
+    if (!payload.statusId) {
+        return next(new AppError(`Status is not present`, 400));
+    } else {
+        try {
+            var response = await database.get(tables.STATUS_TABLE, {id: payload.statusId}, null, cityId)
+            let data = response.rows;
+            if (data && data.length == 0) {
+                return next(new AppError(`Invalid Status '${payload.statusId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        insertionData.statusId = payload.statusId
+    }
+
+    if (!payload.sourceId){
+        return next(new AppError(`Source is not present`, 400));
+    } else {
+        try {
+            var response = await database.get(tables.SOURCE_TABLE, {id: payload.sourceId}, null, cityId)
+            let data = response.rows;
+            if (data && data.length == 0) {
+                return next(new AppError(`Invalid Source '${payload.sourceId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        insertionData.sourceId = payload.sourceId    
+    }
+
     if (!payload.address) {
         return next(new AppError(`Address is not present`, 400));
     } else {
@@ -157,35 +283,6 @@ router.post('/', async function(req, res, next){
         insertionData.logo = payload.logo
     }
 
-    if (!payload.statusId) {
-        return next(new AppError(`Status is not present`, 400));
-    } else {
-        try {
-            var response = await database.get(tables.STATUS_TABLE, {id: payload.statusId}, null, cityId)
-            let data = response.rows;
-            if (data && data.length == 0) {
-                return next(new AppError(`Invalid Status '${payload.statusId}' given`, 400));
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-        insertionData.statusId = payload.statusId
-    }
-
-    if (!payload.sourceId){
-        return next(new AppError(`Source is not present`, 400));
-    } else {
-        try {
-            var response = await database.get(tables.SOURCE_TABLE, {id: payload.sourceId}, null, cityId)
-            let data = response.rows;
-            if (data && data.length == 0) {
-                return next(new AppError(`Invalid Source '${payload.sourceId}' given`, 400));
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-        insertionData.sourceId = payload.sourceId    
-    }
 
     if (payload.longitude) {
         insertionData.longitude = payload.longitude
@@ -241,6 +338,7 @@ router.post('/', async function(req, res, next){
 
 router.patch('/:id', async function(req, res, next){
     const id = req.params.id;
+    var cityId = req.cityId;
     var payload = req.body
     var updationData = {}
 
@@ -249,7 +347,7 @@ router.patch('/:id', async function(req, res, next){
         return;
     }
 
-    var response = await database.get(tables.LISTINGS_TABLE, {id})
+    var response = await database.get(tables.LISTINGS_TABLE, {id}, null, cityId)
     if (!response.rows || response.rows.length == 0) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
@@ -326,7 +424,7 @@ router.patch('/:id', async function(req, res, next){
         updationData.endDate = payload.endDate
     }
 
-    database.update(tables.LISTINGS_TABLE, updationData, {id}).then((response) => {
+    database.update(tables.LISTINGS_TABLE, updationData, {id}, cityId).then((response) => {
         res.status(200).json({
             status: "success"
         });
@@ -343,7 +441,7 @@ router.delete('/:id', async function(req, res, next) {
         return;
     }
 
-    var response = await database.get(tables.LISTINGS_TABLE, {id})
+    var response = await database.get(tables.LISTINGS_TABLE, {id}, null, cityId)
     if (!response.rows || response.rows.length == 0) {
         return next(new AppError(`Listings with id ${id} does not exist`, 404));
     }

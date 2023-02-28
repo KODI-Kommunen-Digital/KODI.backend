@@ -5,7 +5,7 @@ module.exports = {
   CITIES_TABLE: 'cities',
   USER_CITYUSER_MAPPING_TABLE: 'user_cityuser_mapping',
   USER_LISTING_MAPPING_TABLE: 'user_listing_mapping',
-  VILLAGES_TABLE: 'villages',
+  VILLAGE_TABLE: 'village',
   CATEGORIES_TABLE: 'categories',
   STATUS_TABLE: 'status',
   SOURCE_TABLE: 'source',

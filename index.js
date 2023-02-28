@@ -47,7 +47,14 @@ app.get('/', (req, res) => {
 
 app.use('/users', usersRouter);
 app.use('/cities', citiesRouter);
-app.use('/listings', listingsRouter);
+app.use('/cities/:cityId/listings', function (req, res, next) {
+
+    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    next();
+}, listingsRouter);
 
 app.all("*", (req, res, next) => {
 next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
@@ -56,5 +63,5 @@ app.use(errorHandler);
 
 // starting the server
 app.listen(port, () => {
-    console.log('listening on port 8001');
+    console.log(`listening on port ${port}`);
 });
