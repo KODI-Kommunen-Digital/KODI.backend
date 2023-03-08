@@ -6,94 +6,49 @@ const storedProcedures = require('../constants/storedProcedures');
 const config = require('../config');
 const AppError = require("../utils/appError");
 const fs = require('fs');
+const axios = require('axios');
+const querystring = require('querystring');
+const authentication = require('../middlewares/authentication');
 
-router.get('/:id', async function(req, res, next) {
-    const id = req.params.id;
-    if(isNaN(Number(id)) || Number(id) <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
-        return;
+router.post('/login', async function(req, res, next) {
+    const keycloak = config.keycloak;
+    var payload = req.body
+    requestObject = {};
+    
+    if (payload.username) {
+        requestObject.username = payload.username
     }
 
-    database.get(tables.USER_TABLE, {id}).then((response) => {
-        let data = response.rows;
-        if (!data || data.length == 0) {
-            return next(new AppError(`User with id ${id} does not exist`, 404));
-        }
+    if (payload.password) {
+        requestObject.password = payload.password
+    }
+    requestObject.grant_type = "password"
+    requestObject.client_id = keycloak.client_id
+    requestObject.client_secret = keycloak.client_secret
+
+    var requestObject = querystring.stringify(requestObject);
+    try {
+        const keycloakResponse = await axios({
+            method: 'POST',
+            url:`${keycloak.domain}/realms/${keycloak.realm}/protocol/openid-connect/token`,
+            data: requestObject,
+            headers: config.headers});
+        const users = await database.get(tables.USER_TABLE, {username: requestObject.username});
+        const userData = users.rows[0];
+        const userMappings = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: userData.Id}, "cityId, cityUserId");
         res.status(200).json({
             status: "success",
-            data: data[0],
+            cityUsers: userMappings.rows,
+            userData,
+            accessToken: keycloakResponse.access_token,
+            refreshToken: keycloakResponse.refresh_token
         });
-    }).catch((err) => {
+    } catch (err) {
         return next(new AppError(err));
-    });
+    };
 });
 
-router.patch('/:id', async function(req, res, next) {
-    const id = req.params.id;
-    var payload = req.body
-    var updationData = {}
-
-    if(isNaN(Number(id)) || Number(id) <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
-        return;
-    }
-
-    var response = await database.get(tables.USER_TABLE, {id})
-    if (!response.rows || response.rows.length == 0) {
-        return next(new AppError(`User with id ${id} does not exist`, 404));
-    }
-    let currentUserData = response.rows[0];
-
-    if (payload.userName) {
-        return next(new AppError(`Username cannot be edited`, 400));
-    }
-
-    if (payload.email && payload.email != currentUserData.email) {
-        let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-        if (!re.test(payload.email)) {
-            return next(new AppError(`Invalid email given`, 400));
-        }
-        updationData.email = payload.email
-    }
-
-    if (payload.firstName) {
-        updationData.firstName = payload.firstName
-    }
-
-    if (payload.lastName) {
-        updationData.lastName = payload.lastName
-    }
-
-    if (payload.email) {
-        updationData.email = payload.email
-    }
-
-    if (payload.phoneNumber) {
-        updationData.website = payload.website
-    }
-
-    if (payload.image) {
-        updationData.website = payload.website
-    }
-
-    if (payload.description) {
-        updationData.description = payload.description
-    }
-
-    if (payload.website) {
-        updationData.website = payload.website
-    }
-
-    database.update(tables.USER_TABLE, updationData, {id}).then((response) => {
-        res.status(200).json({
-            status: "success"
-        });
-    }).catch((err) => {
-        return next(new AppError(err));
-    });
-});
-
-router.post('/', async function(req, res, next) {
+router.post('/register', async function(req, res, next) {
     var payload = req.body
     var insertionData = {}
     if (!payload) {
@@ -187,7 +142,93 @@ router.post('/', async function(req, res, next) {
     });
 });
 
-router.delete('/:id', async function(req, res, next) {
+router.get('/:id', authentication, async function(req, res, next) {
+    const id = req.params.id;
+    if(isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+
+    database.get(tables.USER_TABLE, {id}).then((response) => {
+        let data = response.rows;
+        if (!data || data.length == 0) {
+            return next(new AppError(`User with id ${id} does not exist`, 404));
+        }
+        res.status(200).json({
+            status: "success",
+            data: data[0],
+        });
+    }).catch((err) => {
+        return next(new AppError(err));
+    });
+});
+
+router.patch('/:id', authentication, async function(req, res, next) {
+    const id = req.params.id;
+    var payload = req.body
+    var updationData = {}
+
+    if(isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+
+    var response = await database.get(tables.USER_TABLE, {id})
+    if (!response.rows || response.rows.length == 0) {
+        return next(new AppError(`User with id ${id} does not exist`, 404));
+    }
+    let currentUserData = response.rows[0];
+
+    if (payload.userName) {
+        return next(new AppError(`Username cannot be edited`, 400));
+    }
+
+    if (payload.email && payload.email != currentUserData.email) {
+        let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        if (!re.test(payload.email)) {
+            return next(new AppError(`Invalid email given`, 400));
+        }
+        updationData.email = payload.email
+    }
+
+    if (payload.firstName) {
+        updationData.firstName = payload.firstName
+    }
+
+    if (payload.lastName) {
+        updationData.lastName = payload.lastName
+    }
+
+    if (payload.email) {
+        updationData.email = payload.email
+    }
+
+    if (payload.phoneNumber) {
+        updationData.website = payload.website
+    }
+
+    if (payload.image) {
+        updationData.website = payload.website
+    }
+
+    if (payload.description) {
+        updationData.description = payload.description
+    }
+
+    if (payload.website) {
+        updationData.website = payload.website
+    }
+
+    database.update(tables.USER_TABLE, updationData, {id}).then((response) => {
+        res.status(200).json({
+            status: "success"
+        });
+    }).catch((err) => {
+        return next(new AppError(err));
+    });
+});
+
+router.delete('/:id', authentication, async function(req, res, next) {
     const id = req.params.id;
 
     if(isNaN(Number(id)) || Number(id) <= 0) {
@@ -215,7 +256,7 @@ router.delete('/:id', async function(req, res, next) {
     };
 });
 
-router.post('/:id/imageUpload', async function(req, res, next) {
+router.post('/:id/imageUpload', authentication, async function(req, res, next) {
     const id = req.params.id;
 
     if(isNaN(Number(id)) || Number(id) <= 0) {
@@ -259,7 +300,7 @@ router.post('/:id/imageUpload', async function(req, res, next) {
     };
 });
 
-router.get('/:id/listings', async function(req, res, next) {
+router.get('/:id/listings', authentication, async function(req, res, next) {
     const id = req.params.id;
     if(isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid UserId ${id}`, 404));
