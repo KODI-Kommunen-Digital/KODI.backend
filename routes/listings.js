@@ -4,8 +4,8 @@ const database = require('../services/database');
 const tables = require('../constants/tableNames');
 const categories = require('../constants/categories');
 const AppError = require("../utils/appError");
-const radiusSearch = require('../services/handler');
 const authentication = require('../middlewares/authentication');
+//const radiusSearch = require('../services/handler')
 
 router.get('/', async function(req, res, next) {
     const params = req.query;

@@ -77,6 +77,8 @@ async function getConnection(cityId) {
     var elementList = element.split("=")
     cityConnectionConfig[elementList[0]] = elementList[1]
   });
+  cityConnectionConfig["host"] = cityConnectionConfig["server"]
+  delete cityConnectionConfig.server
   coreConnection.end();
   const cityConnection = await mysql.createConnection(cityConnectionConfig); 
   return cityConnection;
