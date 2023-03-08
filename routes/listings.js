@@ -4,6 +4,7 @@ const database = require('../services/database');
 const tables = require('../constants/tableNames');
 const categories = require('../constants/categories');
 const AppError = require("../utils/appError");
+const authentication = require('../middlewares/authentication');
 //const radiusSearch = require('../services/handler')
 
 router.get('/', async function(req, res, next) {
@@ -108,7 +109,7 @@ router.get('/:id', async function(req, res, next) {
     });
 });
 
-router.post('/', async function(req, res, next){
+router.post('/', authentication, async function(req, res, next){
     var payload = req.body
     var cityId = req.cityId;
     var insertionData = {}
@@ -336,7 +337,7 @@ router.post('/', async function(req, res, next){
 
 })
 
-router.patch('/:id', async function(req, res, next){
+router.patch('/:id', authentication, async function(req, res, next){
     const id = req.params.id;
     var cityId = req.cityId;
     var payload = req.body
@@ -433,7 +434,7 @@ router.patch('/:id', async function(req, res, next){
     });
 })
 
-router.delete('/:id', async function(req, res, next) {
+router.delete('/:id', authentication, async function(req, res, next) {
     const id = req.params.id;
 
     if(isNaN(Number(id)) || Number(id) <= 0) {

@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const AppError = require("./utils/appError");
 const errorHandler = require("./utils/errorHandler");
-const port = 8001;
+const config = require("./config");
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
 const citiesRouter = require('./routes/cities');
@@ -41,7 +41,6 @@ app.use(
     })
 );
 
-// defining an endpoint to return all ads
 app.get('/', (req, res) => {
     res.send(message);
 });
@@ -71,6 +70,6 @@ next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 app.use(errorHandler);
 
 // starting the server
-app.listen(port, () => {
-    console.log(`listening on port ${port}`);
+app.listen(config.port, () => {
+    console.log(`listening on port ${config.port}`);
 });
