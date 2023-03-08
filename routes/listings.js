@@ -150,10 +150,10 @@ router.post('/', authentication, async function(req, res, next){
     }
 
     if (!payload.villageId) {
-        return next(new AppError(`UserId is not present`, 400));  
+        return next(new AppError(`Village Id is not present`, 400));  
     } else {
         try {
-            var response = await database.get(tables.VILLAGE_TABLE, {id: payload.villageId })
+            var response = await database.get(tables.VILLAGE_TABLE, {id: payload.villageId }, null, cityId)
             let data = response.rows;
             if (data && data.length == 0) {
                 return next(new AppError(`Invalid Village id '${payload.villageId}' given`, 400));

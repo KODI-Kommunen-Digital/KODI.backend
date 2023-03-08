@@ -33,9 +33,9 @@ router.post('/login', async function(req, res, next) {
             url:`${keycloak.domain}/realms/${keycloak.realm}/protocol/openid-connect/token`,
             data: requestObject,
             headers: config.headers});
-        const users = await database.get(tables.USER_TABLE, {username: requestObject.username});
+        const users = await database.get(tables.USER_TABLE, {username: payload.username});
         const userData = users.rows[0];
-        const userMappings = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: userData.Id}, "cityId, cityUserId");
+        const userMappings = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: userData.id}, "cityId, cityUserId");
         res.status(200).json({
             status: "success",
             cityUsers: userMappings.rows,
