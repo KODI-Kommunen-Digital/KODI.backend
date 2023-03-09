@@ -40,8 +40,8 @@ router.post('/login', async function(req, res, next) {
             status: "success",
             cityUsers: userMappings.rows,
             userData,
-            accessToken: keycloakResponse.access_token,
-            refreshToken: keycloakResponse.refresh_token
+            accessToken: keycloakResponse.data.access_token,
+            refreshToken: keycloakResponse.data.refresh_token
         });
     } catch (err) {
         return next(new AppError(err));
