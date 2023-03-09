@@ -55,19 +55,19 @@ router.post('/register', async function(req, res, next) {
         return next(new AppError(`Empty payload sent`, 400));
     }
 
-    if (!payload.userName) {
+    if (!payload.username) {
         return next(new AppError(`Username is not present`, 400));
     } else {
         try {
-            var response = await database.get(tables.USER_TABLE, {userName: payload.userName})
+            var response = await database.get(tables.USER_TABLE, {username: payload.username})
             let data = response.rows;
             if (data && data.length > 0) {
-                return next(new AppError(`User with username '${payload.userName}' already exists`, 400));
+                return next(new AppError(`User with username '${payload.username}' already exists`, 400));
             }
         } catch (err) {
             return next(new AppError(err));
         }
-        insertionData.userName = payload.userName
+        insertionData.username = payload.username
     }
 
     if (!payload.email) {
@@ -100,16 +100,16 @@ router.post('/register', async function(req, res, next) {
         insertionData.role = payload.role
     }
 
-    if (!payload.firstName) {
+    if (!payload.firstname) {
         return next(new AppError(`Firstname is not present`, 400));
     } else {
-        insertionData.firstName = payload.firstName
+        insertionData.firstname = payload.firstname
     }
 
-    if (!payload.lastName) {
+    if (!payload.lasttname) {
         return next(new AppError(`Lastname is not present`, 400));
     } else {
-        insertionData.lastName = payload.lastName
+        insertionData.lasttname = payload.lasttname
     }
 
     if (payload.email) {
@@ -164,7 +164,7 @@ router.get('/:id', authentication, async function(req, res, next) {
 });
 
 router.patch('/:id', authentication, async function(req, res, next) {
-    const id = req.params.id;
+    var id = req.params.id;
     var payload = req.body
     var updationData = {}
 
@@ -172,14 +172,14 @@ router.patch('/:id', authentication, async function(req, res, next) {
         next(new AppError(`Invalid UserId ${id}`, 404));
         return;
     }
-
+    id = Number(id);
     var response = await database.get(tables.USER_TABLE, {id})
     if (!response.rows || response.rows.length == 0) {
         return next(new AppError(`User with id ${id} does not exist`, 404));
     }
     let currentUserData = response.rows[0];
 
-    if (payload.userName) {
+    if (payload.username != currentUserData.username) {
         return next(new AppError(`Username cannot be edited`, 400));
     }
 
@@ -191,12 +191,12 @@ router.patch('/:id', authentication, async function(req, res, next) {
         updationData.email = payload.email
     }
 
-    if (payload.firstName) {
-        updationData.firstName = payload.firstName
+    if (payload.firstname) {
+        updationData.firstname = payload.firstname
     }
 
-    if (payload.lastName) {
-        updationData.lastName = payload.lastName
+    if (payload.lastname) {
+        updationData.lastname = payload.lastname
     }
 
     if (payload.email) {
@@ -204,7 +204,7 @@ router.patch('/:id', authentication, async function(req, res, next) {
     }
 
     if (payload.phoneNumber) {
-        updationData.website = payload.website
+        updationData.phoneNumber = payload.phoneNumber
     }
 
     if (payload.image) {
