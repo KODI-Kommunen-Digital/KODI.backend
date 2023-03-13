@@ -192,6 +192,10 @@ router.patch('/:id', authentication, async function(req, res, next) {
     }
     id = Number(id);
 
+    if (id != req.userId) {
+        return next(new AppError(`You are not allowed to access this resource`, 403));
+    }
+
     var response = await database.get(tables.USER_TABLE, {id})
     if (!response.rows || response.rows.length == 0) {
         return next(new AppError(`User with id ${id} does not exist`, 404));
@@ -254,6 +258,10 @@ router.delete('/:id', authentication, async function(req, res, next) {
     if(isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid UserId ${id}`, 404));
         return;
+    }
+
+    if (id != req.userId) {
+        return next(new AppError(`You are not allowed to access this resource`, 403));
     }
 
     try {
@@ -327,6 +335,9 @@ router.get('/:id/listings', authentication, async function(req, res, next) {
         return;
     }
 
+    if (id != req.userId) {
+        return next(new AppError(`You are not allowed to access this resource`, 403));
+    }
 
     try {
         var response = await database.get(tables.USER_TABLE, { id })

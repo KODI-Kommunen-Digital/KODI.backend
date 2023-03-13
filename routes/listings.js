@@ -115,6 +115,7 @@ router.post('/', authentication, async function(req, res, next){
     var insertionData = {}
     var user = {}
     var city = {}
+    var userId = req.userId
 
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400));
@@ -134,19 +135,15 @@ router.post('/', authentication, async function(req, res, next){
         }
     }
 
-    if (!payload.userId) {
-        return next(new AppError(`UserId is not present`, 400));  
-    } else {
-        try {
-            var response = await database.get(tables.USER_TABLE, {id: payload.userId })
-            let data = response.rows;
-            if (data && data.length == 0) {
-                return next(new AppError(`Invalid User '${payload.userId}' given`, 400));
-            }
-            user = data[0];
-        } catch (err) {
-            return next(new AppError(err));
+    try {
+        var response = await database.get(tables.USER_TABLE, {id: userId })
+        let data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`Invalid User '${userId}' given`, 400));
         }
+        user = data[0];
+    } catch (err) {
+        return next(new AppError(err));
     }
 
     if (!payload.villageId) {
@@ -348,12 +345,21 @@ router.patch('/:id', authentication, async function(req, res, next){
         return;
     }
 
-    var response = await database.get(tables.LISTINGS_TABLE, {id}, null, cityId)
+    var response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: req.userId, cityId}, "cityUserId");
+    if (!response.rows || response.rows.length == 0) {
+        return next(new AppError(`You are not allowed to access this resource`, 403));
+    }
+    var cityUserId = response.rows[0].cityUserId;
+
+    response = await database.get(tables.LISTINGS_TABLE, {id}, null, cityId)
     if (!response.rows || response.rows.length == 0) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
     let currentListingData = response.rows[0];
 
+    if (currentListingData.userId != cityUserId) {
+        return next(new AppError(`You are not allowed to access this resource`, 403));
+    }
     if (payload.title) {
         updationData.title = payload.title
     }
@@ -442,9 +448,20 @@ router.delete('/:id', authentication, async function(req, res, next) {
         return;
     }
 
-    var response = await database.get(tables.LISTINGS_TABLE, {id}, null, cityId)
+    var response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: req.userId, cityId: req.cityId}, "cityUserId");
     if (!response.rows || response.rows.length == 0) {
-        return next(new AppError(`Listings with id ${id} does not exist`, 404));
+        return next(new AppError(`You are not allowed to access this resource`, 403));
+    }
+    var cityUserId = response.rows[0].cityUserId;
+
+    response = await database.get(tables.LISTINGS_TABLE, {id}, null, cityId)
+    if (!response.rows || response.rows.length == 0) {
+        return next(new AppError(`Listing with id ${id} does not exist`, 404));
+    }
+    let currentListingData = response.rows[0];
+
+    if (currentListingData.userId != cityUserId) {
+        return next(new AppError(`You are not allowed to access this resource`, 403));
     }
 
     database.deleteData(tables.LISTINGS_TABLE,{id}).then((response) => {
