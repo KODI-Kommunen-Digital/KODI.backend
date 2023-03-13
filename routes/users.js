@@ -5,43 +5,55 @@ const tables = require('../constants/tableNames');
 const storedProcedures = require('../constants/storedProcedures');
 const config = require('../config');
 const AppError = require("../utils/appError");
+const tokenUtil = require('../utils/token');
 const fs = require('fs');
-const axios = require('axios');
-const querystring = require('querystring');
 const authentication = require('../middlewares/authentication');
+const bcrypt = require('bcrypt');
 
 router.post('/login', async function(req, res, next) {
-    const keycloak = config.keycloak;
-    var payload = req.body
+    var payload = req.body;
+    var sourceAddress = req.headers['x-forwarded-for']?.split(',').shift() || req.socket?.remoteAddress;
     requestObject = {};
     
-    if (payload.username) {
-        requestObject.username = payload.username
+    if (!payload) {
+        return next(new AppError(`Empty payload sent`, 400));
     }
 
-    if (payload.password) {
-        requestObject.password = payload.password
+    if (!payload.username) {
+        return next(new AppError(`Username is not present`, 400));
     }
-    requestObject.grant_type = "password"
-    requestObject.client_id = keycloak.client_id
-    requestObject.client_secret = keycloak.client_secret
 
-    var requestObject = querystring.stringify(requestObject);
+    if (!payload.password) {
+        return next(new AppError(`Password is not present`, 400));
+    }
+    
     try {
-        const keycloakResponse = await axios({
-            method: 'POST',
-            url:`${keycloak.domain}/realms/${keycloak.realm}/protocol/openid-connect/token`,
-            data: requestObject,
-            headers: config.headers});
         const users = await database.get(tables.USER_TABLE, {username: payload.username});
+        if (!users || !users.rows || users.rows.length == 0) {
+            return next(new AppError(`Invalid username`, 401));
+        }
+
+        const correctPassword = await bcrypt.compare(payload.password, hashedPassword)
+        if (!correctPassword) {
+            return next(new AppError(`Invalid password`, 401));
+        }
+
         const userData = users.rows[0];
         const userMappings = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: userData.id}, "cityId, cityUserId");
+        var tokens = tokenUtil.generator({userId: userData.id, roleId: userData.roleId});
+        var insertionData = {
+            userId: userData.id,
+            sourceAddress,
+            refreshToken: tokens.refreshToken
+        }
+
+        await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
         res.status(200).json({
             status: "success",
             cityUsers: userMappings.rows,
-            userData,
-            accessToken: keycloakResponse.access_token,
-            refreshToken: keycloakResponse.refresh_token
+            userId: userData.id,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken
         });
     } catch (err) {
         return next(new AppError(err));
@@ -106,10 +118,16 @@ router.post('/register', async function(req, res, next) {
         insertionData.firstname = payload.firstname
     }
 
-    if (!payload.lasttname) {
+    if (!payload.lastname) {
         return next(new AppError(`Lastname is not present`, 400));
     } else {
-        insertionData.lasttname = payload.lasttname
+        insertionData.lastname = payload.lastname
+    }
+
+    if (!payload.password) {
+        return next(new AppError(`Password is not present`, 400));
+    } else {
+        insertionData.password = await bcrypt.hash(payload.password, config.salt);
     }
 
     if (payload.email) {
@@ -173,10 +191,12 @@ router.patch('/:id', authentication, async function(req, res, next) {
         return;
     }
     id = Number(id);
+
     var response = await database.get(tables.USER_TABLE, {id})
     if (!response.rows || response.rows.length == 0) {
         return next(new AppError(`User with id ${id} does not exist`, 404));
     }
+
     let currentUserData = response.rows[0];
 
     if (payload.username != currentUserData.username) {
@@ -309,8 +329,14 @@ router.get('/:id/listings', authentication, async function(req, res, next) {
 
 
     try {
+        var response = await database.get(tables.USER_TABLE, { id })
+        var data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`User with id ${id} does not exist`, 404));
+        }
+
         var cityUsers = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id })
-        let data = cityUsers.rows;
+        data = cityUsers.rows;
         let allListings = [];
         for (var element of data) {
             var cityListings = await database.get(tables.LISTINGS_TABLE, { userId: element.cityUserId }, null, element.cityId)
@@ -323,6 +349,59 @@ router.get('/:id/listings', authentication, async function(req, res, next) {
         });
     } catch (err) {
         return next(new AppError(err));
+    };
+});
+
+router.post('/:id/refresh', async function(req, res, next) {
+    const userId = req.params.id;
+    var sourceAddress = req.headers['x-forwarded-for']?.split(',').shift() || req.socket?.remoteAddress;
+
+    if(isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid UserId ${userId}`, 404));
+        return;
+    }
+        
+    try {
+        var refreshToken = req.body.refreshToken
+        if (!refreshToken) {
+            return next(new AppError(`Refresh token not present`, 400));
+        }
+
+        const decodedToken = tokenUtil.verify(refreshToken, config.authorization.refresh_public, next);
+        if (decodedToken.userId != userId) {
+            return next (new AppError(`Invalid refresh token`, 403));
+        }
+
+        var response = await database.get(tables.REFRESH_TOKENS_TABLE, { refreshToken })
+        var data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`Invalid refresh token`, 400));
+        }
+
+        if (data[0].userId != userId) {
+            return next(new AppError(`Invalid refresh token`, 400));
+        }
+        const newTokens = tokenUtil.generator({userId: decodedToken.userId, roleId: decodedToken.roleId});
+        var insertionData = {
+            userId,
+            sourceAddress,
+            refreshToken: newTokens.refreshToken
+        }
+        await database.deleteData(tables.REFRESH_TOKENS_TABLE, { id: data[0].id })
+        await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
+
+        res.status(200).json({
+            status: "success",
+            accessToken: newTokens.accessToken,
+            refreshToken: newTokens.refreshToken
+        });
+    }
+    catch (error) {
+        if (error.name == 'TokenExpiredError') {
+            await database.deleteData(tables.REFRESH_TOKENS_TABLE, { token: refreshToken });
+            return next(new AppError(`Unauthorized! Token was expired!`, 401));
+        }
+        return next(new AppError(error));
     };
 });
 

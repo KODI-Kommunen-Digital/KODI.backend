@@ -9,5 +9,6 @@ module.exports = {
   CATEGORIES_TABLE: 'categories',
   STATUS_TABLE: 'status',
   SOURCE_TABLE: 'source',
-  SUBCATEGORIES_TABLE: 'subcategories'
+  SUBCATEGORIES_TABLE: 'subcategories',
+  REFRESH_TOKENS_TABLE: 'refreshTokens'
 }
