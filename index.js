@@ -73,3 +73,8 @@ app.use(errorHandler);
 app.listen(config.port, () => {
     console.log(`listening on port ${config.port}`);
 });
+
+process.on('uncaughtException', function (err) {
+    console.error(`${(new Date).toUTCString()}: UncaughtException: ${err.message}\n${err.stack}`);
+    process.exit(1)
+  })

@@ -46,10 +46,10 @@ async function deleteData(table, params, cityId) {
   if (params) {
     query += "WHERE "
     for (var key in params) {
-      query += `${key} = ?,`
+      query += `${key} = ? AND `
       queryParams.push(params[key])
     }
-    query = query.slice(0, -1);
+    query = query.slice(0, -4);
   }
   await connection.execute(query, queryParams);
   connection.end();
