@@ -3,15 +3,19 @@ const router = express.Router();
 const database = require('../services/database');
 const tables = require('../constants/tableNames');
 const categories = require('../constants/categories');
+const supportedLanguages = require('../constants/supportedLanguages');
 const AppError = require("../utils/appError");
 const authentication = require('../middlewares/authentication');
+const config = require('../config');
+const deepl = require('deepl-node');
 //const radiusSearch = require('../services/handler')
 
 router.get('/', async function(req, res, next) {
     const params = req.query;
     const cityId = req.cityId;
     const filters = {};
-
+    const translator = new deepl.Translator(config.deeplAuthKey);
+    var listings = []
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
         return next(new AppError(`City is not present`, 404));
     } else {
@@ -23,6 +27,16 @@ router.get('/', async function(req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
+    }
+
+    var pageNo = params.pageNo || 1;
+    var pageSize = params.pageSize || 10;
+    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
+        return next(new AppError(`Please enter a positive integer for pageNo`, 400));
+    }
+
+    if (isNaN(Number(pageSize)) || Number(pageSize) <= 0 || Number(pageSize) > 20) {
+        return next(new AppError(`Please enter a positive integer less than or equal to 20 for pageSize`, 400));
     }
 
     if (params.statusId) {
@@ -62,15 +76,41 @@ router.get('/', async function(req, res, next) {
             return next(new AppError(err));
         }
     }
-
-    database.get(tables.LISTINGS_TABLE, filters, null, cityId).then((response) => {
-        let data = response.rows;
-        res.status(200).json({
-            status: "success",
-            data: data,
-        });
-    }).catch((err) => {
+    
+    try {
+        var response = await database.get(tables.LISTINGS_TABLE, filters, null, cityId, pageNo, pageSize)
+        listings = response.rows;
+    } catch (err) {
         return next(new AppError(err));
+    }
+
+    var noOfListings = listings.length
+    if (noOfListings > 0 && params.translate && supportedLanguages.includes(params.translate)) {
+        try {
+            var textToTranslate = []
+            listings.forEach((listing) => {
+                textToTranslate.push(listing.title)
+                textToTranslate.push(listing.description)
+            });
+            const translations = await translator.translateText(textToTranslate, null, params.translate);
+            for (var i = 0; i < noOfListings; i++) {
+                if (translations[2*i].detectedSourceLang != params.translate.slice(0, 2)) {
+                    listings[i].titleLanguage = translations[2*i].detectedSourceLang
+                    listings[i].titleTranslation = translations[2*i].text
+                }
+                if (translations[2*i+1].detectedSourceLang != params.translate.slice(0, 2)) {
+                    listings[i].descriptionLanguage = translations[2*i+1].detectedSourceLang
+                    listings[i].descriptionTranslation = translations[2*i+1].text
+                }
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    res.status(200).json({
+        status: "success",
+        data: listings
     });
 });
 

@@ -3,18 +3,21 @@ const config = require('../config');
 const tables = require('../constants/tableNames');
 
 // In all these functions, if cityId is given, we connect to that city's database. Else, we connect to the core database
-async function get(table, params, columns, cityId) {
+async function get(table, params, columns, cityId, pageNo, pageSize) {
   const connection = await getConnection(cityId); 
   connection.connect();
   let query = `SELECT ${columns ? columns : "*"} FROM ${table} `;
   let queryParams = [];
-  if (params) {
+  if (params && Object.keys(params).length > 0) {
     query += "WHERE "
     for (var key in params) {
       query += `${key} = ? AND `
       queryParams.push(params[key])
     }
     query = query.slice(0, -4);
+  }
+  if (pageNo && pageSize) {
+    query += ` LIMIT ${pageNo -1}, ${pageSize}`
   }
   let [rows, fields] = await connection.execute(query, queryParams);
   connection.end();

@@ -15,7 +15,8 @@ const config = {
     authExpiration: 30,
     refreshExpiration: 300
   },
-  salt: 10
+  salt: 10,
+  deeplAuthKey: "63c95e09-7f03-e88b-5e82-e056912f142b:fx"
 };
 
 module.exports = config;
