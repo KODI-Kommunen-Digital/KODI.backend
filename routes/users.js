@@ -33,12 +33,12 @@ router.post('/login', async function(req, res, next) {
             return next(new AppError(`Invalid username`, 401));
         }
 
-        const correctPassword = await bcrypt.compare(payload.password, hashedPassword)
+        const userData = users.rows[0];
+        const correctPassword = await bcrypt.compare(payload.password, userData.password)
         if (!correctPassword) {
             return next(new AppError(`Invalid password`, 401));
         }
 
-        const userData = users.rows[0];
         const userMappings = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {userId: userData.id}, "cityId, cityUserId");
         var tokens = tokenUtil.generator({userId: userData.id, roleId: userData.roleId});
         var insertionData = {
