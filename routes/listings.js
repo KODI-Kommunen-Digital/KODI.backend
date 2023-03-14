@@ -202,6 +202,8 @@ router.post('/', authentication, async function(req, res, next){
 
     if (!payload.title) {
         return next(new AppError(`Title is not present`, 400));
+    } else if (payload.title.length > 255) {
+        return next(new AppError(`Length of Title cannot exceed 255 characters`, 400));
     } else {
         insertionData.title = payload.title
     }
@@ -210,7 +212,12 @@ router.post('/', authentication, async function(req, res, next){
     } else {
         insertionData.place = payload.place
     }
-    if (payload.description) {
+
+    if (!payload.description) {
+        return next(new AppError(`Description is not present`, 400));
+    } else if (payload.description.length > 10000) {
+        return next(new AppError(`Length of Description cannot exceed 10000 characters`, 400));
+    } else {
         insertionData.description = payload.description
     }
     if (payload.socialMedia) {
