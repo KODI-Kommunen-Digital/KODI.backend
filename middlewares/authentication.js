@@ -1,5 +1,4 @@
-const jwtmod = require('jsonwebtoken');
-const config = require('../config');
+require('dotenv').config()
 const AppError = require("../utils/appError");
 const tokenUtil = require('../utils/token');
 
@@ -19,7 +18,7 @@ var authentication = async function (req, res, next) {
     }
     
     try {
-        const decodedToken = tokenUtil.verify(token, config.authorization.access_public);
+        const decodedToken = tokenUtil.verify(token, process.env.ACCESS_PUBLIC);
         req.userId = decodedToken.userId;
         req.roleId = decodedToken.roleId;
     }

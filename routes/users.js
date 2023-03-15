@@ -3,7 +3,6 @@ const router = express.Router();
 const database = require('../services/database');
 const tables = require('../constants/tableNames');
 const storedProcedures = require('../constants/storedProcedures');
-const config = require('../config');
 const AppError = require("../utils/appError");
 const tokenUtil = require('../utils/token');
 const fs = require('fs');
@@ -127,7 +126,7 @@ router.post('/register', async function(req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400));
     } else {
-        insertionData.password = await bcrypt.hash(payload.password, config.salt);
+        insertionData.password = bcrypt.hash(payload.password, process.env.SALT);
     }
 
     if (payload.email) {
@@ -219,6 +218,13 @@ router.patch('/:id', authentication, async function(req, res, next) {
         updationData.firstname = payload.firstname
     }
 
+    if (payload.currentPassword && payload.newPassword) {
+        if (!bcrypt.compare(payload.currentPassword, currentUserData.password)) {
+            return next(new AppError(`Incorrect current password given`, 401));
+        }
+        updationData.password = bcrypt.hash(payload.newPassword, process.env.SALT);
+    }
+
     if (payload.lastname) {
         updationData.lastname = payload.lastname
     }
@@ -271,7 +277,7 @@ router.delete('/:id', authentication, async function(req, res, next) {
             return next(new AppError(`User with id ${id} does not exist`, 404));
         }
 
-        var filePath = `./${config.imagePath}/user_${id}`
+        var filePath = `./${process.env.imagePath}/user_${id}`
         fs.rmSync(filePath, { recursive: true, force: true });
 
         var response = await database.callStoredProcedure(storedProcedures.DELETE_USER, [ id ])  
@@ -311,7 +317,7 @@ router.post('/:id/imageUpload', authentication, async function(req, res, next) {
             return next(new AppError(`User with id ${id} does not exist`, 404));
         }
 
-        var filePath = `./${config.imagePath}/user_${id}`
+        var filePath = `./${process.env.imagePath}/user_${id}`
         var fileName = `user_${id}_${Date.now()}.jpg`
 
         if (!fs.existsSync(filePath)){
@@ -378,7 +384,7 @@ router.post('/:id/refresh', async function(req, res, next) {
             return next(new AppError(`Refresh token not present`, 400));
         }
 
-        const decodedToken = tokenUtil.verify(refreshToken, config.authorization.refresh_public, next);
+        const decodedToken = tokenUtil.verify(refreshToken, process.env.REFRESH_PUBLIC, next);
         if (decodedToken.userId != userId) {
             return next (new AppError(`Invalid refresh token`, 403));
         }

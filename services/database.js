@@ -1,5 +1,4 @@
 let mysql = require('mysql2/promise');
-const config = require('../config');
 const tables = require('../constants/tableNames');
 
 // In all these functions, if cityId is given, we connect to that city's database. Else, we connect to the core database
@@ -63,14 +62,14 @@ async function callStoredProcedure(spName, parameters) {
   if (parameters && parameters.length > 0) {
     query += `(${Array(parameters.length).fill('?')})`
   }
-  const connection = await mysql.createConnection(config.db); 
+  const connection = await mysql.createConnection(process.env.DATABASE_DATABASE); 
   connection.connect();
   await connection.query(query, parameters);
   connection.end();
 }
 
 async function getConnection(cityId) {
-  const coreConnection = await mysql.createConnection(config.db); 
+  const coreConnection = await mysql.createConnection(process.env.DATABASE_DATABASE); 
   if (!cityId)
     return coreConnection;
   var response = await get(tables.CITIES_TABLE, {id: cityId});

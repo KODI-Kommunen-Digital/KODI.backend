@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -5,7 +6,6 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const AppError = require("./utils/appError");
 const errorHandler = require("./utils/errorHandler");
-const config = require("./config");
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
 const citiesRouter = require('./routes/cities');
@@ -70,8 +70,8 @@ next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 app.use(errorHandler);
 
 // starting the server
-app.listen(config.port, () => {
-    console.log(`listening on port ${config.port}`);
+app.listen(process.env.PORT, () => {
+    console.log(`listening on port ${process.env.PORT}`);
 });
 
 process.on('uncaughtException', function (err) {

@@ -6,7 +6,6 @@ const categories = require('../constants/categories');
 const supportedLanguages = require('../constants/supportedLanguages');
 const AppError = require("../utils/appError");
 const authentication = require('../middlewares/authentication');
-const config = require('../config');
 const deepl = require('deepl-node');
 //const radiusSearch = require('../services/handler')
 
@@ -14,7 +13,7 @@ router.get('/', async function(req, res, next) {
     const params = req.query;
     const cityId = req.cityId;
     const filters = {};
-    const translator = new deepl.Translator(config.deeplAuthKey);
+    const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
     var listings = []
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
         return next(new AppError(`City is not present`, 404));
