@@ -35,6 +35,10 @@ router.post('/login', async function(req, res, next) {
         }
 
         const userData = users.rows[0];
+        if (!users.emailVerified) {
+            return next(new AppError(`Verification email sent to you email. Please verify first before trying to login.`, 401));
+        }
+        
         const correctPassword = await bcrypt.compare(payload.password, userData.password)
         if (!correctPassword) {
             return next(new AppError(`Invalid password`, 401));
@@ -524,6 +528,100 @@ router.post('/resetPassword', async function(req, res, next) {
 
         const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
         var {subject, body} = passwordResetDone(user.firstname, user.lastname)
+        await sendMail(user.email, subject, null, body)
+        res.status(200).json({
+            status: "success"
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    };
+});
+
+router.post('/sendVerificationEmail', async function(req, res, next) {
+    const email = req.body.email;
+    const language = req.body.language || 'de';
+
+    if (!email) {
+        return next(new AppError(`Email not present`, 400));
+    }
+
+    if (language != "en" && language != "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    }
+
+    try {
+
+        var response = await database.get(tables.USER_TABLE, { email })
+        var data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`Email ${email} does not exist`, 400));
+        }
+        var user = data[0];
+        if (user.emailVerified) {
+            return next(new AppError(`Email already verified`, 400));
+        }
+
+        await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, { userId: user.id })
+        
+        var now = new Date();
+        now.setHours(now.getHours() + 24)
+        var token = crypto.randomBytes(32).toString("hex");
+        var tokenData = { userId: user.id, token, expiresAt: now.toISOString().slice(0, 19).replace('T', ' ') }
+        await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData)
+        const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
+        var {subject, body} = verifyEmail(user.firstname, user.lastname, token, user.id, language)
+        await sendMail(user.email, subject, null, body)
+        res.status(200).json({
+            status: "success"
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    };
+});
+
+router.post('/verifyEmail', async function(req, res, next) {
+    const userId = req.body.userId;
+    const language = req.body.language || 'de';
+    const token = req.body.token;
+
+    if (!userId) {
+        return next(new AppError(`Username not present`, 400));
+    }
+
+    if (!token) {
+        return next(new AppError(`Token not present`, 400));
+    }
+
+    if (language != "en" && language != "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    }
+
+    try {
+        var response = await database.get(tables.USER_TABLE, { id: userId })
+        var data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`UserId ${userId} does not exist`, 400));
+        }
+        var user = data[0];
+        if (user.emailVerified) {
+            return next(new AppError(`Email already verified`, 400));
+        }
+
+        response = await database.get(tables.VERIFICATION_TOKENS_TABLE, { userId, token })
+        data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`Invalid data sent`, 400));
+        }
+        var tokenData = data[0];
+        await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, { userId, token })
+        if (tokenData.expiresAt < new Date().toISOString()) {
+            return next(new AppError(`Token Expired, send verification mail again`, 400));
+        }
+
+        await database.update(tables.USER_TABLE, { emailVerified: true}, { id: userId })
+
+        const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
+        var {subject, body} = verificationDone(user.firstname, user.lastname)
         await sendMail(user.email, subject, null, body)
         res.status(200).json({
             status: "success"

@@ -10,7 +10,7 @@ module.exports = (err, req, res, next) => {
         var occuredAt = new Date()
         database.create(tables.EXCEPTIONS_TABLE, { message:err.message, stackTrace:err.stack, occuredAt: occuredAt.toISOString().slice(0, 19).replace('T', ' ') })
         var {subject, body} = uncaughtException(err.message, err.stack, occuredAt.toUTCString())
-        sendMail('ajayunp@gmail.com', subject, null, body)
+        sendMail(process.env.EMAIL_ID, subject, null, body)
     }
     res.status(err.statusCode).json({
         status: err.status,
