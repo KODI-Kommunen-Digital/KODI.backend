@@ -35,7 +35,7 @@ router.post('/login', async function(req, res, next) {
         }
 
         const userData = users.rows[0];
-        if (!users.emailVerified) {
+        if (!userData.emailVerified) {
             return next(new AppError(`Verification email sent to you email. Please verify first before trying to login.`, 401));
         }
         
