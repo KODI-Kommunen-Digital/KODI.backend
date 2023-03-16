@@ -10,5 +10,8 @@ module.exports = {
   STATUS_TABLE: 'status',
   SOURCE_TABLE: 'source',
   SUBCATEGORIES_TABLE: 'subcategories',
-  REFRESH_TOKENS_TABLE: 'refreshTokens'
+  REFRESH_TOKENS_TABLE: 'refreshTokens',
+  FORGOT_PASSWORD_TOKENS_TABLE: 'forgot_password_tokens',
+  VERIFICATION_TOKENS_TABLE: 'verification_tokens',
+  EXCEPTIONS_TABLE: 'exceptions'
 }

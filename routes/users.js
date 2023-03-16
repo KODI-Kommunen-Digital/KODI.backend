@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const database = require('../services/database');
+const sendMail = require('../services/sendMail');
 const tables = require('../constants/tableNames');
 const storedProcedures = require('../constants/storedProcedures');
 const AppError = require("../utils/appError");
@@ -8,6 +9,7 @@ const tokenUtil = require('../utils/token');
 const fs = require('fs');
 const authentication = require('../middlewares/authentication');
 const bcrypt = require('bcrypt');
+const crypto = require("crypto")
 
 router.post('/login', async function(req, res, next) {
     var payload = req.body;
@@ -126,7 +128,8 @@ router.post('/register', async function(req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400));
     } else {
-        insertionData.password = bcrypt.hash(payload.password, process.env.SALT);
+        insertionData.password = await bcrypt.hash(password, Number(process.env.SALT));
+
     }
 
     if (payload.email) {
@@ -149,14 +152,25 @@ router.post('/register', async function(req, res, next) {
         insertionData.website = payload.website
     }
 
-    database.create(tables.USER_TABLE, insertionData).then((response) => {
+    try {
+        var response = await database.create(tables.USER_TABLE, insertionData);
+        var userId = response.id;
+        var now = new Date();
+        now.setHours(now.getHours() + 24)
+        var token = crypto.randomBytes(32).toString("hex");
+        var tokenData = { userId, token, expiresAt: now.toISOString().slice(0, 19).replace('T', ' ') }
+        await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData)
+        const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
+        var {subject, body} = verifyEmail(insertionData.firstname, insertionData.lastname, token, userId)
+        await sendMail(user.email, subject, null, body)
+
         res.status(200).json({
             status: "success",
-            id: response.id,
+            id: userId,
         });
-    }).catch((err) => {
+    } catch(err) {
         return next(new AppError(err));
-    });
+    }
 });
 
 router.get('/:id', authentication, async function(req, res, next) {
@@ -218,11 +232,14 @@ router.patch('/:id', authentication, async function(req, res, next) {
         updationData.firstname = payload.firstname
     }
 
-    if (payload.currentPassword && payload.newPassword) {
+    if (payload.newPassword) {
+        if (!payload.currentPassword) {
+            return next(new AppError(`Current password not given to update password`, 400));
+        }
         if (!bcrypt.compare(payload.currentPassword, currentUserData.password)) {
             return next(new AppError(`Incorrect current password given`, 401));
         }
-        updationData.password = bcrypt.hash(payload.newPassword, process.env.SALT);
+        updationData.password = await bcrypt.hash(payload.newPassword, Number(process.env.SALT));
     }
 
     if (payload.lastname) {
@@ -419,6 +436,100 @@ router.post('/:id/refresh', async function(req, res, next) {
             return next(new AppError(`Unauthorized! Token was expired!`, 401));
         }
         return next(new AppError(error));
+    };
+});
+
+router.post('/forgotPassword', async function(req, res, next) {
+    const username = req.body.username;
+    const language = req.body.language || 'de';
+
+    if (!username) {
+        return next(new AppError(`Username not present`, 400));
+    }
+
+    if (language != "en" && language != "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    }
+
+    try {
+        var response = await database.get(tables.USER_TABLE, { username })
+        var data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`Username ${username} does not exist`, 404));
+        }
+        var user = data[0];
+
+        var response = await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, { userId: user.id })
+
+        var now = new Date();
+        now.setMinutes(now.getMinutes() + 30)
+        var token = crypto.randomBytes(32).toString("hex");
+        var tokenData = { userId: user.id, token, expiresAt: now.toISOString().slice(0, 19).replace('T', ' ') }
+        var response = await database.create(tables.FORGOT_PASSWORD_TOKENS_TABLE, tokenData)
+
+        const resetPasswordEmail = require(`../emailTemplates/${language}/resetPasswordEmail`);
+        var {subject, body} = resetPasswordEmail(user.firstname, user.lastname, token, user.id)
+        await sendMail(user.email, subject, null, body)
+        res.status(200).json({
+            status: "success"
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    };
+});
+
+router.post('/resetPassword', async function(req, res, next) {
+    const userId = req.body.userId;
+    const language = req.body.language || 'de';
+    const token = req.body.token;
+    const password = req.body.password;
+
+    if (!userId) {
+        return next(new AppError(`Username not present`, 400));
+    }
+
+    if (!token) {
+        return next(new AppError(`Token not present`, 400));
+    }
+
+    if (!password) {
+        return next(new AppError(`Password not present`, 400));
+    }
+
+    if (language != "en" && language != "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    }
+
+    try {
+        var response = await database.get(tables.USER_TABLE, { id: userId })
+        var data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`UserId ${userId} does not exist`, 400));
+        }
+        var user = data[0];
+
+        response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, { userId, token })
+        data = response.rows;
+        if (data && data.length == 0) {
+            return next(new AppError(`Invalid data sent`, 400));
+        }
+        var tokenData = data[0];
+        await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, { userId, token })
+        if (tokenData.expiresAt < new Date().toISOString()) {
+            return next(new AppError(`Token Expired`, 400));
+        }
+        
+        var hashedPassword = await bcrypt.hash(password, Number(process.env.SALT));
+        await database.update(tables.USER_TABLE, { password: hashedPassword }, { id: userId })
+
+        const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
+        var {subject, body} = passwordResetDone(user.firstname, user.lastname)
+        await sendMail(user.email, subject, null, body)
+        res.status(200).json({
+            status: "success"
+        });
+    } catch (err) {
+        return next(new AppError(err));
     };
 });
 

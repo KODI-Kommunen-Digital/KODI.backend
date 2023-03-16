@@ -57,19 +57,24 @@ async function deleteData(table, params, cityId) {
   connection.end();
 }
 
-async function callStoredProcedure(spName, parameters) {
+async function callStoredProcedure(spName, parameters, cityId) {
+  const connection = await getConnection(cityId);  
+  connection.connect();
   let query = `CALL ${spName}`;
   if (parameters && parameters.length > 0) {
     query += `(${Array(parameters.length).fill('?')})`
   }
-  const connection = await mysql.createConnection(process.env.DATABASE_DATABASE); 
-  connection.connect();
   await connection.query(query, parameters);
   connection.end();
 }
 
 async function getConnection(cityId) {
-  const coreConnection = await mysql.createConnection(process.env.DATABASE_DATABASE); 
+  const coreConnection = await mysql.createConnection({
+    host: process.env.DATABASE_HOST,
+    user: process.env.DATABASE_USER,
+    password: process.env.DATABASE_PASSWORD,
+    database: process.env.DATABASE_NAME
+  }); 
   if (!cityId)
     return coreConnection;
   var response = await get(tables.CITIES_TABLE, {id: cityId});
