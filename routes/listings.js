@@ -358,6 +358,8 @@ router.post('/', authentication, async function(req, res, next){
             response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {cityId, userId})
             if (!response.rows || response.rows.length == 0) {
                 delete user.id;
+                delete user.password;
+                delete user.emailVerified;
                 response = await database.create(tables.USER_TABLE, user, cityId);
                 var cityUserId = response.id;
                 await database.create(tables.USER_CITYUSER_MAPPING_TABLE, {cityId, userId, cityUserId});
