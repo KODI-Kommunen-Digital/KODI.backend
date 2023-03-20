@@ -9,8 +9,10 @@ module.exports = (err, req, res, next) => {
     if (err.statusCode == 500) {
         var occuredAt = new Date()
         database.create(tables.EXCEPTIONS_TABLE, { message:err.message, stackTrace:err.stack, occuredAt: occuredAt.toISOString().slice(0, 19).replace('T', ' ') })
-        var {subject, body} = uncaughtException(err.message, err.stack, occuredAt.toUTCString())
-        sendMail(process.env.EMAIL_ID, subject, null, body)
+        if (process.env.ENVIRONMENT == 'production') {
+            var {subject, body} = uncaughtException(err.message, err.stack, occuredAt.toUTCString())
+            sendMail(process.env.EMAIL_ID, subject, null, body)
+        }
     }
     res.status(err.statusCode).json({
         status: err.status,
