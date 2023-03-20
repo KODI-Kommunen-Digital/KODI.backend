@@ -364,7 +364,8 @@ router.post('/:id/imageUpload', authentication, async function(req, res, next) {
         await axios.put(`${process.env.BUCKET_HOST}/${filePath}`, formData, headers);
 
         res.status(200).json({
-            status: "success"
+            status: "success",
+            path: filePath
         });
     } catch (err) {
         return next(new AppError(err));
