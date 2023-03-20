@@ -10,6 +10,7 @@ const fs = require('fs');
 const authentication = require('../middlewares/authentication');
 const bcrypt = require('bcrypt');
 const crypto = require("crypto")
+const axios = require("axios")
 
 router.post('/login', async function(req, res, next) {
     var payload = req.body;
@@ -332,23 +333,38 @@ router.post('/:id/imageUpload', authentication, async function(req, res, next) {
     }
 
     try {
-        var response = await database.get(tables.USER_TABLE, { id })
-        let data = response.rows;
-        if (data && data.length == 0) {
-            return next(new AppError(`User with id ${id} does not exist`, 404));
+        if (id != req.userId) {
+            return next(new AppError(`You are not allowed to access this resource`, 403));
         }
 
-        var filePath = `./${process.env.imagePath}/user_${id}`
-        var fileName = `user_${id}_${Date.now()}.jpg`
+        var filePath = `user_${id}/${Date.now()}.` + image.name.split(".")[1]
+        const formData = new FormData();
+        formData.append('image', new Blob([new Uint8Array(image.data)], { type: image.mimetype }), {
+            filename: image.name,
+            contentType: image.mimetype,
+            knownLength: image.size
+        });
+        var utcDate = (new Date()).toUTCString()
 
-        if (!fs.existsSync(filePath)){
-            fs.mkdirSync(filePath, { recursive: true });
+        var stringToSign =`PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`
+        stringToSign = stringToSign.toString("utf8");
+         
+        
+
+        var secretKey = crypto.createHmac('sha1', process.env.BUCKET_SECRET_KEY)
+        .update(stringToSign)
+        secretKey = secretKey.digest('base64')
+
+        var headers = {
+            Authorization: `OBS ${process.env.BUCKET_ACCESS_KEY}:${secretKey}`,
+            contentType: 'multipart/form-data',
+            Date: utcDate,
         }
+        
+        await axios.put(`${process.env.BUCKET_HOST}/${filePath}`, formData, headers);
 
-        await image.mv(`${filePath}/${fileName}`)    
         res.status(200).json({
-            status: "success",
-            fileName: `./user_${id}/${fileName}`,
+            status: "success"
         });
     } catch (err) {
         return next(new AppError(err));
