@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const AppError = require("./utils/appError");
 const errorHandler = require("./utils/errorHandler");
+const cityListingsRouter = require('./routes/cityListings');
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
 const citiesRouter = require('./routes/cities');
@@ -47,6 +48,7 @@ app.get('/', (req, res) => {
 
 app.use('/users', usersRouter);
 app.use('/cities', citiesRouter);
+app.use('/listings', listingsRouter);
 app.use('/cities/:cityId/villages', function (req, res, next) {
 
     if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
@@ -62,7 +64,7 @@ app.use('/cities/:cityId/listings', function (req, res, next) {
     }
     req.cityId = req.params.cityId;
     next();
-}, listingsRouter);
+}, cityListingsRouter);
 
 app.all("*", (req, res, next) => {
 next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));

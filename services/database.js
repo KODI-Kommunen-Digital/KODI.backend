@@ -68,6 +68,14 @@ async function callStoredProcedure(spName, parameters, cityId) {
   connection.end();
 }
 
+async function callQuery(query, cityId) {
+  const connection = await getConnection(cityId); 
+  connection.connect();
+  let [rows, fields] = await connection.execute(query);
+  connection.end();
+  return {rows, fields};
+}
+
 async function getConnection(cityId) {
   const coreConnection = await mysql.createConnection({
     host: process.env.DATABASE_HOST,
@@ -92,4 +100,4 @@ async function getConnection(cityId) {
 }
 
 
-module.exports = {get, create, update,deleteData, callStoredProcedure};
+module.exports = {get, create, update,deleteData, callStoredProcedure, callQuery};
