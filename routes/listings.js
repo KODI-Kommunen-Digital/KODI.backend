@@ -25,7 +25,7 @@ router.get('/', async function(req, res, next) {
         for (var city of cities) {
             // if the city database is present in the city's server, then we create a federated table in the format 
             // heidi_city_{id}_listings in the core databse which points to the listings table
-            individualQueries.push(`SELECT * FROM heidi_city_${city.id}${city.inCityServer ? '_' : '.' }listings`)
+            individualQueries.push(`SELECT *, ${city.id} as cityId FROM heidi_city_${city.id}${city.inCityServer ? '_' : '.' }listings`)
         }
 
         var query = `select * from (
