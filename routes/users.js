@@ -72,13 +72,17 @@ router.post('/register', async function(req, res, next) {
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400));
     }
-
+    var language = payload.language || 'de';
+    if (language != "en" && language != "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    } 
     if (!payload.username) {
         return next(new AppError(`Username is not present`, 400));
     } else {
         try {
             var response = await database.get(tables.USER_TABLE, {username: payload.username})
             let data = response.rows;
+            console.log(data)
             if (data && data.length > 0) {
                 return next(new AppError(`User with username '${payload.username}' already exists`, 400));
             }
@@ -107,15 +111,15 @@ router.post('/register', async function(req, res, next) {
         return next(new AppError(`Role is not present`, 400));
     } else {
         try {
-            var response = await database.get(ROLES_TABLE, {id: payload.role})
+            var response = await database.get(tables.ROLES_TABLE, {id: payload.role})
             let data = response.rows;
-            if (data && data.length > 0) {
+            if (data && data.length <= 0) {
                 return next(new AppError(`Invalid role '${payload.role}' given`, 400));
             }
         } catch (err) {
             return next(new AppError(err));
         }
-        insertionData.role = payload.role
+        insertionData.roleId = payload.role
     }
 
     if (!payload.firstname) {
@@ -133,7 +137,7 @@ router.post('/register', async function(req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400));
     } else {
-        insertionData.password = await bcrypt.hash(password, Number(process.env.SALT));
+        insertionData.password = await bcrypt.hash(payload.password, Number(process.env.SALT));
 
     }
 
@@ -167,7 +171,7 @@ router.post('/register', async function(req, res, next) {
         await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData)
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         var {subject, body} = verifyEmail(insertionData.firstname, insertionData.lastname, token, userId)
-        await sendMail(user.email, subject, null, body)
+        await sendMail(insertionData.email, subject, null, body)
 
         res.status(200).json({
             status: "success",
