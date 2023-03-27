@@ -399,7 +399,7 @@ router.get('/:id/listings', authentication, async function(req, res, next) {
         let allListings = [];
         for (var element of data) {
             var cityListings = await database.get(tables.LISTINGS_TABLE, { userId: element.cityUserId }, null, element.cityId)
-            allListings.push(cityListings.rows)
+            allListings.push(...cityListings.rows.map(listings => ({ ...listings, cityId: element.cityId })))
         }        
         
         res.status(200).json({

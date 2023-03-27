@@ -222,13 +222,13 @@ router.post('/', authentication, async function(req, res, next){
     }
     if (payload.socialMedia) {
         try {
-            var parsedJson = JSON.parse(payload.socialMedia);
-            Object.keys(parsedJson).forEach((key) => {
-                if (!supportedSocialMedia.includes(key)) {
-                    return next(new AppError(`Unsupported social media '${key}'`, 400));
+            var socialMediaList = JSON.parse(payload.socialMedia);
+            socialMediaList.forEach(socialMedia => {
+                if (!supportedSocialMedia.includes(socialMedia.selected)) {
+                    return next(new AppError(`Unsupported social media '${socialMedia.selected}'`, 400));
                 }
-                if (typeof parsedJson.key == 'string') {
-                    return next(new AppError(`Invalid input given for social '${key}' `, 400));
+                if (typeof parsedJson.socialMedia == 'string') {
+                    return next(new AppError(`Invalid input given for social '${parsedJson.socialMedia}' `, 400));
                 }
             })
         } catch(e) {
@@ -355,11 +355,11 @@ router.post('/', authentication, async function(req, res, next){
             return next(new AppError(`Start date or Time is not present`, 400));
         }
     } else {
-        insertionData.startDate = payload.startDate
+        insertionData.startDate = (new Date(payload.startDate)).toISOString().slice(0, 19).replace('T', ' ')
     }
 
     if (payload.endDate) {
-        insertionData.endDate = payload.endDate
+        insertionData.endDate = (new Date(payload.endDate)).toISOString().slice(0, 19).replace('T', ' ')
     }
 
     insertionData.createdAt = (new Date()).toISOString().slice(0, 19).replace('T', ' ')
@@ -441,13 +441,13 @@ router.patch('/:id', authentication, async function(req, res, next){
     }
     if (payload.socialMedia) {
         try {
-            var parsedJson = JSON.parse(payload.socialMedia);
-            Object.keys(parsedJson).forEach((key) => {
-                if (!supportedSocialMedia.includes(key)) {
-                    return next(new AppError(`Unsupported social media '${key}'`, 400));
+            var socialMediaList = JSON.parse(payload.socialMedia);
+            socialMediaList.forEach(socialMedia => {
+                if (!supportedSocialMedia.includes(socialMedia.selected)) {
+                    return next(new AppError(`Unsupported social media '${socialMedia.selected}'`, 400));
                 }
-                if (typeof parsedJson.key == 'string') {
-                    return next(new AppError(`Invalid input given for social '${key}' `, 400));
+                if (typeof socialMedia.socialMedia != 'string') {
+                    return next(new AppError(`Invalid input given for social '${parsedJson.socialMedia}' `, 400));
                 }
             })
         } catch(e) {
@@ -491,7 +491,7 @@ router.patch('/:id', authentication, async function(req, res, next){
     }
     if (payload.statusId){
         try {
-            var response = await database.get(tables.STATUSES_TABLE, {id: payload.statusId})
+            var response = await database.get(tables.STATUS_TABLE, {id: payload.statusId}, null, cityId)
             let data = response.rows;
             if (data && data.length == 0) {
                 return next(new AppError(`Invalid Status '${payload.statusId}' given`, 400));
@@ -508,10 +508,10 @@ router.patch('/:id', authentication, async function(req, res, next){
         updationData.lattitude = payload.lattitude
     }
     if (payload.startDate) {
-        updationData.startDate = payload.startDate
+        updationData.startDate = (new Date(payload.startDate)).toISOString().slice(0, 19).replace('T', ' ')
     }
     if (payload.endDate) {
-        updationData.endDate = payload.endDate
+        updationData.endDate = (new Date(payload.endDate)).toISOString().slice(0, 19).replace('T', ' ')
     }
 
     database.update(tables.LISTINGS_TABLE, updationData, {id}, cityId).then((response) => {

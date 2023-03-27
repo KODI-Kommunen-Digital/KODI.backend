@@ -1,1 +1,6 @@
-module.exports = ["instagram", "facebook"]
+module.exports = [
+    "Facebook",
+    "Instagram",
+    "LinkedIn",
+    "Youtube",
+    "Twitter"]
