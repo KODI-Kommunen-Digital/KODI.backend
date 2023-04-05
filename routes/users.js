@@ -56,10 +56,12 @@ router.post('/login', async function(req, res, next) {
         await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
         res.status(200).json({
             status: "success",
-            cityUsers: userMappings.rows,
-            userId: userData.id,
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken
+            data: {
+                cityUsers: userMappings.rows,
+                userId: userData.id,
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken
+            }
         });
     } catch (err) {
         return next(new AppError(err));
@@ -451,8 +453,10 @@ router.post('/:id/refresh', async function(req, res, next) {
 
         res.status(200).json({
             status: "success",
-            accessToken: newTokens.accessToken,
-            refreshToken: newTokens.refreshToken
+            data: {
+                accessToken: newTokens.accessToken,
+                refreshToken: newTokens.refreshToken
+            }
         });
     }
     catch (error) {
