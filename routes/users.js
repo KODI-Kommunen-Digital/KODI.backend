@@ -65,6 +65,7 @@ router.post("/login", async function (req, res, next) {
 		var tokens = tokenUtil.generator({
 			userId: userData.id,
 			roleId: userData.roleId,
+			rememberMe: payload.rememberMe,
 		});
 		var insertionData = {
 			userId: userData.id,
