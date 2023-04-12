@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const database = require("../services/database");
 const sendMail = require("../services/sendMail");
+const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const tables = require("../constants/tableNames");
 const storedProcedures = require("../constants/storedProcedures");
 const AppError = require("../utils/appError");
@@ -11,6 +12,7 @@ const authentication = require("../middlewares/authentication");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const axios = require("axios");
+const { json } = require("body-parser");
 
 router.post("/login", async function (req, res, next) {
 	var payload = req.body;
@@ -120,7 +122,6 @@ router.post("/register", async function (req, res, next) {
 		}
 		insertionData.username = payload.username;
 	}
-
 	if (!payload.email) {
 		return next(new AppError(`Email is not present`, 400));
 	} else {
@@ -200,6 +201,33 @@ router.post("/register", async function (req, res, next) {
 	if (payload.website) {
 		insertionData.website = payload.website;
 	}
+	if (payload.socialMedia) {
+		try {
+			var socialMediaList = payload.socialMedia;
+			Object.keys(socialMediaList).forEach((socialMedia) => {
+				if (!supportedSocialMedia.includes(socialMedia)) {
+					return next(
+						new AppError(`Unsupported social media '${socialMedia}'`, 400)
+					);
+				}
+
+				if (
+					typeof socialMediaList[socialMedia] !== "string" ||
+					!socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
+				) {
+					return next(
+						new AppError(
+							`Invalid input given for social media '${socialMedia}' `,
+							400
+						)
+					);
+				}
+			});
+		} catch (e) {
+			return next(new AppError(`Invalid input given for social media`, 400));
+		}
+		insertionData.socialMedia = JSON.stringify(socialMediaList);
+	}
 
 	try {
 		var response = await database.create(tables.USER_TABLE, insertionData);
@@ -278,7 +306,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 
 	let currentUserData = response.rows[0];
-
 	if (payload.username != currentUserData.username) {
 		return next(new AppError(`Username cannot be edited`, 400));
 	}
@@ -333,6 +360,34 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
 	if (payload.website) {
 		updationData.website = payload.website;
+	}
+	if (payload.socialMedia) {
+		try {
+			var socialMediaList = payload.socialMedia;
+			Object.keys(socialMediaList).forEach((socialMedia) => {
+				if (!supportedSocialMedia.includes(socialMedia)) {
+					return next(
+						new AppError(`Unsupported social media '${socialMedia}'`, 400)
+					);
+				}
+
+				if (
+					typeof socialMediaList[socialMedia] !== "string" ||
+					!socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
+				) {
+					return next(
+						new AppError(
+							`Invalid input given for social '${socialMedia}' `,
+							400
+						)
+					);
+				}
+			});
+		} catch (e) {
+			return next(new AppError(`Invalid input given for social media`, 400));
+		}
+		console.log("Social Media", socialMediaList);
+		updationData.socialMedia = JSON.stringify(socialMediaList);
 	}
 
 	database
