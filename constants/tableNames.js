@@ -9,7 +9,7 @@ module.exports = {
   CATEGORIES_TABLE: 'categories',
   STATUS_TABLE: 'status',
   SOURCE_TABLE: 'source',
-  SUBCATEGORIES_TABLE: 'subcategories',
+  SUBCATEGORIES_TABLE: 'subcategory',
   REFRESH_TOKENS_TABLE: 'refreshTokens',
   FORGOT_PASSWORD_TOKENS_TABLE: 'forgot_password_tokens',
   VERIFICATION_TOKENS_TABLE: 'verification_tokens',

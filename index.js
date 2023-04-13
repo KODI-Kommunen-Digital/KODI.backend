@@ -11,6 +11,8 @@ const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
 const citiesRouter = require('./routes/cities');
 const villageRouter = require('./routes/village');
+const categoriesRouter = require('./routes/categories');
+const statusRouter = require('./routes/status');
 const fileUpload = require('express-fileupload');
 
 // defining the Express app
@@ -49,6 +51,8 @@ app.get('/', (req, res) => {
 app.use('/users', usersRouter);
 app.use('/cities', citiesRouter);
 app.use('/listings', listingsRouter);
+app.use('/categories', categoriesRouter);
+app.use('/status', statusRouter);
 app.use('/cities/:cityId/villages', function (req, res, next) {
 
     if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
