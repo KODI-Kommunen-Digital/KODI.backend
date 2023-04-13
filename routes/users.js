@@ -900,4 +900,25 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
 		});
 });
 
+router.get("/", authentication, async function (req, res, next) {
+	const params = req.query;
+	if (req.roleId !== 1) {
+		return next(
+			new AppError(`You are not allowed to access this resource`, 403)
+		);
+	}
+	const ids = params.id.split(",").map((id) => parseInt(id));
+	database
+		.get(tables.USER_TABLE, { id: ids })
+		.then((response) => {
+			res.status(200).json({
+				status: "success",
+				data: response.rows,
+			});
+		})
+		.catch((err) => {
+			return next(new AppError(err));
+		});
+});
+
 module.exports = router;
