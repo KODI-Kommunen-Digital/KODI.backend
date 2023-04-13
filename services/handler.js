@@ -21,3 +21,6 @@ module.exports = radiusSearch;
 // SELECT *
 // FROM Data
 // WHERE 6371 * 2 * ASIN(SQRT(POWER(SIN((lat0 - abs(latitude)) * pi()/180 / 2), 2) + COS(lat0 * pi()/180) * COS(abs(latitude) * pi()/180) * POWER(SIN((lon0 - longitude) * pi()/180 / 2), 2))) <= D;
+
+
+//This is to test the github migration
