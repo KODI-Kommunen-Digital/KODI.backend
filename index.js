@@ -9,6 +9,7 @@ const errorHandler = require("./utils/errorHandler");
 const cityListingsRouter = require('./routes/cityListings');
 const listingsRouter = require('./routes/listings');
 const usersRouter = require('./routes/users');
+const favoriteRouter = require('./routes/favorites');
 const citiesRouter = require('./routes/cities');
 const villageRouter = require('./routes/village');
 const categoriesRouter = require('./routes/categories');
@@ -53,6 +54,13 @@ app.use('/cities', citiesRouter);
 app.use('/listings', listingsRouter);
 app.use('/categories', categoriesRouter);
 app.use('/status', statusRouter);
+app.use('/users/:userId/favorites', function (req, res, next) {
+    if (isNaN(Number(req.params.userId)) || Number(req.params.userId) <= 0) {
+        return next(new AppError(`Invalid user id given`, 400));
+    }
+    req.paramUserId = req.params.userId;
+    next();
+}, favoriteRouter)
 app.use('/cities/:cityId/villages', function (req, res, next) {
 
     if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
@@ -69,7 +77,6 @@ app.use('/cities/:cityId/listings', function (req, res, next) {
     req.cityId = req.params.cityId;
     next();
 }, cityListingsRouter);
-
 app.all("*", (req, res, next) => {
 next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
