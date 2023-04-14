@@ -17,8 +17,7 @@ const { json } = require("body-parser");
 router.post("/login", async function (req, res, next) {
 	var payload = req.body;
 	var sourceAddress =
-		req.headers["x-forwarded-for"]?.split(",").shift() ||
-		req.socket?.remoteAddress;
+		req.headers["x-forwarded-for"]? req.headers["x-forwarded-for"].split(",").shift() :	req.socket.remoteAddress;
 	requestObject = {};
 
 	if (!payload) {
