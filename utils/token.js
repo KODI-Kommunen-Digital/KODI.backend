@@ -5,14 +5,12 @@ generator = function (payload) {
 	const refreshSecretKey = `-----BEGIN RSA PRIVATE KEY-----\n${process.env.REFRESH_PRIVATE}\n-----END RSA PRIVATE KEY-----`;
 
 	const accessToken = jwt.sign(payload, accessSecretKey, {
-		expiresIn: payload.rememberMe ? "10d" : Number(process.env.AUTH_EXPIRATION),
+		expiresIn: Number(process.env.AUTH_EXPIRATION),
 		algorithm: "RS256",
 	});
 
 	const refreshToken = jwt.sign(payload, refreshSecretKey, {
-		expiresIn: payload.rememberMe
-			? "10d"
-			: Number(process.env.REFRESH_EXPIRATION),
+		expiresIn: Number(process.env.REFRESH_EXPIRATION),
 		algorithm: "RS256",
 	});
 

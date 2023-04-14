@@ -518,10 +518,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	);
 
 	var currentUser = await database.get(tables.USER_TABLE, { id: req.userId });
-	if (
-		(!response.rows || response.rows.length == 0) &&
-		currentUser.rows[0].roleId !== 1
-	) {
+	if (!response.rows || response.rows.length == 0) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
 		);
@@ -664,10 +661,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 		"cityUserId"
 	);
 	var currentUser = await database.get(tables.USER_TABLE, { id: req.userId });
-	if (
-		(!response.rows || response.rows.length == 0) &&
-		currentUser.rows[0].roleId !== 1
-	) {
+	if (!response.rows || response.rows.length == 0) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
 		);
