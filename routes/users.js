@@ -16,9 +16,7 @@ const { json } = require("body-parser");
 
 router.post("/login", async function (req, res, next) {
 	var payload = req.body;
-	var sourceAddress =
-		req.headers["x-forwarded-for"]?.split(",").shift() ||
-		req.socket?.remoteAddress;
+	var sourceAddress = req.headers["x-forwarded-for"]? req.headers["x-forwarded-for"].split(",").shift() :	req.socket.remoteAddress;
 	requestObject = {};
 
 	if (!payload) {
@@ -563,9 +561,7 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 
 router.post("/:id/refresh", async function (req, res, next) {
 	const userId = req.params.id;
-	var sourceAddress =
-		req.headers["x-forwarded-for"]?.split(",").shift() ||
-		req.socket?.remoteAddress;
+	var sourceAddress = req.headers["x-forwarded-for"]? req.headers["x-forwarded-for"].split(",").shift() :	req.socket.remoteAddress;
 
 	if (isNaN(Number(userId)) || Number(userId) <= 0) {
 		next(new AppError(`Invalid UserId ${userId}`, 404));
