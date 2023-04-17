@@ -3,6 +3,7 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
+const roles = require("../constants/roles")
 const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
@@ -14,6 +15,7 @@ router.get("/", async function (req, res, next) {
 	const cityId = req.cityId;
 	const filters = {};
 	const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
+	console.log("----------------" + roles.Admin + "------------")
 	var listings = [];
 	if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
 		return next(new AppError(`City is not present`, 404));
@@ -533,7 +535,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
 	if (
 		currentListingData.userId != cityUserId &&
-		currentUser.rows[0].roleId !== 1
+		currentUser.rows[0].roleId !== roles.Admin
 	) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
@@ -614,7 +616,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		} catch (err) {
 			return next(new AppError(err));
 		}
+		if (payload.statusId==roles.Admin)
 		updationData.statusId = payload.statusId;
+		else
+		return next(new AppError('You dont have access to change this option', 403))
 	}
 	if (payload.longitude) {
 		updationData.longitude = payload.longitude;
@@ -676,7 +681,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
 	if (
 		currentListingData.userId != cityUserId &&
-		currentUser.rows[0].roleId !== 1
+		currentUser.rows[0].roleId !== roles.Admin
 	) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
