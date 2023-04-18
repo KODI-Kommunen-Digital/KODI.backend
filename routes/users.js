@@ -16,7 +16,9 @@ const { json } = require("body-parser");
 
 router.post("/login", async function (req, res, next) {
 	var payload = req.body;
-	var sourceAddress = req.headers["x-forwarded-for"]? req.headers["x-forwarded-for"].split(",").shift() :	req.socket.remoteAddress;
+	var sourceAddress = req.headers["x-forwarded-for"]
+		? req.headers["x-forwarded-for"].split(",").shift()
+		: req.socket.remoteAddress;
 	requestObject = {};
 
 	if (!payload) {
@@ -304,7 +306,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 
 	let currentUserData = response.rows[0];
-	if (payload.username != currentUserData.username) {
+	if (payload.username && payload.username != currentUserData.username) {
 		return next(new AppError(`Username cannot be edited`, 400));
 	}
 
@@ -388,16 +390,22 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		updationData.socialMedia = JSON.stringify(socialMediaList);
 	}
 
-	database
-		.update(tables.USER_TABLE, updationData, { id })
-		.then((response) => {
-			res.status(200).json({
-				status: "success",
+	if (updationData !== {}) {
+		database
+			.update(tables.USER_TABLE, updationData, { id })
+			.then((response) => {
+				res.status(200).json({
+					status: "success",
+				});
+			})
+			.catch((err) => {
+				return next(new AppError(err));
 			});
-		})
-		.catch((err) => {
-			return next(new AppError(err));
+	} else {
+		res.status(200).json({
+			status: "success",
 		});
+	}
 });
 
 router.delete("/:id", authentication, async function (req, res, next) {
@@ -561,7 +569,9 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 
 router.post("/:id/refresh", async function (req, res, next) {
 	const userId = req.params.id;
-	var sourceAddress = req.headers["x-forwarded-for"]? req.headers["x-forwarded-for"].split(",").shift() :	req.socket.remoteAddress;
+	var sourceAddress = req.headers["x-forwarded-for"]
+		? req.headers["x-forwarded-for"].split(",").shift()
+		: req.socket.remoteAddress;
 
 	if (isNaN(Number(userId)) || Number(userId) <= 0) {
 		next(new AppError(`Invalid UserId ${userId}`, 404));
