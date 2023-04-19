@@ -16,7 +16,9 @@ const { json } = require("body-parser");
 
 router.post("/login", async function (req, res, next) {
 	var payload = req.body;
-	var sourceAddress = req.headers["x-forwarded-for"]? req.headers["x-forwarded-for"].split(",").shift() :	req.socket.remoteAddress;
+	var sourceAddress = req.headers["x-forwarded-for"]
+		? req.headers["x-forwarded-for"].split(",").shift()
+		: req.socket.remoteAddress;
 	requestObject = {};
 
 	if (!payload) {
@@ -304,7 +306,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 
 	let currentUserData = response.rows[0];
-	if (payload.username != currentUserData.username) {
+	if (payload.username && payload.username != currentUserData.username) {
 		return next(new AppError(`Username cannot be edited`, 400));
 	}
 
@@ -388,16 +390,22 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		updationData.socialMedia = JSON.stringify(socialMediaList);
 	}
 
-	database
-		.update(tables.USER_TABLE, updationData, { id })
-		.then((response) => {
-			res.status(200).json({
-				status: "success",
+	if (updationData !== {}) {
+		database
+			.update(tables.USER_TABLE, updationData, { id })
+			.then((response) => {
+				res.status(200).json({
+					status: "success",
+				});
+			})
+			.catch((err) => {
+				return next(new AppError(err));
 			});
-		})
-		.catch((err) => {
-			return next(new AppError(err));
+	} else {
+		res.status(200).json({
+			status: "success",
 		});
+	}
 });
 
 router.delete("/:id", authentication, async function (req, res, next) {
@@ -436,7 +444,8 @@ router.delete("/:id", authentication, async function (req, res, next) {
 		return next(new AppError(err));
 	}
 });
-
+var FormData = require("form-data");
+var { Blob } = require("buffer");
 router.post(
 	"/:id/imageUpload",
 	authentication,
@@ -447,7 +456,6 @@ router.post(
 			next(new AppError(`Invalid UserId ${id}`, 404));
 			return;
 		}
-
 		const { image } = req.files;
 
 		if (!image) {
@@ -468,42 +476,44 @@ router.post(
 			}
 
 			var filePath = `user_${id}/${Date.now()}.` + image.name.split(".")[1];
-			const formData = new FormData();
-			formData.append(
-				"image",
-				new Blob([new Uint8Array(image.data)], { type: image.mimetype }),
-				{
-					filename: image.name,
-					contentType: image.mimetype,
-					knownLength: image.size,
-				}
-			);
 			var utcDate = new Date().toUTCString();
+			//For Auth
+			// var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
+			// stringToSign = stringToSign.toString("utf8");
 
-			var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
-			stringToSign = stringToSign.toString("utf8");
+			// var secretKey = crypto
+			// 	.createHmac("sha1", process.env.BUCKET_SECRET_KEY)
+			// 	.update(stringToSign);
+			// secretKey = secretKey.digest("base64");
 
-			var secretKey = crypto
-				.createHmac("sha1", process.env.BUCKET_SECRET_KEY)
-				.update(stringToSign);
-			secretKey = secretKey.digest("base64");
+			const form = new FormData();
+			form.append("key", filePath);
+			form.append("acl", "public-read");
+			form.append("content-type", "image/jpeg");
+			form.append("expires", new Date().toDateString());
+			form.append("file", image.data, {
+				filename: `${utcDate}.jpg`,
+				contentType: "image/jpeg",
+			});
+			form.append("submit", "Upload");
 
-			var headers = {
-				Authorization: `OBS ${process.env.BUCKET_ACCESS_KEY}:${secretKey}`,
-				contentType: "multipart/form-data",
-				Date: utcDate,
+			const headers = {
+				"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
+				"Content-Length": form.getLengthSync(),
+				"Access-Control-Request-Headers": "acc_header_1",
 			};
 
-			await axios.put(
-				`${process.env.BUCKET_HOST}/${filePath}`,
-				formData,
-				headers
-			);
-
-			res.status(200).json({
-				status: "success",
-				path: filePath,
-			});
+			axios
+				.post(process.env.BUCKET_HOST, form, { headers })
+				.then((response) => {
+					res.status(200).json({
+						status: "success",
+						path: filePath,
+					});
+				})
+				.catch((error) => {
+					return next(new AppError(`Failed to upload image`, 400));
+				});
 		} catch (err) {
 			return next(new AppError(err));
 		}
@@ -561,7 +571,9 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 
 router.post("/:id/refresh", async function (req, res, next) {
 	const userId = req.params.id;
-	var sourceAddress = req.headers["x-forwarded-for"]? req.headers["x-forwarded-for"].split(",").shift() :	req.socket.remoteAddress;
+	var sourceAddress = req.headers["x-forwarded-for"]
+		? req.headers["x-forwarded-for"].split(",").shift()
+		: req.socket.remoteAddress;
 
 	if (isNaN(Number(userId)) || Number(userId) <= 0) {
 		next(new AppError(`Invalid UserId ${userId}`, 404));
@@ -898,14 +910,13 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
 
 router.get("/", authentication, async function (req, res, next) {
 	const params = req.query;
-	if (req.roleId !== 1) {
-		return next(
-			new AppError(`You are not allowed to access this resource`, 403)
-		);
-	}
 	const ids = params.id.split(",").map((id) => parseInt(id));
 	database
-		.get(tables.USER_TABLE, { id: ids })
+		.get(
+			tables.USER_TABLE,
+			{ id: ids },
+			(columns = ["id", "username", "socialMedia", "email", "website", "image"])
+		)
 		.then((response) => {
 			res.status(200).json({
 				status: "success",
