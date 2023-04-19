@@ -444,7 +444,8 @@ router.delete("/:id", authentication, async function (req, res, next) {
 		return next(new AppError(err));
 	}
 });
-
+var FormData = require("form-data");
+var { Blob } = require("buffer");
 router.post(
 	"/:id/imageUpload",
 	authentication,
@@ -455,7 +456,6 @@ router.post(
 			next(new AppError(`Invalid UserId ${id}`, 404));
 			return;
 		}
-
 		const { image } = req.files;
 
 		if (!image) {
@@ -476,42 +476,44 @@ router.post(
 			}
 
 			var filePath = `user_${id}/${Date.now()}.` + image.name.split(".")[1];
-			const formData = new FormData();
-			formData.append(
-				"image",
-				new Blob([new Uint8Array(image.data)], { type: image.mimetype }),
-				{
-					filename: image.name,
-					contentType: image.mimetype,
-					knownLength: image.size,
-				}
-			);
 			var utcDate = new Date().toUTCString();
+			//For Auth
+			// var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
+			// stringToSign = stringToSign.toString("utf8");
 
-			var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
-			stringToSign = stringToSign.toString("utf8");
+			// var secretKey = crypto
+			// 	.createHmac("sha1", process.env.BUCKET_SECRET_KEY)
+			// 	.update(stringToSign);
+			// secretKey = secretKey.digest("base64");
 
-			var secretKey = crypto
-				.createHmac("sha1", process.env.BUCKET_SECRET_KEY)
-				.update(stringToSign);
-			secretKey = secretKey.digest("base64");
+			const form = new FormData();
+			form.append("key", filePath);
+			form.append("acl", "public-read");
+			form.append("content-type", "image/jpeg");
+			form.append("expires", new Date().toDateString());
+			form.append("file", image.data, {
+				filename: `${utcDate}.jpg`,
+				contentType: "image/jpeg",
+			});
+			form.append("submit", "Upload");
 
-			var headers = {
-				Authorization: `OBS ${process.env.BUCKET_ACCESS_KEY}:${secretKey}`,
-				contentType: "multipart/form-data",
-				Date: utcDate,
+			const headers = {
+				"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
+				"Content-Length": form.getLengthSync(),
+				"Access-Control-Request-Headers": "acc_header_1",
 			};
 
-			await axios.put(
-				`${process.env.BUCKET_HOST}/${filePath}`,
-				formData,
-				headers
-			);
-
-			res.status(200).json({
-				status: "success",
-				path: filePath,
-			});
+			axios
+				.post(process.env.BUCKET_HOST, form, { headers })
+				.then((response) => {
+					res.status(200).json({
+						status: "success",
+						path: filePath,
+					});
+				})
+				.catch((error) => {
+					return next(new AppError(`Failed to upload image`, 400));
+				});
 		} catch (err) {
 			return next(new AppError(err));
 		}
