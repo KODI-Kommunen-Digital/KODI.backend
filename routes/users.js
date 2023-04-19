@@ -910,14 +910,13 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
 
 router.get("/", authentication, async function (req, res, next) {
 	const params = req.query;
-	if (req.roleId !== 1) {
-		return next(
-			new AppError(`You are not allowed to access this resource`, 403)
-		);
-	}
 	const ids = params.id.split(",").map((id) => parseInt(id));
 	database
-		.get(tables.USER_TABLE, { id: ids })
+		.get(
+			tables.USER_TABLE,
+			{ id: ids },
+			(columns = ["id", "username", "socialMedia", "email", "website", "image"])
+		)
 		.then((response) => {
 			res.status(200).json({
 				status: "success",
