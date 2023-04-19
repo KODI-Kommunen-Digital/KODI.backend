@@ -15,7 +15,6 @@ router.get("/", async function (req, res, next) {
 	const cityId = req.cityId;
 	const filters = {};
 	const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
-	console.log("----------------" + roles.Admin + "------------")
 	var listings = [];
 	if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
 		return next(new AppError(`City is not present`, 404));
@@ -468,6 +467,7 @@ router.post("/", authentication, async function (req, res, next) {
 			if (!response.rows || response.rows.length == 0) {
 				delete user.id;
 				delete user.password;
+				delete user.socialMedia;
 				delete user.emailVerified;
 				response = await database.create(tables.USER_TABLE, user, cityId);
 				var cityUserId = response.id;
