@@ -13,5 +13,6 @@ module.exports = {
   REFRESH_TOKENS_TABLE: 'refreshTokens',
   FORGOT_PASSWORD_TOKENS_TABLE: 'forgot_password_tokens',
   VERIFICATION_TOKENS_TABLE: 'verification_tokens',
-  EXCEPTIONS_TABLE: 'exceptions'
+  EXCEPTIONS_TABLE: 'exceptions',
+  FAVORITES_TABLE: 'FAVORITES'
 }

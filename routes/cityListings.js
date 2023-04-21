@@ -469,6 +469,7 @@ router.post("/", authentication, async function (req, res, next) {
 				delete user.password;
 				delete user.socialMedia;
 				delete user.emailVerified;
+				delete user.socialMedia;
 				response = await database.create(tables.USER_TABLE, user, cityId);
 				var cityUserId = response.id;
 				await database.create(tables.USER_CITYUSER_MAPPING_TABLE, {
