@@ -185,6 +185,9 @@ router.post("/register", async function (req, res, next) {
 	}
 
 	if (payload.phoneNumber) {
+		let re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
+		if(!re.test(payload.phoneNumber))
+		return next(new AppError('Phone number is not valid'))
 		insertionData.website = payload.website;
 	}
 
@@ -285,6 +288,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	var id = req.params.id;
 	var payload = req.body;
 	var updationData = {};
+	console.log(payload)
 
 	if (isNaN(Number(id)) || Number(id) <= 0) {
 		next(new AppError(`Invalid UserId ${id}`, 404));
@@ -345,7 +349,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 
 	if (payload.phoneNumber) {
-		updationData.phoneNumber = payload.phoneNumber;
+		let re = /^\(?([0-9]{4})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
+		if(!re.test(payload.phoneNumber))
+		return next(new AppError('Phone number is not valid'))
+		updationData.phoneNumber = "+49" + payload.phoneNumber;
 	}
 
 	if (payload.image) {
