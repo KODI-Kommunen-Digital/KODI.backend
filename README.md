@@ -6,7 +6,7 @@
 
 To install this NOdeJs application on your local device, you need to follow these steps
 ```
-git clone https://gitlab.com/heidi-heimat-digital/smart-region-m.backend.git
+git clone https://github.com/heidi-heimat-digital/smart-region-m.backend.git
 cd smart-region-m.backend
 npm install
 ```
