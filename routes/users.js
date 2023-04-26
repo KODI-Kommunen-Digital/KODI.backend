@@ -45,7 +45,7 @@ router.post("/login", async function (req, res, next) {
 		if (!userData.emailVerified) {
 			return next(
 				new AppError(
-					`Verification email sent to you email. Please verify first before trying to login.`,
+					`Verification email sent to your email id. Please verify first before trying to login.`,
 					401
 				)
 			);
@@ -188,8 +188,8 @@ router.post("/register", async function (req, res, next) {
 
 	if (payload.phoneNumber) {
 		let re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
-		if(!re.test(payload.phoneNumber))
-		return next(new AppError('Phone number is not valid'))
+		if (!re.test(payload.phoneNumber))
+			return next(new AppError("Phone number is not valid"));
 		insertionData.website = payload.website;
 	}
 
@@ -249,7 +249,8 @@ router.post("/register", async function (req, res, next) {
 			insertionData.firstname,
 			insertionData.lastname,
 			token,
-			userId
+			userId,
+			language
 		);
 		await sendMail(insertionData.email, subject, null, body);
 
@@ -290,7 +291,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	var id = req.params.id;
 	var payload = req.body;
 	var updationData = {};
-	console.log(payload)
 
 	if (isNaN(Number(id)) || Number(id) <= 0) {
 		next(new AppError(`Invalid UserId ${id}`, 404));
@@ -352,8 +352,8 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
 	if (payload.phoneNumber) {
 		let re = /^\(?([0-9]{4})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
-		if(!re.test(payload.phoneNumber))
-		return next(new AppError('Phone number is not valid'))
+		if (!re.test(payload.phoneNumber))
+			return next(new AppError("Phone number is not valid"));
 		updationData.phoneNumber = "+49" + payload.phoneNumber;
 	}
 
@@ -483,7 +483,72 @@ router.post(
 			}
 
 			var filePath = `user_${id}/${Date.now()}.` + image.name.split(".")[1];
-			var utcDate = new Date().toUTCString();
+			var utcDate = new Date(Date.now() + 86400000).toISOString();
+
+			//const axios = require("axios");
+			const crypto = require("crypto");
+
+			//const axios = require("axios");
+			//const FormData = require("form-data");
+
+			const policy = {
+				expiration: utcDate,
+				conditions: [
+					{ "content-type": "text/plain" },
+					{ "x-obs-storage-class": "STANDARD" },
+					{ success_action_redirect: "http://www.example.com" },
+					{ "x-obs-acl": "public-read" },
+					["starts-with", "$bucket", ""],
+					["starts-with", "$key", ""],
+				],
+			};
+
+			const policyBase64 = Buffer.from(
+				JSON.stringify(policy),
+				"utf-8"
+			).toString("base64");
+
+			const signature = crypto
+				.createHmac("sha1", process.env.BUCKET_SECRET_KEY)
+				.update(policyBase64)
+				.digest("base64");
+
+			const form = new FormData();
+			form.append("key", "testfile.txt");
+			form.append("x-obs-acl", "public-read");
+			form.append("content-type", "text/plain");
+			form.append("AccessKeyId", process.env.BUCKET_ACCESS_KEY);
+			form.append("policy", policyBase64);
+			form.append("signature", signature);
+			form.append("file", "123456");
+
+			const config = {
+				method: "post",
+				url: "http://testing1.obs.eu-de.otc.t-systems.com/",
+				headers: {
+					"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
+					...form.getHeaders(),
+				},
+				data: form.getBuffer(),
+			};
+
+			axios(config)
+				.then(function (response) {
+					console.log(response.data);
+					res.status(200).json({
+						status: "success",
+						path: filePath,
+					});
+				})
+				.catch(function (error) {
+					console.log(error);
+					res.status(200).json({
+						status: "Fail",
+						path: filePath,
+						error: error,
+					});
+				});
+
 			//For Auth
 			// var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
 			// stringToSign = stringToSign.toString("utf8");
@@ -493,34 +558,34 @@ router.post(
 			// 	.update(stringToSign);
 			// secretKey = secretKey.digest("base64");
 
-			const form = new FormData();
-			form.append("key", filePath);
-			form.append("acl", "public-read");
-			form.append("content-type", "image/jpeg");
-			form.append("expires", new Date().toDateString());
-			form.append("file", image.data, {
-				filename: `${utcDate}.jpg`,
-				contentType: "image/jpeg",
-			});
-			form.append("submit", "Upload");
+			// const form = new FormData();
+			// form.append("key", filePath);
+			// form.append("acl", "public-read");
+			// form.append("content-type", "image/jpeg");
+			// form.append("expires", new Date().toDateString());
+			// form.append("file", image.data, {
+			// 	filename: `${utcDate}.jpg`,
+			// 	contentType: "image/jpeg",
+			// });
+			// form.append("submit", "Upload");
 
-			const headers = {
-				"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
-				"Content-Length": form.getLengthSync(),
-				"Access-Control-Request-Headers": "acc_header_1",
-			};
+			// const headers = {
+			// 	"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
+			// 	"Content-Length": form.getLengthSync(),
+			// 	"Access-Control-Request-Headers": "acc_header_1",
+			// };
 
-			axios
-				.post(process.env.BUCKET_HOST, form, { headers })
-				.then((response) => {
-					res.status(200).json({
-						status: "success",
-						path: filePath,
-					});
-				})
-				.catch((error) => {
-					return next(new AppError(`Failed to upload image`, 400));
-				});
+			// axios
+			// 	.post(process.env.BUCKET_HOST, form, { headers })
+			// 	.then((response) => {
+			// 		res.status(200).json({
+			// 			status: "success",
+			// 			path: filePath,
+			// 		});
+			// 	})
+			// 	.catch((error) => {
+			// 		return next(new AppError(`Failed to upload image`, 400));
+			// 	});
 		} catch (err) {
 			return next(new AppError(err));
 		}
