@@ -45,7 +45,7 @@ router.post("/login", async function (req, res, next) {
 		if (!userData.emailVerified) {
 			return next(
 				new AppError(
-					`Verification email sent to you email. Please verify first before trying to login.`,
+					`Verification email sent to your email. Please verify first before trying to login.`,
 					401
 				)
 			);
@@ -347,14 +347,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 
 	if (payload.email) {
+		let re =
+			/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+		if (!re.test(payload.email)) {
+			return next(new AppError(`Invalid email given`, 400));
+		}
 		updationData.email = payload.email;
 	}
 
 	if (payload.phoneNumber) {
-		let re = /^\(?([0-9]{4})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
+		let re = /^\+49\d{11}$/;
 		if(!re.test(payload.phoneNumber))
 		return next(new AppError('Phone number is not valid'))
-		updationData.phoneNumber = "+49" + payload.phoneNumber;
+		updationData.phoneNumber = payload.phoneNumber;
 	}
 
 	if (payload.image) {
