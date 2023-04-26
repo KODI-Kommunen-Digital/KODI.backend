@@ -357,8 +357,8 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
 	if (payload.phoneNumber) {
 		let re = /^\+49\d{11}$/;
-		if(!re.test(payload.phoneNumber))
-		return next(new AppError('Phone number is not valid'))
+		if (!re.test(payload.phoneNumber))
+			return next(new AppError("Phone number is not valid"));
 		updationData.phoneNumber = payload.phoneNumber;
 	}
 
@@ -992,7 +992,16 @@ router.get("/", authentication, async function (req, res, next) {
 		.get(
 			tables.USER_TABLE,
 			{ id: ids },
-			(columns = ["id", "username", "socialMedia", "email", "website", "image"])
+			(columns = [
+				"id",
+				"username",
+				"socialMedia",
+				"email",
+				"website",
+				"image",
+				"firstname",
+				"lastname",
+			])
 		)
 		.then((response) => {
 			res.status(200).json({
