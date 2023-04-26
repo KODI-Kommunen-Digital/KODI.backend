@@ -3,7 +3,7 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
-const roles = require("../constants/roles")
+const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
@@ -254,6 +254,8 @@ router.post("/", authentication, async function (req, res, next) {
 				return next(
 					new AppError(`Invalid Village id '${payload.villageId}' given`, 400)
 				);
+			} else {
+				insertionData.villageId = payload.villageId;
 			}
 		} catch (err) {
 			return next(new AppError(err));
@@ -426,8 +428,8 @@ router.post("/", authentication, async function (req, res, next) {
 		insertionData.longitude = payload.longitude;
 	}
 
-	if (payload.lattitude) {
-		insertionData.lattitude = payload.lattitude;
+	if (payload.latitude) {
+		insertionData.latitude = payload.latitude;
 	}
 
 	if (!payload.startDate) {
@@ -617,16 +619,18 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		} catch (err) {
 			return next(new AppError(err));
 		}
-		if (payload.statusId==roles.Admin)
-		updationData.statusId = payload.statusId;
+		if (payload.statusId == roles.Admin)
+			updationData.statusId = payload.statusId;
 		else
-		return next(new AppError('You dont have access to change this option', 403))
+			return next(
+				new AppError("You dont have access to change this option", 403)
+			);
 	}
 	if (payload.longitude) {
 		updationData.longitude = payload.longitude;
 	}
-	if (payload.lattitude) {
-		updationData.lattitude = payload.lattitude;
+	if (payload.latitude) {
+		updationData.latitude = payload.latitude;
 	}
 	if (payload.startDate) {
 		updationData.startDate = new Date(payload.startDate)
