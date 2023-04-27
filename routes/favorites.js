@@ -5,7 +5,7 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 
-// To get all the favorite listing of a user 
+// To get the favorite ID  of a user 
 router.get("/", authentication, async function (req, res, next) {
     const userId = req.paramUserId;
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -30,7 +30,7 @@ router.get("/", authentication, async function (req, res, next) {
 			return next(new AppError(err));
 		});
 });
-
+// To get all the listings from the favorite table 
 router.get("/listings", authentication, async function (req, res, next) {
 	const userId = req.paramUserId;
 	if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -44,11 +44,8 @@ router.get("/listings", authentication, async function (req, res, next) {
 	}
 	try{	
 		var response = await database.get(tables.FAVORITES_TABLE, { userId: userId })
-		
 		var fav_dict = {}
 		response.rows.forEach((fav) => {
-			
-			
 			cityId = fav.cityId
 			listingId = fav.listingId	
 			if (fav_dict[cityId]) {
@@ -62,9 +59,7 @@ router.get("/listings", authentication, async function (req, res, next) {
 			var response = await database.get(tables.LISTINGS_TABLE, { id: fav_dict[cityId] }, null, cityId) 
 			response.rows.forEach(l => l.cityId = cityId)
 			listings.push(...response.rows)
-			console.log("listings.rows", listings.rows)
 		}
-		console.log(fav_dict)
 		}catch (err){
 			return next(new AppError(err));
 		}
