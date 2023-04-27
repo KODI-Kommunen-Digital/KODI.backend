@@ -808,7 +808,7 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
 		);
 		await sendMail(user.email, subject, null, body);
 		res.status(200).json({
-			status: "success",
+			status: "success"
 		});
 	} catch (err) {
 		return next(new AppError(err));
@@ -840,7 +840,10 @@ router.post("/verifyEmail", async function (req, res, next) {
 		}
 		var user = data[0];
 		if (user.emailVerified) {
-			return next(new AppError(`Email already verified`, 400));
+			res.status(200).json({
+				status: "success",
+				message: "Email has already been vefified!!"
+			});
 		}
 
 		response = await database.get(tables.VERIFICATION_TOKENS_TABLE, {
@@ -873,6 +876,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 		await sendMail(user.email, subject, null, body);
 		res.status(200).json({
 			status: "success",
+			message: "The Email Verification was successfull!"
 		});
 	} catch (err) {
 		return next(new AppError(err));

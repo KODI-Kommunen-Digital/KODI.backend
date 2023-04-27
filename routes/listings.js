@@ -87,6 +87,37 @@ router.get("/", async function (req, res, next) {
 		filters.categoryId = params.categoryId;
 	}
 
+	if (params.cityId) {
+		try {
+			var response = await database.get(
+				tables.CITIES_TABLE,
+				{ id: params.cityId },
+				null
+			);
+			let data = response.rows;
+			if (data && data.length == 0) {
+				return next(
+					new AppError(`Invalid CityId '${params.cityId}' given`, 400)
+				);
+			} else {
+				var response = await database.get(
+					tables.LISTINGS_TABLE,
+					filters,
+					null,
+					params.cityId,
+					pageNo,
+					pageSize
+				);
+				res.status(200).json({
+					status: "success",
+					data: response.rows,
+				});
+			}
+		} catch (err) {
+			return next(new AppError(err));
+		}
+	}
+
 	try {
 		var response = await database.get(
 			tables.CITIES_TABLE,
