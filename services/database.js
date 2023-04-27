@@ -2,20 +2,20 @@ let mysql = require("mysql2/promise");
 const tables = require("../constants/tableNames");
 
 // In all these functions, if cityId is given, we connect to that city's database. Else, we connect to the core database
-async function get(table, params, columns, cityId, pageNo, pageSize) {
+async function get(table, filter, columns, cityId, pageNo, pageSize) {
 	const connection = await getConnection(cityId);
 	connection.connect();
 	let query = `SELECT ${columns ? columns : "*"} FROM ${table} `;
 	let queryParams = [];
-	if (params && Object.keys(params).length > 0) {
+	if (filter && Object.keys(filter).length > 0) {
 		query += "WHERE ";
-		for (var key in params) {
-			if (Array.isArray(params[key])) {
-				query += `${key} IN (${params[key].map(() => "?").join(",")}) AND `;
-				queryParams.push(...params[key]);
+		for (var key in filter) {
+			if (Array.isArray(filter[key])) {
+				query += `${key} IN (${filter[key].map(() => "?").join(",")}) AND `;
+				queryParams.push(...filter[key]);
 			} else {
 				query += `${key} = ? AND `;
-				queryParams.push(params[key]);
+				queryParams.push(filter[key]);
 			}
 		}
 		query = query.slice(0, -4);
@@ -45,16 +45,16 @@ async function update(table, data, conditions, cityId) {
 	connection.end();
 }
 
-async function deleteData(table, params, cityId) {
+async function deleteData(table, filter, cityId) {
 	const connection = await getConnection(cityId);
 	connection.connect();
 	let query = `DELETE FROM ${table} `;
 	let queryParams = [];
-	if (params) {
+	if (filter) {
 		query += "WHERE ";
-		for (var key in params) {
+		for (var key in filter) {
 			query += `${key} = ? AND `;
-			queryParams.push(params[key]);
+			queryParams.push(filter[key]);
 		}
 		query = query.slice(0, -4);
 	}
