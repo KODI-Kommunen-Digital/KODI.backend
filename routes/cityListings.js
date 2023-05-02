@@ -239,9 +239,7 @@ router.post("/", authentication, async function (req, res, next) {
 		return next(new AppError(err));
 	}
 
-	if (!payload.villageId) {
-		return next(new AppError(`Village Id is not present`, 400));
-	} else {
+	if (typeof payload.villageId === "number") {
 		try {
 			var response = await database.get(
 				tables.VILLAGE_TABLE,
@@ -260,6 +258,8 @@ router.post("/", authentication, async function (req, res, next) {
 		} catch (err) {
 			return next(new AppError(err));
 		}
+	} else {
+		insertionData.villageId = null;
 	}
 
 	if (!payload.title) {
