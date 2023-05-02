@@ -277,18 +277,20 @@ router.get("/:id", async function (req, res, next) {
 			return next(new AppError(`City id not given`, 400));
 		}
 		try {
-			var { rows} = await database.get(tables.CITIES_TABLE, { id: cityId })
+			var { rows } = await database.get(tables.CITIES_TABLE, { id: cityId });
 			if (!rows || rows.length == 0) {
 				return next(new AppError(`City with id ${cityId} does not exist`, 400));
 			}
 
-			var { rows} = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { cityId, cityUserId: userId })
+			var { rows } = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+				cityId,
+				cityUserId: userId,
+			});
 			if (!rows || rows.length == 0) {
 				return next(new AppError(`User with id ${userId} does not exist`, 404));
 			}
-			userId = rows[0].userId
-		}
-		catch(err) {
+			userId = rows[0].userId;
+		} catch (err) {
 			return next(new AppError(err));
 		}
 	}
@@ -464,14 +466,28 @@ router.delete("/:id", authentication, async function (req, res, next) {
 			return next(new AppError(`User with id ${id} does not exist`, 404));
 		}
 
-		response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
+		response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+			userId: id,
+		});
 		var cityUsers = response.rows;
 		for (var cityUser of cityUsers) {
-			await database.deleteData(tables.LISTINGS_TABLE, { userId: cityUser.cityUserId }, cityUser.cityId);
-			await database.deleteData(tables.USER_TABLE, { id: cityUser.cityUserId }, cityUser.cityId);
+			await database.deleteData(
+				tables.LISTINGS_TABLE,
+				{ userId: cityUser.cityUserId },
+				cityUser.cityId
+			);
+			await database.deleteData(
+				tables.USER_TABLE,
+				{ id: cityUser.cityUserId },
+				cityUser.cityId
+			);
 		}
-		await database.deleteData(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
-		await database.deleteData(tables.USER_LISTING_MAPPING_TABLE, { userId: id });
+		await database.deleteData(tables.USER_CITYUSER_MAPPING_TABLE, {
+			userId: id,
+		});
+		await database.deleteData(tables.USER_LISTING_MAPPING_TABLE, {
+			userId: id,
+		});
 		await database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId: id });
 		await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, { userId: id });
 		await database.deleteData(tables.USER_TABLE, { id });
@@ -514,72 +530,7 @@ router.post(
 			}
 
 			var filePath = `user_${id}/${Date.now()}.` + image.name.split(".")[1];
-			var utcDate = new Date(Date.now() + 86400000).toISOString();
-
-			//const axios = require("axios");
-			const crypto = require("crypto");
-
-			//const axios = require("axios");
-			//const FormData = require("form-data");
-
-			const policy = {
-				expiration: utcDate,
-				conditions: [
-					{ "content-type": "text/plain" },
-					{ "x-obs-storage-class": "STANDARD" },
-					{ success_action_redirect: "http://www.example.com" },
-					{ "x-obs-acl": "public-read" },
-					["starts-with", "$bucket", ""],
-					["starts-with", "$key", ""],
-				],
-			};
-
-			const policyBase64 = Buffer.from(
-				JSON.stringify(policy),
-				"utf-8"
-			).toString("base64");
-
-			const signature = crypto
-				.createHmac("sha1", process.env.BUCKET_SECRET_KEY)
-				.update(policyBase64)
-				.digest("base64");
-
-			const form = new FormData();
-			form.append("key", "testfile.txt");
-			form.append("x-obs-acl", "public-read");
-			form.append("content-type", "text/plain");
-			form.append("AccessKeyId", process.env.BUCKET_ACCESS_KEY);
-			form.append("policy", policyBase64);
-			form.append("signature", signature);
-			form.append("file", "123456");
-
-			const config = {
-				method: "post",
-				url: "http://testing1.obs.eu-de.otc.t-systems.com/",
-				headers: {
-					"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
-					...form.getHeaders(),
-				},
-				data: form.getBuffer(),
-			};
-
-			axios(config)
-				.then(function (response) {
-					console.log(response.data);
-					res.status(200).json({
-						status: "success",
-						path: filePath,
-					});
-				})
-				.catch(function (error) {
-					console.log(error);
-					res.status(200).json({
-						status: "Fail",
-						path: filePath,
-						error: error,
-					});
-				});
-
+			var utcDate = new Date().toUTCString();
 			//For Auth
 			// var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
 			// stringToSign = stringToSign.toString("utf8");
@@ -589,34 +540,34 @@ router.post(
 			// 	.update(stringToSign);
 			// secretKey = secretKey.digest("base64");
 
-			// const form = new FormData();
-			// form.append("key", filePath);
-			// form.append("acl", "public-read");
-			// form.append("content-type", "image/jpeg");
-			// form.append("expires", new Date().toDateString());
-			// form.append("file", image.data, {
-			// 	filename: `${utcDate}.jpg`,
-			// 	contentType: "image/jpeg",
-			// });
-			// form.append("submit", "Upload");
+			const form = new FormData();
+			form.append("key", filePath);
+			form.append("acl", "public-read");
+			form.append("content-type", "image/jpeg");
+			form.append("expires", new Date().toDateString());
+			form.append("file", image.data, {
+				filename: `${utcDate}.jpg`,
+				contentType: "image/jpeg",
+			});
+			form.append("submit", "Upload");
 
-			// const headers = {
-			// 	"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
-			// 	"Content-Length": form.getLengthSync(),
-			// 	"Access-Control-Request-Headers": "acc_header_1",
-			// };
+			const headers = {
+				"Content-Type": `multipart/form-data; boundary=${form._boundary}`,
+				"Content-Length": form.getLengthSync(),
+				"Access-Control-Request-Headers": "acc_header_1",
+			};
 
-			// axios
-			// 	.post(process.env.BUCKET_HOST, form, { headers })
-			// 	.then((response) => {
-			// 		res.status(200).json({
-			// 			status: "success",
-			// 			path: filePath,
-			// 		});
-			// 	})
-			// 	.catch((error) => {
-			// 		return next(new AppError(`Failed to upload image`, 400));
-			// 	});
+			axios
+				.post(process.env.BUCKET_HOST, form, { headers })
+				.then((response) => {
+					res.status(200).json({
+						status: "success",
+						path: filePath,
+					});
+				})
+				.catch((error) => {
+					return next(new AppError(`Failed to upload image`, 400));
+				});
 		} catch (err) {
 			return next(new AppError(err));
 		}
@@ -904,7 +855,7 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
 		);
 		await sendMail(user.email, subject, null, body);
 		res.status(200).json({
-			status: "success"
+			status: "success",
 		});
 	} catch (err) {
 		return next(new AppError(err));
@@ -938,7 +889,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 		if (user.emailVerified) {
 			res.status(200).json({
 				status: "success",
-				message: "Email has already been vefified!!"
+				message: "Email has already been vefified!!",
 			});
 		}
 
@@ -972,7 +923,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 		await sendMail(user.email, subject, null, body);
 		res.status(200).json({
 			status: "success",
-			message: "The Email Verification was successfull!"
+			message: "The Email Verification was successfull!",
 		});
 	} catch (err) {
 		return next(new AppError(err));
