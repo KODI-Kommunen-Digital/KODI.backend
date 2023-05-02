@@ -619,8 +619,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		} catch (err) {
 			return next(new AppError(err));
 		}
-		if (payload.statusId == roles.Admin)
-			updationData.statusId = payload.statusId;
+		if (req.roleId == roles.Admin) updationData.statusId = payload.statusId;
 		else
 			return next(
 				new AppError("You dont have access to change this option", 403)

@@ -457,7 +457,6 @@ router.delete("/:id", authentication, async function (req, res, next) {
 	}
 });
 var FormData = require("form-data");
-var { Blob } = require("buffer");
 router.post(
 	"/:id/imageUpload",
 	authentication,
