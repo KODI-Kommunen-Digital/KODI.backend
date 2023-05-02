@@ -381,7 +381,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	if (payload.phoneNumber) {
 		let re = /^\+49\d{11}$/;
 		if (!re.test(payload.phoneNumber))
-			return next(new AppError("Phone number is not valid"));
+			return next(new AppError("Phone number is not valid", 400));
 		updationData.phoneNumber = payload.phoneNumber;
 	}
 
@@ -421,7 +421,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		} catch (e) {
 			return next(new AppError(`Invalid input given for social media`, 400));
 		}
-		console.log("Social Media", socialMediaList);
 		updationData.socialMedia = JSON.stringify(socialMediaList);
 	}
 
@@ -625,48 +624,129 @@ router.post(
 );
 
 router.get("/:id/listings", authentication, async function (req, res, next) {
-	const id = req.params.id;
-	if (isNaN(Number(id)) || Number(id) <= 0) {
-		next(new AppError(`Invalid UserId ${id}`, 404));
+	const userId = req.params.id;
+	var pageNo = req.query.pageNo || 1;
+	var pageSize = req.query.pageSize || 10;
+
+	if (isNaN(Number(userId)) || Number(userId) <= 0) {
+		next(new AppError(`Invalid UserId ${userId}`, 400));
 		return;
 	}
 
-	if (id != req.userId) {
+	if (userId != req.userId) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
 		);
 	}
+	
+	const filters = {};
+	if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
+		return next(
+			new AppError(`Please enter a positive integer for pageNo`, 400)
+		);
+	}
+
+	if (
+		isNaN(Number(pageSize)) ||
+		Number(pageSize) <= 0 ||
+		Number(pageSize) > 20
+	) {
+		return next(
+			new AppError(
+				`Please enter a positive integer less than or equal to 20 for pageSize`,
+				400
+			)
+		);
+	}
+
+	if (req.query.statusId) {
+		try {
+			var response = await database.get(
+				tables.STATUS_TABLE,
+				{ id: req.query.statusId },
+				null
+			);
+			let data = response.rows;
+			if (data && data.length == 0) {
+				return next(
+					new AppError(`Invalid Status '${req.query.statusId}' given`, 400)
+				);
+			}
+		} catch (err) {
+			return next(new AppError(err));
+		}
+		filters.statusId = req.query.statusId;
+	}
+
+	if (req.query.categoryId) {
+		try {
+			var response = await database.get(
+				tables.CATEGORIES_TABLE,
+				{ id: req.query.categoryId },
+				null
+			);
+			let data = response.rows;
+			if (data && data.length == 0) {
+				return next(
+					new AppError(`Invalid Category '${req.query.categoryId}' given`, 400)
+				);
+			} else {
+				if (req.query.subCategoryId) {
+					try {
+						var response = database.get(tables.SUBCATEGORIES_TABLE, {
+							categoryId: req.query.categoryId, subCategoryId: req.query.subCategoryId
+						});
+						let data = response.rows;
+						if (data && data.length == 0) {
+							return next(
+								new AppError(
+									`Invalid subCategory '${req.query.subCategoryId}' given`,
+									400
+								)
+							);
+						}
+					} catch (err) {
+						return next(new AppError(err));
+					}
+					filters.subCategoryId = req.query.subCategoryId;
+				}
+			}
+		} catch (err) {
+			return next(new AppError(err));
+		}
+		filters.categoryId = req.query.categoryId;
+	}
 
 	try {
-		var response = await database.get(tables.USER_TABLE, { id });
-		var data = response.rows;
-		if (data && data.length == 0) {
-			return next(new AppError(`User with id ${id} does not exist`, 404));
+		var response = await database.callQuery("Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?", [userId]);
+		let cityMappings = response.rows;
+		var individualQueries = [];
+		for (var cityMapping of cityMappings) {
+			// if the city database is present in the city's server, then we create a federated table in the format
+			// heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
+			var query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${cityMapping.cityId}${ cityMapping.inCityServer ? "_" : "." }listings WHERE userId = ${cityMapping.cityUserId}`;
+			if (filters.categoryId || filters.statusId) {
+				if (filters.categoryId) {
+					query += ` AND categoryId = ${filters.categoryId}`;
+				}
+				if (filters.subCategoryId) {
+					query += ` AND subCategoryId = ${filters.subCategoryId}`;
+				}
+				if (filters.statusId) {
+					query += ` AND statusId = ${filters.statusId}`;
+				}
+			}
+			individualQueries.push(query);
 		}
 
-		var cityUsers = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-			userId: id,
-		});
-		data = cityUsers.rows;
-		let allListings = [];
-		for (var element of data) {
-			var cityListings = await database.get(
-				tables.LISTINGS_TABLE,
-				{ userId: element.cityUserId },
-				null,
-				element.cityId
-			);
-			allListings.push(
-				...cityListings.rows.map((listings) => ({
-					...listings,
-					cityId: element.cityId,
-				}))
-			);
-		}
+		var query = `select * from (
+                ${individualQueries.join(" union all ")}
+            ) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+		response = await database.callQuery(query);
 
 		res.status(200).json({
 			status: "success",
-			data: allListings,
+			data: response.rows
 		});
 	} catch (err) {
 		return next(new AppError(err));
