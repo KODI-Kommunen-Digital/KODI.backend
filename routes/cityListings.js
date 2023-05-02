@@ -378,9 +378,7 @@ router.post("/", authentication, async function (req, res, next) {
 		insertionData.sourceId = payload.sourceId;
 	}
 
-	if (!payload.address) {
-		return next(new AppError(`Address is not present`, 400));
-	} else {
+	if (payload.address) {
 		insertionData.address = payload.address;
 	}
 	if (!payload.email) {
