@@ -536,10 +536,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 	let currentListingData = response.rows[0];
 
-	if (
-		currentListingData.userId != cityUserId &&
-		currentUser.rows[0].roleId !== roles.Admin
-	) {
+	if (currentListingData.userId != cityUserId && req.roleId !== roles.Admin) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
 		);
@@ -603,6 +600,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		updationData.logo = payload.logo;
 	}
 	if (payload.statusId) {
+		if (req.roleId != roles.Admin)
+			return next(
+				new AppError("You dont have access to change this option", 403)
+			);
 		try {
 			var response = await database.get(
 				tables.STATUS_TABLE,
@@ -616,6 +617,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 					new AppError(`Invalid Status '${payload.statusId}' given`, 400)
 				);
 			}
+			updationData.statusId = payload.statusId;
 		} catch (err) {
 			return next(new AppError(err));
 		}
@@ -658,6 +660,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
 router.delete("/:id", authentication, async function (req, res, next) {
 	const id = req.params.id;
+	const cityId = req.cityId;
 
 	if (isNaN(Number(id)) || Number(id) <= 0) {
 		next(new AppError(`Invalid entry ${id}`, 404));
@@ -666,7 +669,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
 	var response = await database.get(
 		tables.USER_CITYUSER_MAPPING_TABLE,
-		{ userId: req.userId, cityId: req.cityId },
+		{ userId: req.userId, cityId },
 		"cityUserId"
 	);
 	var currentUser = await database.get(tables.USER_TABLE, { id: req.userId });
@@ -693,7 +696,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 	}
 
 	database
-		.deleteData(tables.LISTINGS_TABLE, { id })
+		.deleteData(tables.LISTINGS_TABLE, { id }, cityId)
 		.then((response) => {
 			res.status(200).json({
 				status: "success",
