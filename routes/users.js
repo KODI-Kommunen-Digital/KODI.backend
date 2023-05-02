@@ -263,15 +263,38 @@ router.post("/register", async function (req, res, next) {
 	}
 });
 
-router.get("/:id", authentication, async function (req, res, next) {
-	const id = req.params.id;
-	if (isNaN(Number(id)) || Number(id) <= 0) {
-		next(new AppError(`Invalid UserId ${id}`, 404));
+router.get("/:id", async function (req, res, next) {
+	var userId = req.params.id;
+	const cityUser = req.query.cityUser || false;
+	const cityId = req.query.cityId;
+	if (isNaN(Number(userId)) || Number(userId) <= 0) {
+		next(new AppError(`Invalid UserId ${userId}`, 404));
 		return;
 	}
 
+	if (cityUser) {
+		if (!cityId) {
+			return next(new AppError(`City id not given`, 400));
+		}
+		try {
+			var { rows} = await database.get(tables.CITIES_TABLE, { id: cityId })
+			if (!rows || rows.length == 0) {
+				return next(new AppError(`City with id ${cityId} does not exist`, 400));
+			}
+
+			var { rows} = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { cityId, cityUserId: userId })
+			if (!rows || rows.length == 0) {
+				return next(new AppError(`User with id ${userId} does not exist`, 404));
+			}
+			userId = rows[0].userId
+		}
+		catch(err) {
+			return next(new AppError(err));
+		}
+	}
+
 	database
-		.get(tables.USER_TABLE, { id })
+		.get(tables.USER_TABLE, { id: userId })
 		.then((response) => {
 			let data = response.rows;
 			if (!data || data.length == 0) {
@@ -357,8 +380,8 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
 	if (payload.phoneNumber) {
 		let re = /^\+49\d{11}$/;
-		if(!re.test(payload.phoneNumber))
-		return next(new AppError('Phone number is not valid'))
+		if (!re.test(payload.phoneNumber))
+			return next(new AppError("Phone number is not valid"));
 		updationData.phoneNumber = payload.phoneNumber;
 	}
 
@@ -441,13 +464,17 @@ router.delete("/:id", authentication, async function (req, res, next) {
 			return next(new AppError(`User with id ${id} does not exist`, 404));
 		}
 
-		var filePath = `./${process.env.imagePath}/user_${id}`;
-		fs.rmSync(filePath, { recursive: true, force: true });
-
-		var response = await database.callStoredProcedure(
-			storedProcedures.DELETE_USER,
-			[id]
-		);
+		response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
+		var cityUsers = response.rows;
+		for (var cityUser of cityUsers) {
+			await database.deleteData(tables.LISTINGS_TABLE, { userId: cityUser.cityUserId }, cityUser.cityId);
+			await database.deleteData(tables.USER_TABLE, { id: cityUser.cityUserId }, cityUser.cityId);
+		}
+		await database.deleteData(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
+		await database.deleteData(tables.USER_LISTING_MAPPING_TABLE, { userId: id });
+		await database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId: id });
+		await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, { userId: id });
+		await database.deleteData(tables.USER_TABLE, { id });
 
 		res.status(200).json({
 			status: "success",
@@ -878,7 +905,7 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
 		);
 		await sendMail(user.email, subject, null, body);
 		res.status(200).json({
-			status: "success",
+			status: "success"
 		});
 	} catch (err) {
 		return next(new AppError(err));
@@ -910,7 +937,10 @@ router.post("/verifyEmail", async function (req, res, next) {
 		}
 		var user = data[0];
 		if (user.emailVerified) {
-			return next(new AppError(`Email already verified`, 400));
+			res.status(200).json({
+				status: "success",
+				message: "Email has already been vefified!!"
+			});
 		}
 
 		response = await database.get(tables.VERIFICATION_TOKENS_TABLE, {
@@ -943,6 +973,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 		await sendMail(user.email, subject, null, body);
 		res.status(200).json({
 			status: "success",
+			message: "The Email Verification was successfull!"
 		});
 	} catch (err) {
 		return next(new AppError(err));
@@ -992,7 +1023,16 @@ router.get("/", authentication, async function (req, res, next) {
 		.get(
 			tables.USER_TABLE,
 			{ id: ids },
-			(columns = ["id", "username", "socialMedia", "email", "website", "image"])
+			(columns = [
+				"id",
+				"username",
+				"socialMedia",
+				"email",
+				"website",
+				"image",
+				"firstname",
+				"lastname",
+			])
 		)
 		.then((response) => {
 			res.status(200).json({

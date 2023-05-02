@@ -87,6 +87,37 @@ router.get("/", async function (req, res, next) {
 		filters.categoryId = params.categoryId;
 	}
 
+	if (params.cityId) {
+		try {
+			var response = await database.get(
+				tables.CITIES_TABLE,
+				{ id: params.cityId },
+				null
+			);
+			let data = response.rows;
+			if (data && data.length == 0) {
+				return next(
+					new AppError(`Invalid CityId '${params.cityId}' given`, 400)
+				);
+			} else {
+				var response = await database.get(
+					tables.LISTINGS_TABLE,
+					filters,
+					null,
+					params.cityId,
+					pageNo,
+					pageSize
+				);
+				res.status(200).json({
+					status: "success",
+					data: response.rows,
+				});
+			}
+		} catch (err) {
+			return next(new AppError(err));
+		}
+	}
+
 	try {
 		var response = await database.get(
 			tables.CITIES_TABLE,
@@ -100,20 +131,19 @@ router.get("/", async function (req, res, next) {
 		var individualQueries = [];
 		for (var city of cities) {
 			// if the city database is present in the city's server, then we create a federated table in the format
-			// heidi_city_{id}_listings in the core databse which points to the listings table
-			var query = `SELECT *, ${city.id} as cityId FROM heidi_city_${city.id}${
-				city.inCityServer ? "_" : "."
-			}listings`;
+			// heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
+			var query = `SELECT L.*, U.username, ${city.id} as cityId FROM heidi_city_${city.id}${ city.inCityServer ? "_" : "." }listings L 
+			inner join heidi_city_${city.id}${ city.inCityServer ? "_" : "." }users U on U.id = L.userId `;
 			if (filters.categoryId || filters.statusId) {
 				query += " WHERE ";
 				if (filters.categoryId) {
-					query += `categoryId = ${params.categoryId} AND `;
+					query += `L.categoryId = ${params.categoryId} AND `;
 				}
 				if (filters.subCategoryId) {
-					query += `subCategoryId = ${params.subCategoryId} AND `;
+					query += `L.subCategoryId = ${params.subCategoryId} AND `;
 				}
 				if (filters.statusId) {
-					query += `statusId = ${params.statusId} AND `;
+					query += `L.statusId = ${params.statusId} AND `;
 				}
 				query = query.slice(0, -4);
 			}
