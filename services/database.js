@@ -21,7 +21,7 @@ async function get(table, params, columns, cityId, pageNo, pageSize) {
 		query = query.slice(0, -4);
 	}
 	if (pageNo && pageSize) {
-		query += ` LIMIT ${pageNo - 1}, ${pageSize}`;
+		query += ` LIMIT ${(pageNo - 1) * pageSize}, ${pageSize}`;
 	}
 	let [rows, fields] = await connection.execute(query, queryParams);
 	connection.end();
@@ -73,10 +73,10 @@ async function callStoredProcedure(spName, parameters, cityId) {
 	connection.end();
 }
 
-async function callQuery(query, cityId) {
+async function callQuery(query, params, cityId) {
 	const connection = await getConnection(cityId);
 	connection.connect();
-	let [rows, fields] = await connection.execute(query);
+	let [rows, fields] = await connection.execute(query, params);
 	connection.end();
 	return { rows, fields };
 }
