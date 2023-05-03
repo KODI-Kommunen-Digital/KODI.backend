@@ -387,8 +387,8 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		updationData.phoneNumber = payload.phoneNumber;
 	}
 
-	if (payload.image) {
-		updationData.website = payload.website;
+	if (payload.image || payload.image == "") {
+		updationData.image = payload.image;
 	}
 
 	if (payload.description) {
