@@ -120,12 +120,7 @@ router.get("/", async function (req, res, next) {
 
 	try {
 		var response = await database.get(
-			tables.CITIES_TABLE,
-			null,
-			null,
-			null,
-			pageNo,
-			pageSize
+			tables.CITIES_TABLE
 		);
 		let cities = response.rows;
 		var individualQueries = [];
@@ -152,8 +147,8 @@ router.get("/", async function (req, res, next) {
 
 		var query = `select * from (
                 ${individualQueries.join(" union all ")}
-            ) a order by createdAt desc LIMIT ${pageNo - 1}, ${pageSize};`;
-		response = await database.callQuery(query, null);
+            ) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+		response = await database.callQuery(query);
 
 		listings = response.rows;
 		var noOfListings = listings.length;

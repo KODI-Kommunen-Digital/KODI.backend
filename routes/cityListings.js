@@ -239,9 +239,7 @@ router.post("/", authentication, async function (req, res, next) {
 		return next(new AppError(err));
 	}
 
-	if (!payload.villageId) {
-		return next(new AppError(`Village Id is not present`, 400));
-	} else {
+	if (typeof payload.villageId === "number") {
 		try {
 			var response = await database.get(
 				tables.VILLAGE_TABLE,
@@ -260,6 +258,8 @@ router.post("/", authentication, async function (req, res, next) {
 		} catch (err) {
 			return next(new AppError(err));
 		}
+	} else {
+		insertionData.villageId = null;
 	}
 
 	if (!payload.title) {
@@ -378,9 +378,7 @@ router.post("/", authentication, async function (req, res, next) {
 		insertionData.sourceId = payload.sourceId;
 	}
 
-	if (!payload.address) {
-		return next(new AppError(`Address is not present`, 400));
-	} else {
+	if (payload.address) {
 		insertionData.address = payload.address;
 	}
 	if (!payload.email) {
@@ -536,10 +534,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 	let currentListingData = response.rows[0];
 
-	if (
-		currentListingData.userId != cityUserId &&
-		req.roleId !== roles.Admin
-	) {
+	if (currentListingData.userId != cityUserId && req.roleId !== roles.Admin) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
 		);
@@ -624,6 +619,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		} catch (err) {
 			return next(new AppError(err));
 		}
+		if (req.roleId == roles.Admin) updationData.statusId = payload.statusId;
+		else
+			return next(
+				new AppError("You dont have access to change this option", 403)
+			);
 	}
 	if (payload.longitude) {
 		updationData.longitude = payload.longitude;
