@@ -108,7 +108,6 @@ router.post("/register", async function (req, res, next) {
 				username: payload.username,
 			});
 			let data = response.rows;
-			console.log(data);
 			if (data && data.length > 0) {
 				return next(
 					new AppError(
@@ -565,7 +564,7 @@ router.post(
 					});
 				})
 				.catch((error) => {
-					return next(new AppError(`Failed to upload image`, 400));
+					return next(new AppError(`Failed to upload image ${error}`, 400));
 				});
 		} catch (err) {
 			return next(new AppError(err));

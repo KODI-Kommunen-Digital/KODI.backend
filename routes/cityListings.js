@@ -594,8 +594,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	if (payload.discountPrice) {
 		updationData.discountPrice = payload.discountPrice;
 	}
+	if (payload.logo && payload.removeImage) {
+		return next(
+			new AppError(
+				`Invalid Input, logo and removeImage both fields present`,
+				400
+			)
+		);
+	}
 	if (payload.logo) {
 		updationData.logo = payload.logo;
+	}
+	if (payload.removeImage) {
+		updationData.logo = null;
 	}
 	if (payload.statusId) {
 		if (req.roleId != roles.Admin)
