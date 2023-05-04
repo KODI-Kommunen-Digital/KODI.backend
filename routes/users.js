@@ -420,10 +420,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
 					);
 				}
 			});
+			updationData.socialMedia = JSON.stringify(socialMediaList);
 		} catch (e) {
 			return next(new AppError(`Invalid input given for social media`, 400));
 		}
-		updationData.socialMedia = JSON.stringify(socialMediaList);
 	}
 
 	if (updationData !== {}) {
@@ -588,7 +588,7 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 			new AppError(`You are not allowed to access this resource`, 403)
 		);
 	}
-	
+
 	const filters = {};
 	if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
 		return next(
@@ -644,7 +644,8 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 				if (req.query.subCategoryId) {
 					try {
 						var response = database.get(tables.SUBCATEGORIES_TABLE, {
-							categoryId: req.query.categoryId, subCategoryId: req.query.subCategoryId
+							categoryId: req.query.categoryId,
+							subCategoryId: req.query.subCategoryId,
 						});
 						let data = response.rows;
 						if (data && data.length == 0) {
@@ -668,13 +669,20 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 	}
 
 	try {
-		var response = await database.callQuery("Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?", [userId]);
+		var response = await database.callQuery(
+			"Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?",
+			[userId]
+		);
 		let cityMappings = response.rows;
 		var individualQueries = [];
 		for (var cityMapping of cityMappings) {
 			// if the city database is present in the city's server, then we create a federated table in the format
 			// heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-			var query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${cityMapping.cityId}${ cityMapping.inCityServer ? "_" : "." }listings WHERE userId = ${cityMapping.cityUserId}`;
+			var query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${
+				cityMapping.cityId
+			}${cityMapping.inCityServer ? "_" : "."}listings WHERE userId = ${
+				cityMapping.cityUserId
+			}`;
 			if (filters.categoryId || filters.statusId) {
 				if (filters.categoryId) {
 					query += ` AND categoryId = ${filters.categoryId}`;
@@ -691,12 +699,14 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 
 		var query = `select * from (
                 ${individualQueries.join(" union all ")}
-            ) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+            ) a order by createdAt desc LIMIT ${
+							(pageNo - 1) * pageSize
+						}, ${pageSize};`;
 		response = await database.callQuery(query);
 
 		res.status(200).json({
 			status: "success",
-			data: response.rows
+			data: response.rows,
 		});
 	} catch (err) {
 		return next(new AppError(err));
