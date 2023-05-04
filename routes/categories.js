@@ -23,7 +23,6 @@ router.get("/", async function (req, res, next) {
 
 router.get("/:id/subcategories", async function (req, res, next) {
 	const categoryId = req.params.id;
-	console.log("CatId", categoryId);
 	database
 		.get(tables.SUBCATEGORIES_TABLE, { categoryId })
 		.then((response) => {

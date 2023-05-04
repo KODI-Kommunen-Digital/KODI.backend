@@ -5,7 +5,7 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 
-// To get all the favorite listing of a user 
+// To get the favorite ID  of a user 
 router.get("/", authentication, async function (req, res, next) {
     const userId = req.paramUserId;
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -30,6 +30,45 @@ router.get("/", authentication, async function (req, res, next) {
 			return next(new AppError(err));
 		});
 });
+// To get all the listings from the favorite table 
+router.get("/listings", authentication, async function (req, res, next) {
+	const userId = req.paramUserId;
+	if (isNaN(Number(userId)) || Number(userId) <= 0) {
+		next(new AppError(`Invalid userId ${userId}`, 400));
+		return;
+	}
+	if (userId != req.userId) {
+		return next(
+			new AppError(`You are not allowed to access this resource`, 403)
+		);
+	}
+	try{	
+		var response = await database.get(tables.FAVORITES_TABLE, { userId: userId })
+		var fav_dict = {}
+		response.rows.forEach((fav) => {
+			cityId = fav.cityId
+			listingId = fav.listingId	
+			if (fav_dict[cityId]) {
+				fav_dict[cityId].push(listingId)
+			} else {
+				fav_dict[cityId] = [listingId]
+			}
+		})
+		var listings = []
+		for(var cityId in fav_dict){
+			var response = await database.get(tables.LISTINGS_TABLE, { id: fav_dict[cityId] }, null, cityId) 
+			response.rows.forEach(l => l.cityId = cityId)
+			listings.push(...response.rows)
+		}
+		}catch (err){
+			return next(new AppError(err));
+		}
+		res.status(200).json({
+			status: "success",
+			data: listings,
+		});
+})
+
 // To insert or add  a listing into favorite table 
 router.post("/",authentication, async function (req, res, next) {
 	const userId = req.paramUserId;
@@ -56,6 +95,7 @@ router.post("/",authentication, async function (req, res, next) {
 		} catch (err) {
 			return next(new AppError(err));
 		}
+		
 	}
 	if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
 		next(new AppError(`Invalid ListingsId ${listingId}`, 400));
