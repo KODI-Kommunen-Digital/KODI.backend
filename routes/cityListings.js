@@ -239,7 +239,10 @@ router.post("/", authentication, async function (req, res, next) {
 		return next(new AppError(err));
 	}
 
-	if (typeof parseInt(payload.villageId) === "number") {
+	if (
+		typeof parseInt(payload.villageId) === "number" &&
+		parseInt(payload.villageId) !== 0
+	) {
 		try {
 			var response = await database.get(
 				tables.VILLAGE_TABLE,
