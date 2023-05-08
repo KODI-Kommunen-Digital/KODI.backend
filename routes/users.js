@@ -527,7 +527,7 @@ router.post(
 				);
 			}
 
-			var filePath = `user_${id}/${Date.now()}.` + image.name.split(".")[1];
+			var filePath = `user_${id}/${Date.now()}`;
 			var utcDate = new Date().toUTCString();
 			//For Auth
 			// var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
