@@ -384,17 +384,12 @@ router.post("/", authentication, async function (req, res, next) {
 	if (payload.address) {
 		insertionData.address = payload.address;
 	}
-	if (!payload.email) {
-		if (
-			payload.categoryId == categories.Associations ||
-			payload.categoryId == categories.OfferOrSearch ||
-			payload.categoryId == categories.DefectReport ||
-			payload.categoryId == categories.LostPropertyOffice ||
-			payload.categoryId == categories.CompanyPortraits
-		) {
-			return next(new AppError(`Email is not present`, 400));
+
+	if (payload.email) {
+		const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+		if (!regex.test(payload.email)){
+			return next(new AppError(`Invalid email Id given`, 400));
 		}
-	} else {
 		insertionData.email = payload.email;
 	}
 
