@@ -103,7 +103,7 @@ router.get("/", async function (req, res, next) {
 				var response = await database.get(
 					tables.LISTINGS_TABLE,
 					filters,
-					null,
+					`*, ${params.cityId} as cityId`,
 					params.cityId,
 					pageNo,
 					pageSize

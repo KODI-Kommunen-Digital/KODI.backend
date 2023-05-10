@@ -490,6 +490,8 @@ router.delete("/:id", authentication, async function (req, res, next) {
 		await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, { userId: id });
 		await database.deleteData(tables.USER_TABLE, { id });
 
+		await ax
+
 		res.status(200).json({
 			status: "success",
 		});
@@ -515,10 +517,10 @@ router.post(
 			return;
 		}
 
-		if (!/^image/.test(image.mimetype)) {
-			next(new AppError(`Please upload an image only`, 400));
-			return;
-		}
+		// if (!/^image/.test(image.mimetype)) {
+		// 	next(new AppError(`Please upload an image only`, 400));
+		// 	return;
+		// }
 
 		try {
 			if (id != req.userId) {
@@ -529,7 +531,7 @@ router.post(
 
 			var filePath = `user_${id}/${Date.now()}`;
 			var utcDate = new Date().toUTCString();
-			//For Auth
+			// For Auth
 			// var stringToSign = `PUT\n\nmultipart/form-data\n${utcDate}\n/${process.env.BUCKET_NAME}/${filePath}`;
 			// stringToSign = stringToSign.toString("utf8");
 
