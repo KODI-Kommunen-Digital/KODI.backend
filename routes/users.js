@@ -13,6 +13,7 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const axios = require("axios");
 const { json } = require("body-parser");
+const parser = require("xml-js");
 
 router.post("/login", async function (req, res, next) {
 	var payload = req.body;
@@ -490,7 +491,16 @@ router.delete("/:id", authentication, async function (req, res, next) {
 		await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, { userId: id });
 		await database.deleteData(tables.USER_TABLE, { id });
 
-		await ax
+		let imageList = await axios.get(process.env.BUCKET_HOST);
+		imageList = JSON.parse(
+			parser.xml2json(imageList.data, { compact: true, spaces: 4 })
+		);
+		const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
+			obj.Key._text.includes("user_" + id)
+		);
+		userImageList.forEach(async (element) => {
+			await axios.delete(process.env.BUCKET_HOST + element.Key._text);
+		});
 
 		res.status(200).json({
 			status: "success",
