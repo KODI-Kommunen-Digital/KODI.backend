@@ -275,8 +275,6 @@ router.post("/", authentication, async function (req, res, next) {
 		insertionData.title = payload.title;
 	}
 	if (!payload.place) {
-		return next(new AppError(`Place is not present`, 400));
-	} else {
 		insertionData.place = payload.place;
 	}
 
