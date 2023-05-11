@@ -681,7 +681,7 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 
 	try {
 		var response = await database.callQuery(
-			"Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?",
+			"Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?;",
 			[userId]
 		);
 		let cityMappings = response.rows;
@@ -707,17 +707,19 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 			}
 			individualQueries.push(query);
 		}
-
-		var query = `select * from (
-                ${individualQueries.join(" union all ")}
-            ) a order by createdAt desc LIMIT ${
-							(pageNo - 1) * pageSize
-						}, ${pageSize};`;
-		response = await database.callQuery(query);
-
+		if (individualQueries && individualQueries.length > 0) {
+			var query = `select * from (
+					${individualQueries.join(" union all ")}
+				) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+			response = await database.callQuery(query);
+			res.status(200).json({
+				status: "success",
+				data: response.rows,
+			});
+		}
 		res.status(200).json({
 			status: "success",
-			data: response.rows,
+			data: [],
 		});
 	} catch (err) {
 		return next(new AppError(err));
