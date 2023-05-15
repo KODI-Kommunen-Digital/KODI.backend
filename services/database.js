@@ -2,7 +2,7 @@ let mysql = require("mysql2/promise");
 const tables = require("../constants/tableNames");
 
 // In all these functions, if cityId is given, we connect to that city's database. Else, we connect to the core database
-async function get(table, filter, columns, cityId, pageNo, pageSize) {
+async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, descending) {
 	const connection = await getConnection(cityId);
 	connection.connect();
 	let query = `SELECT ${columns ? columns : "*"} FROM ${table} `;
@@ -20,6 +20,13 @@ async function get(table, filter, columns, cityId, pageNo, pageSize) {
 		}
 		query = query.slice(0, -4);
 	}
+	if (orderBy) {
+		query += `order by ${orderBy.join(', ')} `
+		if (descending) {
+			query += `desc `
+		}
+	}
+
 	if (pageNo && pageSize) {
 		query += ` LIMIT ${(pageNo - 1) * pageSize}, ${pageSize}`;
 	}
