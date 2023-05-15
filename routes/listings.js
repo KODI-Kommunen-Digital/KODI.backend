@@ -106,7 +106,9 @@ router.get("/", async function (req, res, next) {
 					`*, ${params.cityId} as cityId`,
 					params.cityId,
 					pageNo,
-					pageSize
+					pageSize,
+					["startDate", "createdAt"],
+					true
 				);
 				res.status(200).json({
 					status: "success",
@@ -147,7 +149,7 @@ router.get("/", async function (req, res, next) {
 
 		var query = `select * from (
                 ${individualQueries.join(" union all ")}
-            ) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+            ) a order by startDate, createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
 		response = await database.callQuery(query);
 
 		listings = response.rows;
