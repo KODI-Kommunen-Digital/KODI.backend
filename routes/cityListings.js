@@ -275,8 +275,6 @@ router.post("/", authentication, async function (req, res, next) {
 		insertionData.title = payload.title;
 	}
 	if (!payload.place) {
-		return next(new AppError(`Place is not present`, 400));
-	} else {
 		insertionData.place = payload.place;
 	}
 
@@ -412,11 +410,7 @@ router.post("/", authentication, async function (req, res, next) {
 	if (payload.discountPrice) {
 		insertionData.discountPrice = payload.discountPrice;
 	}
-	if (!payload.logo) {
-		if (payload.categoryId == 4 || payload.categoryId == 11) {
-			return next(new AppError(`Logo is not present`, 400));
-		}
-	} else {
+	if (payload.logo) {
 		insertionData.logo = payload.logo;
 	}
 
