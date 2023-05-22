@@ -585,7 +585,7 @@ router.post(
 	}
 );
 
-router.get("/:id/listings", authentication, async function (req, res, next) {
+router.get("/:id/listings", async function (req, res, next) {
 	const userId = req.params.id;
 	var pageNo = req.query.pageNo || 1;
 	var pageSize = req.query.pageSize || 10;
