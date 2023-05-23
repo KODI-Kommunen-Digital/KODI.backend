@@ -584,7 +584,7 @@ router.post(
 	}
 );
 
-router.get("/:id/listings", authentication, async function (req, res, next) {
+router.get("/:id/listings", async function (req, res, next) {
 	const userId = req.params.id;
 	var pageNo = req.query.pageNo || 1;
 	var pageSize = req.query.pageSize || 10;
@@ -594,11 +594,11 @@ router.get("/:id/listings", authentication, async function (req, res, next) {
 		return;
 	}
 
-	if (userId != req.userId) {
-		return next(
-			new AppError(`You are not allowed to access this resource`, 403)
-		);
-	}
+	// if (userId != req.userId) {
+	// 	return next(
+	// 		new AppError(`You are not allowed to access this resource`, 403)
+	// 	);
+	// }
 
 	const filters = {};
 	if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
