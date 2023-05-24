@@ -9,7 +9,7 @@ const deepl = require("deepl-node");
 router.get("/", async function (req, res, next) {
 	const params = req.query;
 	var pageNo = params.pageNo || 1;
-	var pageSize = params.pageSize || 10;
+	var pageSize = params.pageSize || 9;
 	const filters = {};
 	if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
 		return next(
