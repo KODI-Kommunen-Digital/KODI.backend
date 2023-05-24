@@ -30,7 +30,7 @@ router.get("/", async function (req, res, next) {
 	}
 
 	var pageNo = params.pageNo || 1;
-	var pageSize = params.pageSize || 10;
+	var pageSize = params.pageSize || 9;
 	if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
 		return next(
 			new AppError(`Please enter a positive integer for pageNo`, 400)
