@@ -16,6 +16,7 @@ const categoriesRouter = require('./routes/categories');
 const statusRouter = require('./routes/status');
 const citizenServicesRouter = require('./routes/citizenServices');
 const fileUpload = require('express-fileupload');
+const forumsRouter = require('./routes/forums');
 
 // defining the Express app
 const app = express();
@@ -56,10 +57,18 @@ app.use('/listings', listingsRouter);
 app.use('/categories', categoriesRouter);
 app.use('/status', statusRouter);
 app.use('/citizenServices', citizenServicesRouter);
+app.use('/cities/:cityId/forums', function (req, res, next) {
+     if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    next();
+}, forumsRouter)
 app.use('/users/:userId/favorites', function (req, res, next) {
     if (isNaN(Number(req.params.userId)) || Number(req.params.userId) <= 0) {
         return next(new AppError(`Invalid user id given`, 400));
     }
+    // change to userId instead of paramUserId
     req.paramUserId = req.params.userId;
     next();
 }, favoriteRouter)

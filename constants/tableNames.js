@@ -15,5 +15,12 @@ module.exports = {
   VERIFICATION_TOKENS_TABLE: 'verification_tokens',
   EXCEPTIONS_TABLE: 'exceptions',
   FAVORITES_TABLE: 'FAVORITES',
-  CITIZEN_SERVICES_TABLE: 'CITIZEN_SERVICES'
+  CITIZEN_SERVICES_TABLE: 'CITIZEN_SERVICES',
+  FORUMS: 'FORUMS',
+  FORUMS_POST: 'ForumPosts',
+  FORUM_MEMBERS: 'ForumMembers',
+  FORUM_REQUEST: 'ForumRequests',
+  FORUM_COMMENTS: 'ForumComments',
+  POST_REPORTS: 'PostReports',
+  FORUM_REQUEST_STATUS:'ForumStatus'
 }
