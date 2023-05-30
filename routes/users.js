@@ -588,18 +588,18 @@ router.post(
 router.get("/:id/listings", async function (req, res, next) {
 	const userId = req.params.id;
 	var pageNo = req.query.pageNo || 1;
-	var pageSize = req.query.pageSize || 10;
+	var pageSize = req.query.pageSize || 9;
 
 	if (isNaN(Number(userId)) || Number(userId) <= 0) {
 		next(new AppError(`Invalid UserId ${userId}`, 400));
 		return;
 	}
 
-	if (userId != req.userId) {
-		return next(
-			new AppError(`You are not allowed to access this resource`, 403)
-		);
-	}
+	// if (userId != req.userId) {
+	// 	return next(
+	// 		new AppError(`You are not allowed to access this resource`, 403)
+	// 	);
+	// }
 
 	const filters = {};
 	if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
