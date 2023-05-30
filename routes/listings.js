@@ -110,7 +110,7 @@ router.get("/", async function (req, res, next) {
 					["startDate", "createdAt"],
 					true
 				);
-				res.status(200).json({
+				return res.status(200).json({
 					status: "success",
 					data: response.rows,
 				});
@@ -186,8 +186,8 @@ router.get("/", async function (req, res, next) {
 					listings[i].descriptionTranslation = translations[2 * i + 1].text;
 				}
 			}
-		}
-		res.status(200).json({
+		} 
+		return res.status(200).json({
 			status: "success",
 			data: response.rows,
 		});

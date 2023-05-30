@@ -77,7 +77,7 @@ router.post("/login", async function (req, res, next) {
 		};
 
 		await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 			data: {
 				cityUsers: userMappings.rows,
@@ -254,7 +254,7 @@ router.post("/register", async function (req, res, next) {
 		);
 		await sendMail(insertionData.email, subject, null, body);
 
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 			id: userId,
 		});
@@ -438,7 +438,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 				return next(new AppError(err));
 			});
 	} else {
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 		});
 	}
@@ -503,7 +503,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 			await axios.delete(process.env.BUCKET_HOST + element.Key._text);
 		});
 
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 		});
 	} catch (err) {
@@ -713,12 +713,12 @@ router.get("/:id/listings", async function (req, res, next) {
 					${individualQueries.join(" union all ")}
 				) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
 			response = await database.callQuery(query);
-			res.status(200).json({
+			return res.status(200).json({
 				status: "success",
 				data: response.rows,
 			});
 		}
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 			data: [],
 		});
@@ -776,7 +776,7 @@ router.post("/:id/refresh", async function (req, res, next) {
 		await database.deleteData(tables.REFRESH_TOKENS_TABLE, { id: data[0].id });
 		await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
 
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 			data: {
 				accessToken: newTokens.accessToken,
@@ -840,7 +840,7 @@ router.post("/forgotPassword", async function (req, res, next) {
 			user.id
 		);
 		await sendMail(user.email, subject, null, body);
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 		});
 	} catch (err) {
@@ -905,7 +905,7 @@ router.post("/resetPassword", async function (req, res, next) {
 		const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
 		var { subject, body } = passwordResetDone(user.firstname, user.lastname);
 		await sendMail(user.email, subject, null, body);
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 		});
 	} catch (err) {
@@ -958,7 +958,7 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
 			language
 		);
 		await sendMail(user.email, subject, null, body);
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 		});
 	} catch (err) {
@@ -991,7 +991,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 		}
 		var user = data[0];
 		if (user.emailVerified) {
-			res.status(200).json({
+			return res.status(200).json({
 				status: "success",
 				message: "Email has already been vefified!!",
 			});
@@ -1025,7 +1025,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 		const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
 		var { subject, body } = verificationDone(user.firstname, user.lastname);
 		await sendMail(user.email, subject, null, body);
-		res.status(200).json({
+		return res.status(200).json({
 			status: "success",
 			message: "The Email Verification was successfull!",
 		});
