@@ -512,8 +512,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		"cityUserId"
 	);
 
-	var currentUser = await database.get(tables.USER_TABLE, { id: req.userId });
-	if (!response.rows || response.rows.length == 0) {
+	if ((!response.rows || response.rows.length == 0) && (currentListingData.userId != response.rows[0].cityUserId && req.roleId !== roles.Admin)) {
 		return next(
 			new AppError(`You are not allowed to access this resource`, 403)
 		);
