@@ -512,11 +512,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		"cityUserId"
 	);
 
-	if ((!response.rows || response.rows.length == 0) || (currentListingData.userId != response.rows[0].cityUserId && req.roleId !== roles.Admin)) {
-		return next(
-			new AppError(`You are not allowed to access this resource`, req.roleId)
-		);
-	}
+	// if ((!response.rows || response.rows.length == 0) || (currentListingData.userId != response.rows[0].cityUserId && req.roleId !== roles.Admin)) {
+	// 	return next(
+	// 		new AppError(`You are not allowed to access this resource`, 403)
+	// 	);
+	// }
 	var cityUserId = response.rows[0].cityUserId;
 
 	response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
@@ -525,11 +525,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 	let currentListingData = response.rows[0];
 
-	// if (currentListingData.userId != cityUserId && req.roleId !== roles.Admin) {
-	// 	return next(
-	// 		new AppError(`You are not allowed to access this resource`, 403)
-	// 	);
-	// }
+	if (currentListingData.userId != cityUserId && req.roleId !== roles.Admin) {
+		return next(
+			new AppError(`You are not allowed to access this resource`, 403)
+		);
+	}
 	if (payload.title) {
 		if (payload.title.length > 255) {
 			return next(
