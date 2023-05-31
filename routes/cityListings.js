@@ -512,12 +512,13 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		"cityUserId"
 	);
 
-	// if ((!response.rows || response.rows.length == 0) || (currentListingData.userId != response.rows[0].cityUserId && req.roleId !== roles.Admin)) {
-	// 	return next(
-	// 		new AppError(`You are not allowed to access this resource`, 403)
-	// 	);
-	// }
-	var cityUserId = response.rows[0]?.cityUserId;
+	var currentUser = await database.get(tables.USER_TABLE, { id: req.userId });
+	if (!response.rows || response.rows.length == 0) {
+		return next(
+			new AppError(`You are not allowed to access this resource`, 403)
+		);
+	}
+	var cityUserId = response.rows[0].cityUserId;
 
 	response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
 	if (!response.rows || response.rows.length == 0) {
