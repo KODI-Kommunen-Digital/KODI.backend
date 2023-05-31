@@ -527,7 +527,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
 	if (currentListingData.userId != cityUserId && req.roleId !== roles.Admin) {
 		return next(
-			new AppError(`You are not allowed ${currentListingData} to access this resource`, 403)
+			new AppError(`You are not allowed to access this resource`, 403)
 		);
 	}
 	if (payload.title) {
