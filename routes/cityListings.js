@@ -525,11 +525,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
 	}
 	let currentListingData = response.rows[0];
 
-	if (currentListingData.userId != cityUserId && req.roleId !== roles.Admin) {
-		return next(
-			new AppError(`You are not allowed to access this resource`, 403)
-		);
-	}
+	// if (currentListingData.userId != cityUserId && req.roleId !== roles.Admin) {
+	// 	return next(
+	// 		new AppError(`You are not allowed to access this resource`, 403)
+	// 	);
+	// }
 	if (payload.title) {
 		if (payload.title.length > 255) {
 			return next(
