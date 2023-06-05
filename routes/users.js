@@ -13,13 +13,38 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
-const imageUpload = require("../utils/imageUpload");
+
+function extractOSDetails(userAgent) {
+  // Use regular expressions or a specialized library to parse the User-Agent string
+  // and extract the operating system details
+
+  // Example using regular expression to extract OS details
+  const osRegex = /\((.*?)\)/; // Extracts the text within the parentheses
+  const osMatch = userAgent.match(osRegex);
+  const osDetails = osMatch ? osMatch[1] : "";
+
+  return osDetails;
+}
+
+router.get("/devices", (req, res) => {
+  const device = req.headers["user-agent"];
+
+  console.log("device: " + extractOSDetails(device));
+  return res.status(200).json({
+    status: "success",
+    data: {
+      device: device,
+    },
+  });
+});
 
 router.post("/login", async function (req, res, next) {
   var payload = req.body;
+  const deviceDetails = req.headers["user-agent"];
   var sourceAddress = req.headers["x-forwarded-for"]
     ? req.headers["x-forwarded-for"].split(",").shift()
     : req.socket.remoteAddress;
+  sourceAddress = sourceAddress.toString().replace("::ffff:", "");
   requestObject = {};
 
   if (!payload) {
