@@ -13,6 +13,7 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
+const imageUpload = require("../utils/imageUpload");
 
 function extractOSDetails(userAgent) {
   // Use regular expressions or a specialized library to parse the User-Agent string
