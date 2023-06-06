@@ -503,7 +503,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
     await database.deleteData(tables.FAVORITES_TABLE, { userId: id });
     await database.deleteData(tables.USER_TABLE, { id });
 
-    let imageList = await axios.get(process.env.BUCKET_HOST);
+    let imageList = await axios.get(
+      process.env.BUCKET_HOST + "/" + process.env.BUCKET_NAME
+    );
     imageList = JSON.parse(
       parser.xml2json(imageList.data, { compact: true, spaces: 4 })
     );
@@ -511,7 +513,12 @@ router.delete("/:id", authentication, async function (req, res, next) {
       obj.Key._text.includes("user_" + id)
     );
     userImageList.forEach(async (element) => {
-      await axios.delete(process.env.BUCKET_HOST + element.Key._text);
+      await axios.delete(
+        process.env.BUCKET_HOST +
+          "/" +
+          process.env.BUCKET_NAME +
+          element.Key._text
+      );
     });
 
     return res.status(200).json({
