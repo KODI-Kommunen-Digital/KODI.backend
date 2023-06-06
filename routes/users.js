@@ -144,22 +144,7 @@ router.post("/register", async function (req, res, next) {
 		insertionData.email = payload.email;
 	}
 
-	if (!payload.role) {
-		return next(new AppError(`Role is not present`, 400));
-	} else {
-		try {
-			var response = await database.get(tables.ROLES_TABLE, {
-				id: payload.role,
-			});
-			let data = response.rows;
-			if (data && data.length <= 0) {
-				return next(new AppError(`Invalid role '${payload.role}' given`, 400));
-			}
-		} catch (err) {
-			return next(new AppError(err));
-		}
-		insertionData.roleId = payload.role;
-	}
+	insertionData.roleId = roles["Content Creator"];
 
 	if (!payload.firstname) {
 		return next(new AppError(`Firstname is not present`, 400));
@@ -511,6 +496,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 	}
 });
 var FormData = require("form-data");
+const roles = require("../constants/roles");
 router.post(
 	"/:id/imageUpload",
 	authentication,
