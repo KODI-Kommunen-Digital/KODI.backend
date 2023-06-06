@@ -9,6 +9,10 @@
         "ecmaVersion": "latest"
     },
     "rules": {
+        "no-var": "error",
+        "camelcase": ["error", {
+            "properties": "always"
+          }]
         
     }
 }
