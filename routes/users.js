@@ -170,7 +170,7 @@ router.post("/register", async function (req, res, next) {
     insertionData.email = payload.email;
   }
 
-	insertionData.roleId = roles["Content Creator"];
+  insertionData.roleId = roles["Content Creator"];
 
   if (!payload.firstname) {
     return next(new AppError(`Firstname is not present`, 400));
