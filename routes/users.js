@@ -1098,5 +1098,35 @@ router.get("/", authentication, async function (req, res, next) {
 			return next(new AppError(err));
 		});
 });
-
+router.get("/:id/forums", authentication, async function (req, res, next) {
+	const userId = req.params.id;
+	const userForumsList = [];
+	
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid UserId ${userId}`, 404));
+        return;
+    }
+    if (userId) {
+		try {
+			var memberCityUserIds = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+				userId: userId
+			}, null)
+			for (var memberCityUserId of memberCityUserIds.rows) {
+				var userForums = await database.get(tables.FORUM_MEMBERS, {
+					userId: memberCityUserId.cityUserId
+				}, null, memberCityUserId.cityId)
+				userForumsList.push(... userForums.rows)
+			}
+        
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    
+		res.status(200).json({
+			status: "success",
+			data: userForumsList
+		});
+        
+    }
+});
 module.exports = router;

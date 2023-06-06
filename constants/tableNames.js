@@ -3,7 +3,7 @@ module.exports = {
   ROLES_TABLE: 'roles',
   LISTINGS_TABLE: 'listings',
   CITIES_TABLE: 'cities',
-  USER_CITYUSER_MAPPING_TABLE: 'user_cityuser_mapping',
+  USER_CITYUSER_MAPPING_TABLE: 'User_CityUser_Mapping',
   USER_LISTING_MAPPING_TABLE: 'user_listing_mapping',
   VILLAGE_TABLE: 'village',
   CATEGORIES_TABLE: 'categories',
