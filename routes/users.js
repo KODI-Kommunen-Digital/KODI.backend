@@ -16,32 +16,45 @@ const { json } = require("body-parser");
 const parser = require("xml-js");
 
 function extractOSDetails(userAgent) {
-	// Use regular expressions or a specialized library to parse the User-Agent string
-	// and extract the operating system details
-  
-	// Example using regular expression to extract OS details
-	const osRegex = /\((.*?)\)/; // Extracts the text within the parentheses
+	const osRegex = /\((.*?)\)/; 
 	const osMatch = userAgent.match(osRegex);
 	const osDetails = osMatch ? osMatch[1] : '';
-  
 	return osDetails;
   }
-
+  function getBrowserName(userAgent) {
+	// Regular expressions to match common browser names
+	const browsers = {
+	  Edge: /Edg\/(\d+)/,
+	  Safari: /Version\/(\d+).*Safari/,
+	  Firefox: /Firefox\/(\d+)/,
+	  Chrome: /Chrome\/(\d+)/,
+	  IE: /Trident.*rv[ :](\d+)/
+	};
+  
+	for (const [browser, regex] of Object.entries(browsers)) {
+	  const match = userAgent.match(regex);
+	  if (match) {
+		return browser;
+	  }
+	}
+  
+	return 'Unknown';
+  }
 router.get("/devices", (req, res) => {
-	const device = req.headers['user-agent'];
-
-	console.log("device: " + extractOSDetails(device));
+	const osDetails= extractOSDetails(req.headers['user-agent']);
+	const browserName = getBrowserName(req.headers['user-agent']);
 	return res.status(200).json({
 		status: "success",
 		data:{
-			device:device
+			Browser:browserName,
+			osDetails:osDetails
 		}
 	});
 })
 
 router.post("/login", async function (req, res, next) {
 	var payload = req.body;
-	const deviceDetails = req.headers['user-agent'];
+	//const deviceDetails = req.headers['user-agent'];
 	var sourceAddress = req.headers["x-forwarded-for"]
 		? req.headers["x-forwarded-for"].split(",").shift()
 		: req.socket.remoteAddress;
@@ -1078,7 +1091,7 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
 			if (!data || data.length == 0) {
 				return next(
 					new AppError(
-						`User with id ${req.body.refreshToken} does not exist`,
+						`User with id ${userId} does not exist`,
 						404
 					)
 				);
