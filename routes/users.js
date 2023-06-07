@@ -566,7 +566,7 @@ router.post(
   }
 );
 
-router.post(
+router.delete(
   "/:id/imageDelete",
   authentication,
   async function (req, res, next) {
@@ -574,12 +574,6 @@ router.post(
 
     if (isNaN(Number(id)) || Number(id) <= 0) {
       next(new AppError(`Invalid UserId ${id}`, 404));
-      return;
-    }
-    const { image } = req.files;
-
-    if (!image) {
-      next(new AppError(`Image not uploaded`, 400));
       return;
     }
 

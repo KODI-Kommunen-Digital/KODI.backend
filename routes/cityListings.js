@@ -775,7 +775,7 @@ router.post(
   }
 );
 
-router.post(
+router.delete(
   "/:id/imageDelete",
   authentication,
   async function (req, res, next) {
