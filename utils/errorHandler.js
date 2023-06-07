@@ -11,7 +11,7 @@ module.exports = (err, req, res, next) => {
         var occuredAt = new Date()
         database.create(tables.EXCEPTIONS_TABLE, { message:err.message, stackTrace:err.stack, occuredAt: occuredAt.toISOString().slice(0, 19).replace('T', ' ') })
         if (process.env.ENVIRONMENT == 'production') {
-            var content = uncaughtException(err.message, err.stack, occuredAt.toUTCString())
+            var content = uncaughtException(process.env.APPLICATION, err.message, err.stack, occuredAt.toUTCString())
 			axios.post(process.env.WEBHOOK, content)
         }
     }

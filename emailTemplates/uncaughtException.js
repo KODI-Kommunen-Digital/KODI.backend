@@ -1,6 +1,6 @@
-module.exports = function (message, stack, time) {
+module.exports = function (app, message, stack, time) {
     return {
-        "content": `There was an uncaught exception in your NodeAPI at ${time}`,
+        "content": `There was an uncaught exception in your ${app} NodeAPI at ${time}`,
         "embeds": [
           {
             "title": message,
