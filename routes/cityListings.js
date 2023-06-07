@@ -505,20 +505,15 @@ router.patch("/:id", authentication, async function (req, res, next) {
 		next(new AppError(`Invalid ListingsId ${id}`, 404));
 		return;
 	}
-
+	
 	var response = await database.get(
 		tables.USER_CITYUSER_MAPPING_TABLE,
 		{ userId: req.userId, cityId },
 		"cityUserId"
 	);
 
-	var currentUser = await database.get(tables.USER_TABLE, { id: req.userId });
-	if (!response.rows || response.rows.length == 0) {
-		return next(
-			new AppError(`You are not allowed to access this resource`, 403)
-		);
-	}
-	var cityUserId = response.rows[0].cityUserId;
+	//The current user might not be in the city db
+	var cityUserId = response.rows && response.rows.length > 0 ? response.rows[0].cityUserId : null;
 
 	response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
 	if (!response.rows || response.rows.length == 0) {
