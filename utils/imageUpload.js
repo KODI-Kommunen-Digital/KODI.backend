@@ -1,7 +1,7 @@
 const ObsClient = require("./eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
 var http = require("http");
 
-const imageUpload = async (image, id) => {
+const imageUpload = async (image, filePath) => {
   var server = process.env.BUCKET_HOST;
 
   /*
@@ -14,7 +14,7 @@ const imageUpload = async (image, id) => {
   });
 
   var bucketName = process.env.BUCKET_NAME;
-  var objectKey = `user_${id}/${Date.now()}`;
+  var objectKey = filePath;
   var formParams = {
     acl: obs.enums.AclPublicRead,
     "content-type": "image/jpeg",

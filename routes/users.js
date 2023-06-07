@@ -14,6 +14,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
+const roles = require("../constants/roles");
 
 function extractOSDetails(userAgent) {
   // Use regular expressions or a specialized library to parse the User-Agent string
@@ -170,7 +171,7 @@ router.post("/register", async function (req, res, next) {
     insertionData.email = payload.email;
   }
 
-	insertionData.roleId = roles["Content Creator"];
+  insertionData.roleId = roles["Content Creator"];
 
   if (!payload.firstname) {
     return next(new AppError(`Firstname is not present`, 400));
@@ -398,10 +399,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
     updationData.phoneNumber = payload.phoneNumber;
   }
 
-  if (payload.image || payload.image == "") {
-    updationData.image = payload.image;
-  }
-
   if (payload.description) {
     updationData.description = payload.description;
   }
@@ -512,14 +509,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
     const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
       obj.Key._text.includes("user_" + id)
     );
-    userImageList.forEach(async (element) => {
-      await axios.delete(
-        process.env.BUCKET_HOST +
-          "/" +
-          process.env.BUCKET_NAME +
-          element.Key._text
-      );
-    });
+    await imageDelete(userImageList.map((image) => ({ Key: image.Key._text })));
 
     return res.status(200).json({
       status: "success",
@@ -528,8 +518,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
     return next(new AppError(err));
   }
 });
-var FormData = require("form-data");
-const roles = require("../constants/roles");
+
 router.post(
   "/:id/imageUpload",
   authentication,
@@ -554,13 +543,70 @@ router.post(
         );
       }
 
-      const { uploadStatus, objectKey } = await imageUpload(image, id);
+      var filePath = `user_${id}/profilePic`;
+      let updationData = {};
 
-      res.status(200).json({
-        status: "success",
-        path: objectKey,
-        uploadStatus: uploadStatus,
-      });
+      const { uploadStatus, objectKey } = await imageUpload(image, filePath);
+      updationData.image = objectKey;
+      if (uploadStatus === "Success") {
+        database
+          .update(tables.USER_TABLE, updationData, { id })
+          .then((response) => {
+            res.status(200).json({
+              status: "success",
+            });
+          })
+          .catch((err) => {
+            return next(new AppError(err));
+          });
+      }
+    } catch (err) {
+      return next(new AppError(err));
+    }
+  }
+);
+
+router.post(
+  "/:id/imageDelete",
+  authentication,
+  async function (req, res, next) {
+    const id = req.params.id;
+
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+      next(new AppError(`Invalid UserId ${id}`, 404));
+      return;
+    }
+    const { image } = req.files;
+
+    if (!image) {
+      next(new AppError(`Image not uploaded`, 400));
+      return;
+    }
+
+    try {
+      if (id != req.userId) {
+        return next(
+          new AppError(`You are not allowed to access this resource`, 403)
+        );
+      }
+
+      const uploadStatus = await imageDelete([
+        { Key: `user_${id}/profilePic` },
+      ]);
+      if (uploadStatus === "Success") {
+        const updationData = {};
+        updationData.image = "";
+        database
+          .update(tables.USER_TABLE, updationData, { id })
+          .then((response) => {
+            res.status(200).json({
+              status: "success",
+            });
+          })
+          .catch((err) => {
+            return next(new AppError(err));
+          });
+      }
     } catch (err) {
       return next(new AppError(err));
     }
