@@ -12,14 +12,14 @@ router.get("/", authentication, async function (req, res, next) {
     next(new AppError(`Invalid userId ${userId}`, 400));
     return;
   }
-  if (userId != req.userId) {
+  if (userId !== req.userId) {
     return next(
       new AppError(`You are not allowed to access this resource`, 403)
     );
   }
 
   database
-    .get(tables.FAVORITES_TABLE, { userId: userId })
+    .get(tables.FAVORITES_TABLE, { userId })
     .then((response) => {
       res.status(200).json({
         status: "success",
@@ -33,34 +33,35 @@ router.get("/", authentication, async function (req, res, next) {
 // To get all the listings from the favorite table
 router.get("/listings", authentication, async function (req, res, next) {
   const userId = req.paramUserId;
+  let listings = [];
   if (isNaN(Number(userId)) || Number(userId) <= 0) {
     next(new AppError(`Invalid userId ${userId}`, 400));
     return;
   }
-  if (userId != req.userId) {
+  if (userId !== req.userId) {
     return next(
       new AppError(`You are not allowed to access this resource`, 403)
     );
   }
   try {
-    var response = await database.get(tables.FAVORITES_TABLE, {
-      userId: userId,
+    let response = await database.get(tables.FAVORITES_TABLE, {
+      userId,
     });
-    var fav_dict = {};
+    const favDict = {};
     response.rows.forEach((fav) => {
-      cityId = fav.cityId;
-      listingId = fav.listingId;
-      if (fav_dict[cityId]) {
-        fav_dict[cityId].push(listingId);
+      const cityId = fav.cityId;
+      const listingId = fav.listingId;
+      if (favDict[cityId]) {
+        favDict[cityId].push(listingId);
       } else {
-        fav_dict[cityId] = [listingId];
+        favDict[cityId] = [listingId];
       }
     });
-    var listings = [];
-    for (var cityId in fav_dict) {
-      var response = await database.get(
+    listings = [];
+    for (const cityId in favDict) {
+       response = await database.get(
         tables.LISTINGS_TABLE,
-        { id: fav_dict[cityId] },
+        { id: favDict[cityId] },
         null,
         cityId
       );
@@ -85,7 +86,7 @@ router.post("/", authentication, async function (req, res, next) {
     next(new AppError(`Invalid userId ${userId}`, 400));
     return;
   }
-  if (userId != req.userId) {
+  if (userId !== req.userId) {
     return next(
       new AppError(`You are not allowed to access this resource`, 403)
     );
@@ -95,8 +96,8 @@ router.post("/", authentication, async function (req, res, next) {
     return next(new AppError(`Invalid cityId`, 400));
   } else {
     try {
-      var response = await database.get(tables.CITIES_TABLE, { id: cityId });
-      if (response.rows && response.rows.length == 0) {
+      const response = await database.get(tables.CITIES_TABLE, { id: cityId });
+      if (response.rows && response.rows.length === 0) {
         return next(new AppError(`Invalid City '${cityId}' given`, 400));
       }
     } catch (err) {
@@ -108,20 +109,20 @@ router.post("/", authentication, async function (req, res, next) {
     return;
   } else {
     try {
-      var response = await database.get(
+      const response = await database.get(
         tables.LISTINGS_TABLE,
         { id: listingId },
         null,
         cityId
       );
-      if (response.rows && response.rows.length == 0) {
+      if (response.rows && response.rows.length === 0) {
         return next(new AppError(`Invalid listing '${listingId}' given`, 400));
       }
     } catch (err) {
       return next(new AppError(err));
     }
   }
-  var response = await database.create(tables.FAVORITES_TABLE, {
+  const response = await database.create(tables.FAVORITES_TABLE, {
     userId,
     cityId,
     listingId,
@@ -144,19 +145,19 @@ router.delete("/:id", authentication, async function (req, res, next) {
     next(new AppError(`Invalid favoriteId ${favoriteId}`, 400));
     return;
   }
-  if (userId != req.userId) {
+  if (userId !== req.userId) {
     return next(
       new AppError(`You are not allowed to access this resource`, 403)
     );
   }
 
   try {
-    var response = await database.get(tables.FAVORITES_TABLE, {
+    const response = await database.get(tables.FAVORITES_TABLE, {
       id: favoriteId,
     });
-    let data = response.rows;
-    if (data && data.length == 0) {
-      return next(new AppError(`Favorites with id ${id} does not exist`, 404));
+    const data = response.rows;
+    if (data && data.length === 0) {
+      return next(new AppError(`Favorites with id ${favoriteId} does not exist`, 404));
     }
     await database.deleteData(tables.FAVORITES_TABLE, { id: favoriteId });
 

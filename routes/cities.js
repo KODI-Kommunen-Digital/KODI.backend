@@ -8,10 +8,10 @@ router.get("/", async function (req, res, next) {
   database
     .get(tables.CITIES_TABLE, null, "id,name,image", null, null, null, ["name"])
     .then((response) => {
-      let data = response.rows;
+      const data = response.rows;
       res.status(200).json({
         status: "success",
-        data: data,
+        data,
       });
     })
     .catch((err) => {

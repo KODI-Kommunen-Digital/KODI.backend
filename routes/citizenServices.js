@@ -6,14 +6,14 @@ const AppError = require("../utils/appError");
 
 router.get("/", async function (req, res, next) {
   const cityId = req.query.cityId || null;
-  var promise = null;
+  let promise = null;
   if (cityId) {
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
       return next(new AppError(`City is not present`, 404));
     } else {
       try {
-        var response = await database.get(tables.CITIES_TABLE, { id: cityId });
-        if (response.rows && response.rows.length == 0) {
+        const response = await database.get(tables.CITIES_TABLE, { id: cityId });
+        if (response.rows && response.rows.length === 0) {
           return next(new AppError(`Invalid City '${cityId}' given`, 400));
         }
       } catch (err) {
@@ -27,10 +27,10 @@ router.get("/", async function (req, res, next) {
 
   promise
     .then((response) => {
-      let data = response.rows;
+      const data = response.rows;
       res.status(200).json({
         status: "success",
-        data: data,
+        data,
       });
     })
     .catch((err) => {

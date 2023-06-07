@@ -1,27 +1,27 @@
 const ObsClient = require("./eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
-var http = require("http");
+const http = require("http");
 
 const imageUpload = async (image, id) => {
-  var server = process.env.BUCKET_HOST;
+  const server = process.env.BUCKET_HOST;
 
   /*
    * Initialize a obs client instance with your account for accessing OBS
    */
-  var obs = new ObsClient({
-    access_key_id: process.env.ACCESS_KEY,
-    secret_access_key: process.env.SECRET_KEY,
-    server: server,
+  const obs = new ObsClient({
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_KEY,
+    server,
   });
 
-  var bucketName = process.env.BUCKET_NAME;
-  var objectKey = `user_${id}/${Date.now()}`;
-  var formParams = {
+  const bucketName = process.env.BUCKET_NAME;
+  const objectKey = `user_${id}/${Date.now()}`;
+  const formParams = {
     acl: obs.enums.AclPublicRead,
     "content-type": "image/jpeg",
     "x-amz-meta-meta1": "value1",
     "x-amz-meta-meta2": "value2",
   };
-  var res = obs.createV4PostSignatureSync({
+  const res = obs.createV4PostSignatureSync({
     Bucket: bucketName,
     Key: objectKey,
     Expires: 3600,
@@ -31,23 +31,23 @@ const imageUpload = async (image, id) => {
   /*
    * Start to post object
    */
-  formParams["key"] = objectKey;
-  formParams["policy"] = res["Policy"];
-  formParams["x-amz-algorithm"] = res["Algorithm"];
-  formParams["x-amz-credential"] = res["Credential"];
-  formParams["x-amz-date"] = res["Date"];
-  formParams["x-amz-signature"] = res["Signature"];
+  formParams.key = objectKey;
+  formParams.policy = res.Policy;
+  formParams["x-amz-algorithm"] = res.Algorithm;
+  formParams["x-amz-credential"] = res.Credential;
+  formParams["x-amz-date"] = res.Date;
+  formParams["x-amz-signature"] = res.Signature;
 
-  var boundary = "9431149156168";
+  const boundary = "9431149156168";
 
   /*
    * Construct form data
    */
-  var buffers = [];
-  var first = true;
+  const buffers = [];
+  let first = true;
 
-  var buffer = [];
-  for (let key in formParams) {
+  let buffer = [];
+  for (const key in formParams) {
     if (!first) {
       buffer.push("\r\n");
     } else {

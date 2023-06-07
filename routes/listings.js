@@ -8,8 +8,8 @@ const deepl = require("deepl-node");
 
 router.get("/", async function (req, res, next) {
   const params = req.query;
-  var pageNo = params.pageNo || 1;
-  var pageSize = params.pageSize || 9;
+  const pageNo = params.pageNo || 1;
+  const pageSize = params.pageSize || 9;
   const filters = {};
   if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
     return next(
@@ -31,13 +31,13 @@ router.get("/", async function (req, res, next) {
 
   if (params.statusId) {
     try {
-      var response = await database.get(
+      const response = await database.get(
         tables.STATUS_TABLE,
         { id: params.statusId },
         null
       );
-      let data = response.rows;
-      if (data && data.length == 0) {
+      const data = response.rows;
+      if (data && data.length === 0) {
         return next(
           new AppError(`Invalid Status '${params.statusId}' given`, 400)
         );
@@ -50,24 +50,24 @@ router.get("/", async function (req, res, next) {
 
   if (params.categoryId) {
     try {
-      var response = await database.get(
+      let response = await database.get(
         tables.CATEGORIES_TABLE,
         { id: params.categoryId },
         null
       );
-      let data = response.rows;
-      if (data && data.length == 0) {
+      const data = response.rows;
+      if (data && data.length === 0) {
         return next(
           new AppError(`Invalid Category '${params.categoryId}' given`, 400)
         );
       } else {
         if (params.subCategoryId) {
           try {
-            var response = database.get(tables.SUBCATEGORIES_TABLE, {
+            response = database.get(tables.SUBCATEGORIES_TABLE, {
               categoryId: params.categoryId,
             });
-            let data = response.rows;
-            if (data && data.length == 0) {
+            const data = response.rows;
+            if (data && data.length === 0) {
               return next(
                 new AppError(
                   `Invalid subCategory '${params.subCategoryId}' given`,
@@ -89,18 +89,18 @@ router.get("/", async function (req, res, next) {
 
   if (params.cityId) {
     try {
-      var response = await database.get(
+      let response = await database.get(
         tables.CITIES_TABLE,
         { id: params.cityId },
         null
       );
-      let data = response.rows;
-      if (data && data.length == 0) {
+      const data = response.rows;
+      if (data && data.length === 0) {
         return next(
           new AppError(`Invalid CityId '${params.cityId}' given`, 400)
         );
       } else {
-        var response = await database.get(
+        response = await database.get(
           tables.LISTINGS_TABLE,
           filters,
           `*, ${params.cityId} as cityId`,
@@ -121,13 +121,13 @@ router.get("/", async function (req, res, next) {
   }
 
   try {
-    var response = await database.get(tables.CITIES_TABLE);
-    let cities = response.rows;
-    var individualQueries = [];
-    for (var city of cities) {
+    let response = await database.get(tables.CITIES_TABLE);
+    const cities = response.rows;
+    const individualQueries = [];
+    for (const city of cities) {
       // if the city database is present in the city's server, then we create a federated table in the format
       // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-      var query = `SELECT L.*, U.username, ${
+      let query = `SELECT L.*, U.username, ${
         city.id
       } as cityId FROM heidi_city_${city.id}${
         city.inCityServer ? "_" : "."
@@ -151,21 +151,21 @@ router.get("/", async function (req, res, next) {
       individualQueries.push(query);
     }
 
-    var query = `select * from (
+    const query = `select * from (
                 ${individualQueries.join(" union all ")}
             ) a order by startDate, createdAt desc LIMIT ${
               (pageNo - 1) * pageSize
             }, ${pageSize};`;
     response = await database.callQuery(query);
 
-    listings = response.rows;
-    var noOfListings = listings.length;
+    const listings = response.rows;
+    const noOfListings = listings.length;
     if (
       noOfListings > 0 &&
       params.translate &&
       supportedLanguages.includes(params.translate)
     ) {
-      var textToTranslate = [];
+      const textToTranslate = [];
       listings.forEach((listing) => {
         textToTranslate.push(listing.title);
         textToTranslate.push(listing.description);
@@ -176,15 +176,15 @@ router.get("/", async function (req, res, next) {
         null,
         params.translate
       );
-      for (var i = 0; i < noOfListings; i++) {
+      for (let i = 0; i < noOfListings; i++) {
         if (
-          translations[2 * i].detectedSourceLang != params.translate.slice(0, 2)
+          translations[2 * i].detectedSourceLang !== params.translate.slice(0, 2)
         ) {
           listings[i].titleLanguage = translations[2 * i].detectedSourceLang;
           listings[i].titleTranslation = translations[2 * i].text;
         }
         if (
-          translations[2 * i + 1].detectedSourceLang !=
+          translations[2 * i + 1].detectedSourceLang !==
           params.translate.slice(0, 2)
         ) {
           listings[i].descriptionLanguage =

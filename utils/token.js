@@ -18,7 +18,7 @@ const generator = function (payload) {
 };
 
 const verify = function (token, publicKey) {
-  var rsaPublickKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
+  const rsaPublickKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
 
   const decodedToken = jwt.verify(token, rsaPublickKey, {
     algorithms: ["RS256"],
