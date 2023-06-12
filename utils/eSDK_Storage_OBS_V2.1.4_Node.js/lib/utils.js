@@ -806,8 +806,8 @@ function v4Auth(region, ak, sk, opt, log, methodName){
 
 function Utils(log_in) {
 	this.log = log_in;
-	this.access_key_id = null;
-	this.secret_access_key = null;
+	this.accessKeyId = null;
+	this.secretAccessKey = null;
 	this.security_token = null;
 	this.is_secure = true; 
 	this.server = null;
@@ -836,9 +836,9 @@ Utils.prototype.close = function(){
 	}
 };
 
-Utils.prototype.refresh = function(access_key_id, secret_access_key, security_token){
-	this.access_key_id = String(access_key_id);
-	this.secret_access_key = String(secret_access_key);
+Utils.prototype.refresh = function(accessKeyId, secretAccessKey, security_token){
+	this.accessKeyId = String(accessKeyId);
+	this.secretAccessKey = String(secretAccessKey);
 	if(security_token){
 		this.security_token = String(security_token);
 	}else{
@@ -846,10 +846,10 @@ Utils.prototype.refresh = function(access_key_id, secret_access_key, security_to
 	}
 };
 
-Utils.prototype.initFactory = function(access_key_id, secret_access_key, is_secure,
+Utils.prototype.initFactory = function(accessKeyId, secretAccessKey, is_secure,
 		server, path_style, signature, region, port, max_retry_count, timeout, ssl_verify, long_conn_param, security_token){
 	
-	this.refresh(access_key_id, secret_access_key, security_token);
+	this.refresh(accessKeyId, secretAccessKey, security_token);
 	
 	if (server === undefined) {
 		throw new Error('Server is not set');
@@ -974,8 +974,8 @@ Utils.prototype.makeRequest = function(methodName, opt, bc){
 	path += opt['urlPath'];
 	
 	
-	var ak = this.access_key_id;
-	var sk = this.secret_access_key;
+	var ak = this.accessKeyId;
+	var sk = this.secretAccessKey;
 	
 	if(this.security_token){
 		opt['headers']['x-amz-security-token'] = this.security_token;
@@ -1447,7 +1447,7 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 		queryParams[specialParam] = '';
 	}
 	
-	queryParams['AWSAccessKeyId'] = this.access_key_id;
+	queryParams['AWSAccessKeyId'] = this.accessKeyId;
 	
 	if(expires < 0){
 		expires = 300;
@@ -1522,7 +1522,7 @@ Utils.prototype.createV2SignedUrlSync = function(param){
 	}
 	
 	stringToSign.push(resource);
-	var hmac = crypto.createHmac('sha1', this.secret_access_key);
+	var hmac = crypto.createHmac('sha1', this.secretAccessKey);
 	hmac.update(stringToSign.join(''));
 	
 	result += 'Signature=' + encodeURIWithSafe(hmac.digest('base64'), ',:?&%');
@@ -1601,7 +1601,7 @@ Utils.prototype.createV4SignedUrlSync = function(param){
 	headers['host'] = host;
 	
 	queryParams['X-Amz-Algorithm'] = 'AWS4-HMAC-SHA256';
-	queryParams['X-Amz-Credential'] = this.access_key_id + '/' + shortDate + '/' + this.region + '/' + 's3' + '/' + 'aws4_request';
+	queryParams['X-Amz-Credential'] = this.accessKeyId + '/' + shortDate + '/' + this.region + '/' + 's3' + '/' + 'aws4_request';
 	queryParams['X-Amz-Date'] = longDate;
 	queryParams['X-Amz-Expires'] = String(expires);
 	
@@ -1642,7 +1642,7 @@ Utils.prototype.createV4SignedUrlSync = function(param){
 	canonicalRequest += signedAndCanonicalHeaders[0] + '\n';
 	canonicalRequest += 'UNSIGNED-PAYLOAD';
 	
-	var signature = getV4Signature(shortDate, longDate, this.secret_access_key, this.region, canonicalRequest);
+	var signature = getV4Signature(shortDate, longDate, this.secretAccessKey, this.region, canonicalRequest);
 	
 	result += 'X-Amz-Signature=' + encodeURIWithSafe(signature, ',:?&%');
 	
@@ -1676,7 +1676,7 @@ Utils.prototype.createV4PostSignatureSync = function(param){
 	var shortDate = dates[0];
 	var longDate = dates[1];
 	
-	var credential = this.access_key_id + '/' + shortDate + '/' + this.region + '/' + 's3' + '/' + 'aws4_request';
+	var credential = this.accessKeyId + '/' + shortDate + '/' + this.region + '/' + 's3' + '/' + 'aws4_request';
 	
 	var expireDate = new Date();
 	expireDate.setTime(parseInt(new Date().getTime()) + expires * 1000);
@@ -1742,7 +1742,7 @@ Utils.prototype.createV4PostSignatureSync = function(param){
 	
 	policy = Buffer.from(originPolicy,'utf8').toString('base64');
 	
-	var signature = createV4Signature(shortDate, this.secret_access_key, this.region, policy);
+	var signature = createV4Signature(shortDate, this.secretAccessKey, this.region, policy);
 	
 	return {
 		'OriginPolicy' : originPolicy,

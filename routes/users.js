@@ -4,16 +4,15 @@ const database = require("../services/database");
 const sendMail = require("../services/sendMail");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const tables = require("../constants/tableNames");
-const storedProcedures = require("../constants/storedProcedures");
 const AppError = require("../utils/appError");
 const tokenUtil = require("../utils/token");
-const fs = require("fs");
 const authentication = require("../middlewares/authentication");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
+const roles = require("../constants/roles");
 
 function extractOSDetails(userAgent) {
   // Use regular expressions or a specialized library to parse the User-Agent string
@@ -34,19 +33,18 @@ router.get("/devices", (req, res) => {
   return res.status(200).json({
     status: "success",
     data: {
-      device: device,
+      device,
     },
   });
 });
 
 router.post("/login", async function (req, res, next) {
-  var payload = req.body;
-  const deviceDetails = req.headers["user-agent"];
-  var sourceAddress = req.headers["x-forwarded-for"]
+  const payload = req.body;
+  // const deviceDetails = req.headers["user-agent"];
+  let sourceAddress = req.headers["x-forwarded-for"]
     ? req.headers["x-forwarded-for"].split(",").shift()
     : req.socket.remoteAddress;
   sourceAddress = sourceAddress.toString().replace("::ffff:", "");
-  requestObject = {};
 
   if (!payload) {
     return next(new AppError(`Empty payload sent`, 400));
@@ -64,7 +62,7 @@ router.post("/login", async function (req, res, next) {
     const users = await database.get(tables.USER_TABLE, {
       username: payload.username,
     });
-    if (!users || !users.rows || users.rows.length == 0) {
+    if (!users || !users.rows || users.rows.length === 0) {
       return next(new AppError(`Invalid username`, 401));
     }
 
@@ -91,12 +89,12 @@ router.post("/login", async function (req, res, next) {
       { userId: userData.id },
       "cityId, cityUserId"
     );
-    var tokens = tokenUtil.generator({
+    const tokens = tokenUtil.generator({
       userId: userData.id,
       roleId: userData.roleId,
       rememberMe: payload.rememberMe,
     });
-    var insertionData = {
+    const insertionData = {
       userId: userData.id,
       sourceAddress,
       refreshToken: tokens.refreshToken,
@@ -118,23 +116,23 @@ router.post("/login", async function (req, res, next) {
 });
 
 router.post("/register", async function (req, res, next) {
-  var payload = req.body;
-  var insertionData = {};
+  const payload = req.body;
+  const insertionData = {};
   if (!payload) {
     return next(new AppError(`Empty payload sent`, 400));
   }
-  var language = payload.language || "de";
-  if (language != "en" && language != "de") {
+  const language = payload.language || "de";
+  if (language !== "en" && language !== "de") {
     return next(new AppError(`Incorrect language given`, 400));
   }
   if (!payload.username) {
     return next(new AppError(`Username is not present`, 400));
   } else {
     try {
-      var response = await database.get(tables.USER_TABLE, {
+      const response = await database.get(tables.USER_TABLE, {
         username: payload.username,
       });
-      let data = response.rows;
+      const data = response.rows;
       if (data && data.length > 0) {
         return next(
           new AppError(
@@ -152,10 +150,10 @@ router.post("/register", async function (req, res, next) {
     return next(new AppError(`Email is not present`, 400));
   } else {
     try {
-      var response = await database.get(tables.USER_TABLE, {
+      const response = await database.get(tables.USER_TABLE, {
         email: payload.email,
       });
-      let data = response.rows;
+      const data = response.rows;
       if (data && data.length > 0) {
         return next(
           new AppError(
@@ -170,7 +168,7 @@ router.post("/register", async function (req, res, next) {
     insertionData.email = payload.email;
   }
 
-	insertionData.roleId = roles["Content Creator"];
+  insertionData.roleId = roles["Content Creator"];
 
   if (!payload.firstname) {
     return next(new AppError(`Firstname is not present`, 400));
@@ -198,7 +196,7 @@ router.post("/register", async function (req, res, next) {
   }
 
   if (payload.phoneNumber) {
-    let re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
+    const re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
     if (!re.test(payload.phoneNumber))
       return next(new AppError("Phone number is not valid"));
     insertionData.website = payload.website;
@@ -217,7 +215,7 @@ router.post("/register", async function (req, res, next) {
   }
   if (payload.socialMedia) {
     try {
-      var socialMediaList = payload.socialMedia;
+      const socialMediaList = payload.socialMedia;
       Object.keys(socialMediaList).forEach((socialMedia) => {
         if (!supportedSocialMedia.includes(socialMedia)) {
           return next(
@@ -237,26 +235,26 @@ router.post("/register", async function (req, res, next) {
           );
         }
       });
+	  insertionData.socialMedia = JSON.stringify(socialMediaList);
     } catch (e) {
       return next(new AppError(`Invalid input given for social media`, 400));
     }
-    insertionData.socialMedia = JSON.stringify(socialMediaList);
   }
 
   try {
-    var response = await database.create(tables.USER_TABLE, insertionData);
-    var userId = response.id;
-    var now = new Date();
+    const response = await database.create(tables.USER_TABLE, insertionData);
+    const userId = response.id;
+    const now = new Date();
     now.setHours(now.getHours() + 24);
-    var token = crypto.randomBytes(32).toString("hex");
-    var tokenData = {
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenData = {
       userId,
       token,
       expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
     };
     await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
     const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
-    var { subject, body } = verifyEmail(
+    const { subject, body } = verifyEmail(
       insertionData.firstname,
       insertionData.lastname,
       token,
@@ -275,7 +273,7 @@ router.post("/register", async function (req, res, next) {
 });
 
 router.get("/:id", async function (req, res, next) {
-  var userId = req.params.id;
+  let userId = req.params.id;
   const cityUser = req.query.cityUser || false;
   const cityId = req.query.cityId;
   if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -288,16 +286,16 @@ router.get("/:id", async function (req, res, next) {
       return next(new AppError(`City id not given`, 400));
     }
     try {
-      var { rows } = await database.get(tables.CITIES_TABLE, { id: cityId });
-      if (!rows || rows.length == 0) {
+      let { rows } = await database.get(tables.CITIES_TABLE, { id: cityId });
+      if (!rows || rows.length === 0) {
         return next(new AppError(`City with id ${cityId} does not exist`, 400));
       }
 
-      var { rows } = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+      rows = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
         cityId,
         cityUserId: userId,
       });
-      if (!rows || rows.length == 0) {
+      if (!rows || rows.length === 0) {
         return next(new AppError(`User with id ${userId} does not exist`, 404));
       }
       userId = rows[0].userId;
@@ -309,9 +307,9 @@ router.get("/:id", async function (req, res, next) {
   database
     .get(tables.USER_TABLE, { id: userId })
     .then((response) => {
-      let data = response.rows;
-      if (!data || data.length == 0) {
-        return next(new AppError(`User with id ${id} does not exist`, 404));
+      const data = response.rows;
+      if (!data || data.length === 0) {
+        return next(new AppError(`User with id ${userId} does not exist`, 404));
       }
       res.status(200).json({
         status: "success",
@@ -324,34 +322,33 @@ router.get("/:id", async function (req, res, next) {
 });
 
 router.patch("/:id", authentication, async function (req, res, next) {
-  var id = req.params.id;
-  var payload = req.body;
-  var updationData = {};
+  const id = Number(req.params.id);
+  const payload = req.body;
+  const updationData = {};
 
-  if (isNaN(Number(id)) || Number(id) <= 0) {
+  if (isNaN(id) || id <= 0) {
     next(new AppError(`Invalid UserId ${id}`, 404));
     return;
   }
-  id = Number(id);
 
-  if (id != req.userId) {
+  if (id !== req.userId) {
     return next(
       new AppError(`You are not allowed to access this resource`, 403)
     );
   }
 
-  var response = await database.get(tables.USER_TABLE, { id });
-  if (!response.rows || response.rows.length == 0) {
+  const response = await database.get(tables.USER_TABLE, { id });
+  if (!response.rows || response.rows.length === 0) {
     return next(new AppError(`User with id ${id} does not exist`, 404));
   }
 
-  let currentUserData = response.rows[0];
-  if (payload.username && payload.username != currentUserData.username) {
+  const currentUserData = response.rows[0];
+  if (payload.username && payload.username !== currentUserData.username) {
     return next(new AppError(`Username cannot be edited`, 400));
   }
 
-  if (payload.email && payload.email != currentUserData.email) {
-    let re =
+  if (payload.email && payload.email !== currentUserData.email) {
+    const re =
       /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     if (!re.test(payload.email)) {
       return next(new AppError(`Invalid email given`, 400));
@@ -383,7 +380,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
   }
 
   if (payload.email) {
-    let re =
+    const re =
       /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
     if (!re.test(payload.email)) {
       return next(new AppError(`Invalid email given`, 400));
@@ -392,13 +389,13 @@ router.patch("/:id", authentication, async function (req, res, next) {
   }
 
   if (payload.phoneNumber) {
-    let re = /^\+49\d{11}$/;
+    const re = /^\+49\d{11}$/;
     if (!re.test(payload.phoneNumber))
       return next(new AppError("Phone number is not valid", 400));
     updationData.phoneNumber = payload.phoneNumber;
   }
 
-  if (payload.image || payload.image == "") {
+  if (payload.image || payload.image === "") {
     updationData.image = payload.image;
   }
 
@@ -411,7 +408,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
   }
   if (payload.socialMedia) {
     try {
-      var socialMediaList = payload.socialMedia;
+      const socialMediaList = payload.socialMedia;
       Object.keys(socialMediaList).forEach((socialMedia) => {
         if (!supportedSocialMedia.includes(socialMedia)) {
           return next(
@@ -463,24 +460,24 @@ router.delete("/:id", authentication, async function (req, res, next) {
     return;
   }
 
-  if (id != req.userId) {
+  if (id !== req.userId) {
     return next(
       new AppError(`You are not allowed to access this resource`, 403)
     );
   }
 
   try {
-    var response = await database.get(tables.USER_TABLE, { id });
-    let data = response.rows;
-    if (data && data.length == 0) {
+    let response = await database.get(tables.USER_TABLE, { id });
+    const data = response.rows;
+    if (data && data.length === 0) {
       return next(new AppError(`User with id ${id} does not exist`, 404));
     }
 
     response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
       userId: id,
     });
-    var cityUsers = response.rows;
-    for (var cityUser of cityUsers) {
+    const cityUsers = response.rows;
+    for (const cityUser of cityUsers) {
       await database.deleteData(
         tables.LISTINGS_TABLE,
         { userId: cityUser.cityUserId },
@@ -528,8 +525,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
     return next(new AppError(err));
   }
 });
-var FormData = require("form-data");
-const roles = require("../constants/roles");
+
 router.post(
   "/:id/imageUpload",
   authentication,
@@ -548,7 +544,7 @@ router.post(
     }
 
     try {
-      if (id != req.userId) {
+      if (id !== req.userId) {
         return next(
           new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -559,7 +555,7 @@ router.post(
       res.status(200).json({
         status: "success",
         path: objectKey,
-        uploadStatus: uploadStatus,
+		uploadStatus,
       });
     } catch (err) {
       return next(new AppError(err));
@@ -569,19 +565,13 @@ router.post(
 
 router.get("/:id/listings", async function (req, res, next) {
   const userId = req.params.id;
-  var pageNo = req.query.pageNo || 1;
-  var pageSize = req.query.pageSize || 9;
+  const pageNo = req.query.pageNo || 1;
+  const pageSize = req.query.pageSize || 9;
 
   if (isNaN(Number(userId)) || Number(userId) <= 0) {
     next(new AppError(`Invalid UserId ${userId}`, 400));
     return;
   }
-
-  // if (userId != req.userId) {
-  // 	return next(
-  // 		new AppError(`You are not allowed to access this resource`, 403)
-  // 	);
-  // }
 
   const filters = {};
   if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
@@ -605,13 +595,13 @@ router.get("/:id/listings", async function (req, res, next) {
 
   if (req.query.statusId) {
     try {
-      var response = await database.get(
+      const response = await database.get(
         tables.STATUS_TABLE,
         { id: req.query.statusId },
         null
       );
-      let data = response.rows;
-      if (data && data.length == 0) {
+      const data = response.rows;
+      if (data && data.length === 0) {
         return next(
           new AppError(`Invalid Status '${req.query.statusId}' given`, 400)
         );
@@ -624,25 +614,25 @@ router.get("/:id/listings", async function (req, res, next) {
 
   if (req.query.categoryId) {
     try {
-      var response = await database.get(
+      const response = await database.get(
         tables.CATEGORIES_TABLE,
         { id: req.query.categoryId },
         null
       );
-      let data = response.rows;
-      if (data && data.length == 0) {
+      const data = response.rows;
+      if (data && data.length === 0) {
         return next(
           new AppError(`Invalid Category '${req.query.categoryId}' given`, 400)
         );
       } else {
         if (req.query.subCategoryId) {
           try {
-            var response = database.get(tables.SUBCATEGORIES_TABLE, {
+            const response = database.get(tables.SUBCATEGORIES_TABLE, {
               categoryId: req.query.categoryId,
               subCategoryId: req.query.subCategoryId,
             });
-            let data = response.rows;
-            if (data && data.length == 0) {
+            const data = response.rows;
+            if (data && data.length === 0) {
               return next(
                 new AppError(
                   `Invalid subCategory '${req.query.subCategoryId}' given`,
@@ -663,16 +653,16 @@ router.get("/:id/listings", async function (req, res, next) {
   }
 
   try {
-    var response = await database.callQuery(
+    let response = await database.callQuery(
       "Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?;",
       [userId]
     );
-    let cityMappings = response.rows;
-    var individualQueries = [];
-    for (var cityMapping of cityMappings) {
+    const cityMappings = response.rows;
+    const individualQueries = [];
+    for (const cityMapping of cityMappings) {
       // if the city database is present in the city's server, then we create a federated table in the format
       // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-      var query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${
+      let query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${
         cityMapping.cityId
       }${cityMapping.inCityServer ? "_" : "."}listings WHERE userId = ${
         cityMapping.cityUserId
@@ -691,7 +681,7 @@ router.get("/:id/listings", async function (req, res, next) {
       individualQueries.push(query);
     }
     if (individualQueries && individualQueries.length > 0) {
-      var query = `select * from (
+      const query = `select * from (
 					${individualQueries.join(" union all ")}
 				) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
       response = await database.callQuery(query);
@@ -711,7 +701,7 @@ router.get("/:id/listings", async function (req, res, next) {
 
 router.post("/:id/refresh", async function (req, res, next) {
   const userId = req.params.id;
-  var sourceAddress = req.headers["x-forwarded-for"]
+  const sourceAddress = req.headers["x-forwarded-for"]
     ? req.headers["x-forwarded-for"].split(",").shift()
     : req.socket.remoteAddress;
 
@@ -721,7 +711,7 @@ router.post("/:id/refresh", async function (req, res, next) {
   }
 
   try {
-    var refreshToken = req.body.refreshToken;
+    const refreshToken = req.body.refreshToken;
     if (!refreshToken) {
       return next(new AppError(`Refresh token not present`, 400));
     }
@@ -731,26 +721,26 @@ router.post("/:id/refresh", async function (req, res, next) {
       process.env.REFRESH_PUBLIC,
       next
     );
-    if (decodedToken.userId != userId) {
+    if (decodedToken.userId !== userId) {
       return next(new AppError(`Invalid refresh token`, 403));
     }
 
-    var response = await database.get(tables.REFRESH_TOKENS_TABLE, {
+    const response = await database.get(tables.REFRESH_TOKENS_TABLE, {
       refreshToken,
     });
-    var data = response.rows;
-    if (data && data.length == 0) {
+    const data = response.rows;
+    if (data && data.length === 0) {
       return next(new AppError(`Invalid refresh token`, 400));
     }
 
-    if (data[0].userId != userId) {
+    if (data[0].userId !== userId) {
       return next(new AppError(`Invalid refresh token`, 400));
     }
     const newTokens = tokenUtil.generator({
       userId: decodedToken.userId,
       roleId: decodedToken.roleId,
     });
-    var insertionData = {
+    const insertionData = {
       userId,
       sourceAddress,
       refreshToken: newTokens.refreshToken,
@@ -766,9 +756,9 @@ router.post("/:id/refresh", async function (req, res, next) {
       },
     });
   } catch (error) {
-    if (error.name == "TokenExpiredError") {
+    if (error.name === "TokenExpiredError") {
       await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-        token: refreshToken,
+        token: req.body.refreshToken,
       });
       return next(new AppError(`Unauthorized! Token was expired!`, 401));
     }
@@ -784,38 +774,38 @@ router.post("/forgotPassword", async function (req, res, next) {
     return next(new AppError(`Username not present`, 400));
   }
 
-  if (language != "en" && language != "de") {
+  if (language !== "en" && language !== "de") {
     return next(new AppError(`Incorrect language given`, 400));
   }
 
   try {
-    var response = await database.get(tables.USER_TABLE, { username });
-    var data = response.rows;
-    if (data && data.length == 0) {
+    let response = await database.get(tables.USER_TABLE, { username });
+    const data = response.rows;
+    if (data && data.length === 0) {
       return next(new AppError(`Username ${username} does not exist`, 404));
     }
-    var user = data[0];
+    const user = data[0];
 
-    var response = await database.deleteData(
+    response = await database.deleteData(
       tables.FORGOT_PASSWORD_TOKENS_TABLE,
       { userId: user.id }
     );
 
-    var now = new Date();
+    const now = new Date();
     now.setMinutes(now.getMinutes() + 30);
-    var token = crypto.randomBytes(32).toString("hex");
-    var tokenData = {
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenData = {
       userId: user.id,
       token,
       expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
     };
-    var response = await database.create(
+    response = await database.create(
       tables.FORGOT_PASSWORD_TOKENS_TABLE,
       tokenData
     );
 
     const resetPasswordEmail = require(`../emailTemplates/${language}/resetPasswordEmail`);
-    var { subject, body } = resetPasswordEmail(
+    const { subject, body } = resetPasswordEmail(
       user.firstname,
       user.lastname,
       token,
@@ -848,27 +838,27 @@ router.post("/resetPassword", async function (req, res, next) {
     return next(new AppError(`Password not present`, 400));
   }
 
-  if (language != "en" && language != "de") {
+  if (language !== "en" && language !== "de") {
     return next(new AppError(`Incorrect language given`, 400));
   }
 
   try {
-    var response = await database.get(tables.USER_TABLE, { id: userId });
-    var data = response.rows;
-    if (data && data.length == 0) {
+    let response = await database.get(tables.USER_TABLE, { id: userId });
+    let data = response.rows;
+    if (data && data.length === 0) {
       return next(new AppError(`UserId ${userId} does not exist`, 400));
     }
-    var user = data[0];
+    const user = data[0];
 
     response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
       userId,
       token,
     });
     data = response.rows;
-    if (data && data.length == 0) {
+    if (data && data.length === 0) {
       return next(new AppError(`Invalid data sent`, 400));
     }
-    var tokenData = data[0];
+    const tokenData = data[0];
     await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
       userId,
       token,
@@ -877,7 +867,7 @@ router.post("/resetPassword", async function (req, res, next) {
       return next(new AppError(`Token Expired`, 400));
     }
 
-    var hashedPassword = await bcrypt.hash(password, Number(process.env.SALT));
+    const hashedPassword = await bcrypt.hash(password, Number(process.env.SALT));
     await database.update(
       tables.USER_TABLE,
       { password: hashedPassword },
@@ -885,7 +875,7 @@ router.post("/resetPassword", async function (req, res, next) {
     );
 
     const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
-    var { subject, body } = passwordResetDone(user.firstname, user.lastname);
+    const { subject, body } = passwordResetDone(user.firstname, user.lastname);
     await sendMail(user.email, subject, null, body);
     return res.status(200).json({
       status: "success",
@@ -903,17 +893,17 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
     return next(new AppError(`Email not present`, 400));
   }
 
-  if (language != "en" && language != "de") {
+  if (language !== "en" && language !== "de") {
     return next(new AppError(`Incorrect language given`, 400));
   }
 
   try {
-    var response = await database.get(tables.USER_TABLE, { email });
-    var data = response.rows;
-    if (data && data.length == 0) {
+    const response = await database.get(tables.USER_TABLE, { email });
+    const data = response.rows;
+    if (data && data.length === 0) {
       return next(new AppError(`Email ${email} does not exist`, 400));
     }
-    var user = data[0];
+    const user = data[0];
     if (user.emailVerified) {
       return next(new AppError(`Email already verified`, 400));
     }
@@ -922,17 +912,17 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
       userId: user.id,
     });
 
-    var now = new Date();
+    const now = new Date();
     now.setHours(now.getHours() + 24);
-    var token = crypto.randomBytes(32).toString("hex");
-    var tokenData = {
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenData = {
       userId: user.id,
       token,
       expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
     };
     await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
     const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
-    var { subject, body } = verifyEmail(
+    const { subject, body } = verifyEmail(
       user.firstname,
       user.lastname,
       token,
@@ -961,17 +951,17 @@ router.post("/verifyEmail", async function (req, res, next) {
     return next(new AppError(`Token not present`, 400));
   }
 
-  if (language != "en" && language != "de") {
+  if (language !== "en" && language !== "de") {
     return next(new AppError(`Incorrect language given`, 400));
   }
 
   try {
-    var response = await database.get(tables.USER_TABLE, { id: userId });
-    var data = response.rows;
-    if (data && data.length == 0) {
+    let response = await database.get(tables.USER_TABLE, { id: userId });
+    let data = response.rows;
+    if (data && data.length === 0) {
       return next(new AppError(`UserId ${userId} does not exist`, 400));
     }
-    var user = data[0];
+    const user = data[0];
     if (user.emailVerified) {
       return res.status(200).json({
         status: "success",
@@ -984,10 +974,10 @@ router.post("/verifyEmail", async function (req, res, next) {
       token,
     });
     data = response.rows;
-    if (data && data.length == 0) {
+    if (data && data.length === 0) {
       return next(new AppError(`Invalid data sent`, 400));
     }
-    var tokenData = data[0];
+    const tokenData = data[0];
     await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
       userId,
       token,
@@ -1005,7 +995,7 @@ router.post("/verifyEmail", async function (req, res, next) {
     );
 
     const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
-    var { subject, body } = verificationDone(user.firstname, user.lastname);
+    const { subject, body } = verificationDone(user.firstname, user.lastname);
     await sendMail(user.email, subject, null, body);
     return res.status(200).json({
       status: "success",
@@ -1017,21 +1007,23 @@ router.post("/verifyEmail", async function (req, res, next) {
 });
 
 router.post("/:id/logout", authentication, async function (req, res, next) {
-  userId = req.params.id;
+  const userId = req.params.id;
 
-  if (userId != req.userId) {
+  if (userId !== req.userId) {
     return next(
       new AppError(`You are not allowed to access this resource`, 403)
     );
   }
   if (!req.body.refreshToken) {
-    new AppError(`Refresh Token not sent`, 403);
+	return next(
+    	new AppError(`Refresh Token not sent`, 403)
+	);
   }
   database
     .get(tables.REFRESH_TOKENS_TABLE, { refreshToken: req.body.refreshToken })
     .then(async (response) => {
-      let data = response.rows;
-      if (!data || data.length == 0) {
+      const data = response.rows;
+      if (!data || data.length === 0) {
         return next(
           new AppError(
             `User with id ${req.body.refreshToken} does not exist`,
@@ -1059,7 +1051,7 @@ router.get("/", authentication, async function (req, res, next) {
     .get(
       tables.USER_TABLE,
       { id: ids },
-      (columns = [
+      [
         "id",
         "username",
         "socialMedia",
@@ -1068,7 +1060,7 @@ router.get("/", authentication, async function (req, res, next) {
         "image",
         "firstname",
         "lastname",
-      ])
+      ]
     )
     .then((response) => {
       res.status(200).json({
