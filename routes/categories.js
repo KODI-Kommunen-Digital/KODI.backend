@@ -8,7 +8,7 @@ router.get("/", async function (req, res, next) {
     database
         .get(tables.CATEGORIES_TABLE)
         .then((response) => {
-            const data = response.rows;
+            	const data = response.rows;
             res.status(200).json({
                 status: "success",
                 data,
