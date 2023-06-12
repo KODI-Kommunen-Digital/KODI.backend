@@ -22,8 +22,8 @@ const app = express();
 
 // defining an array to work as the database (temporary solution)
 const message = {
-        message: 'Hello world! Welcome to HEIDI!'
-    };
+    message: 'Hello world! Welcome to HEIDI!'
+};
 
 // adding Helmet to enhance your Rest API's security
 app.use(helmet());
@@ -80,7 +80,7 @@ app.use('/cities/:cityId/listings', function (req, res, next) {
     next();
 }, cityListingsRouter);
 app.all("*", (req, res, next) => {
-next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
+    next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
 app.use(errorHandler);
 
@@ -92,4 +92,4 @@ app.listen(process.env.PORT, () => {
 process.on('uncaughtException', function (err) {
     console.error(`${(new Date).toUTCString()}: UncaughtException: ${err.message}\n${err.stack}`);
     process.exit(1)
-  })
+})
