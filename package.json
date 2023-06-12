@@ -11,6 +11,7 @@
     "express-fileupload": "^1.4.0",
     "fs": "^0.0.1-security",
     "helmet": "^6.0.1",
+    "husky": "^8.0.3",
     "jsonwebtoken": "^9.0.0",
     "log4js": "^1.1.1",
     "morgan": "^1.10.0",
@@ -30,7 +31,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
     "deploy": "pm2 start index.js --name \"API\"",
-    "lint:fix": "eslint --fix --ext .js,.jsx ."
+    "lint:fix": "eslint --fix --ext .js,.jsx .",
+    "prepare": "husky install"
   },
   "repository": {
     "type": "git",
