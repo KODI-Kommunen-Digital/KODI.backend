@@ -32,7 +32,7 @@
     "start": "nodemon index.js",
     "deploy": "pm2 start index.js --name \"API\"",
     "lint:fix": "eslint --fix --ext .js,.jsx .",
-    "prepare": "husky install"
+    "prepare": "husky install && bash -c 'chmod ug+x .husky/*'"
   },
   "repository": {
     "type": "git",
