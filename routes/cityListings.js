@@ -500,23 +500,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
   const payload = req.body;
   const updationData = {};
 
-  if (isNaN(Number(id)) || Number(id) <= 0) {
-    next(new AppError(`Invalid ListingsId ${id}`, 404));
-    return;
-  }
+	if (isNaN(Number(id)) || Number(id) <= 0) {
+		next(new AppError(`Invalid ListingsId ${id}`, 404));
+		return;
+	}
+	
+	var response = await database.get(
+		tables.USER_CITYUSER_MAPPING_TABLE,
+		{ userId: req.userId, cityId },
+		"cityUserId"
+	);
 
-  let response = await database.get(
-    tables.USER_CITYUSER_MAPPING_TABLE,
-    { userId: req.userId, cityId },
-    "cityUserId"
-  );
-
-  if (!response.rows || response.rows.length === 0) {
-    return next(
-      new AppError(`You are not allowed to access this resource`, 403)
-    );
-  }
-  const cityUserId = response.rows[0].cityUserId;
+	//The current user might not be in the city db
+	var cityUserId = response.rows && response.rows.length > 0 ? response.rows[0].cityUserId : null;
 
   response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
   if (!response.rows || response.rows.length === 0) {
