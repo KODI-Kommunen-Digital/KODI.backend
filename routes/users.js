@@ -15,15 +15,29 @@ const imageUpload = require("../utils/imageUpload");
 const roles = require("../constants/roles");
 
 function extractOSDetails(userAgent) {
-    // Use regular expressions or a specialized library to parse the User-Agent string
-    // and extract the operating system details
-
-    // Example using regular expression to extract OS details
-    const osRegex = /\((.*?)\)/; // Extracts the text within the parentheses
+    const osRegex = /\((.*?)\)/;
     const osMatch = userAgent.match(osRegex);
     const osDetails = osMatch ? osMatch[1] : "";
 
     return osDetails;
+}
+
+function getBrowserName(userAgent) {
+    const browsers = {
+        Edge: /Edg\/(\d+)/,
+        Safari: /Version\/(\d+).Safari/,
+        Application: /Dart\/(\d+)/,
+        Firefox: /Firefox\/(\d+)/,
+        Chrome: /Chrome\/(\d+)/,
+        IE: /Trident.*rv[ :](\d+)/
+    };
+
+    for (const [browser, regex] of Object.entries(browsers)) {
+        const match = userAgent.match(regex);
+        if (match) {
+            return browser;
+        }
+    }
 }
 
 router.get("/devices", (req, res) => {
@@ -40,7 +54,11 @@ router.get("/devices", (req, res) => {
 
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
-    // const deviceDetails = req.headers["user-agent"];
+
+    const deviceDetails = req.headers["user-agent"];
+    const device = extractOSDetails(deviceDetails);
+    const browser = getBrowserName(deviceDetails);
+
     let sourceAddress = req.headers["x-forwarded-for"]
         ? req.headers["x-forwarded-for"].split(",").shift()
         : req.socket.remoteAddress;
@@ -98,7 +116,18 @@ router.post("/login", async function (req, res, next) {
             userId: userData.id,
             sourceAddress,
             refreshToken: tokens.refreshToken,
+            browser,
+            device
         };
+        // try {
+        //     const refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, {userId: users.userId})
+        //     refreshData = refreshData.rows[0]
+        //     if (refreshData.sourceAddress === sourceAddress && refreshData.browser === browser && refreshData.device === device ){
+
+        //     }
+        // } catch (err) {
+            
+        // }
 
         await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
         return res.status(200).json({
@@ -286,19 +315,20 @@ router.get("/:id", async function (req, res, next) {
             return next(new AppError(`City id not given`, 400));
         }
         try {
-            let { rows } = await database.get(tables.CITIES_TABLE, { id: cityId });
+            const { rows } = await database.get(tables.CITIES_TABLE, { id: cityId });
             if (!rows || rows.length === 0) {
                 return next(new AppError(`City with id ${cityId} does not exist`, 400));
             }
 
-            rows = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+            const cityUsers = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
                 cityId,
                 cityUserId: userId,
             });
-            if (!rows || rows.length === 0) {
+            if (!cityUsers.rows || cityUsers.rows.length === 0) {
                 return next(new AppError(`User with id ${userId} does not exist`, 404));
             }
-            userId = rows[0].userId;
+            console.log(Array.isArray(rows))
+            userId = cityUsers.rows[0].userId;
         } catch (err) {
             return next(new AppError(err));
         }
