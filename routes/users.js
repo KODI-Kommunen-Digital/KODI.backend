@@ -1007,7 +1007,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 });
 
 router.post("/:id/logout", authentication, async function (req, res, next) {
-    const userId = Number(req.params.id);
+    const userId = parseInt(req.params.id);
 
     if (userId !== parseInt(req.userId)) {
         return next(
