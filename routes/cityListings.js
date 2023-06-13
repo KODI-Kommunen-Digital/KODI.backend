@@ -15,6 +15,10 @@ router.get("/", async function (req, res, next) {
     const filters = {};
     const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
     let listings = [];
+
+    if (!cityId || isNaN(cityId)){
+        return next(new AppError(`invalid cityId given`, 400));
+    }
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
         return next(new AppError(`City is not present`, 404));
     } else {
@@ -166,6 +170,11 @@ router.get("/", async function (req, res, next) {
 router.get("/:id", async function (req, res, next) {
     const id = req.params.id;
     const cityId = req.cityId;
+
+    if (!cityId || isNaN(cityId)){
+        return next(new AppError(`invalid cityId given`, 400));
+    }
+
     if (isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid ListingsId ${id}`, 404));
         return;
@@ -500,6 +509,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
     const payload = req.body;
     const updationData = {};
 
+
+    if (!cityId || isNaN(cityId)){
+        return next(new AppError(`invalid cityId given`, 400));
+    }
+
     if (isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid ListingsId ${id}`, 404));
         return;
@@ -656,6 +670,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
 router.delete("/:id", authentication, async function (req, res, next) {
     const id = req.params.id;
     const cityId = req.cityId;
+
+
+    if (!cityId || isNaN(cityId)){
+        return next(new AppError(`invalid cityId given`, 400));
+    }
 
     if (isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid entry ${id}`, 404));

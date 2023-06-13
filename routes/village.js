@@ -6,6 +6,11 @@ const AppError = require("../utils/appError");
 
 router.get("/", async function (req, res, next) {
     const cityId = req.cityId;
+
+    if (!cityId || isNaN(cityId)){
+        return next(new AppError(`invalid cityId given`, 400));
+    }
+    
     database
         .get(tables.VILLAGE_TABLE, null, null, cityId)
         .then((response) => {
