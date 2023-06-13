@@ -331,7 +331,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         return;
     }
 
-    if (id !== req.userId) {
+    if (id !== parseInt(req.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -453,14 +453,14 @@ router.patch("/:id", authentication, async function (req, res, next) {
 });
 
 router.delete("/:id", authentication, async function (req, res, next) {
-    const id = req.params.id;
+    const id = parseInt(req.params.id);
 
     if (isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid UserId ${id}`, 404));
         return;
     }
 
-    if (id !== req.userId) {
+    if (id !== parseInt(req.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -530,7 +530,7 @@ router.post(
     "/:id/imageUpload",
     authentication,
     async function (req, res, next) {
-        const id = req.params.id;
+        const id = parseInt(req.params.id);
 
         if (isNaN(Number(id)) || Number(id) <= 0) {
             next(new AppError(`Invalid UserId ${id}`, 404));
@@ -544,7 +544,7 @@ router.post(
         }
 
         try {
-            if (id !== req.userId) {
+            if (id !== parseInt(req.userId)) {
                 return next(
                     new AppError(`You are not allowed to access this resource`, 403)
                 );
@@ -721,7 +721,7 @@ router.post("/:id/refresh", async function (req, res, next) {
             process.env.REFRESH_PUBLIC,
             next
         );
-        if (decodedToken.userId !== userId) {
+        if (decodedToken.userId !== parseInt(userId)) {
             return next(new AppError(`Invalid refresh token`, 403));
         }
 
@@ -733,7 +733,7 @@ router.post("/:id/refresh", async function (req, res, next) {
             return next(new AppError(`Invalid refresh token`, 400));
         }
 
-        if (data[0].userId !== userId) {
+        if (data[0].userId !== parseInt(userId)) {
             return next(new AppError(`Invalid refresh token`, 400));
         }
         const newTokens = tokenUtil.generator({
@@ -1009,7 +1009,7 @@ router.post("/verifyEmail", async function (req, res, next) {
 router.post("/:id/logout", authentication, async function (req, res, next) {
     const userId = parseInt(req.params.id);
 
-    if (userId !== req.userId) {
+    if (userId !== parseInt(req.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );

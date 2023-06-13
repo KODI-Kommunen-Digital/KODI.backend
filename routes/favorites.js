@@ -7,12 +7,12 @@ const authentication = require("../middlewares/authentication");
 
 // To get the favorite ID  of a user
 router.get("/", authentication, async function (req, res, next) {
-    const userId = req.paramUserId;
+    const userId = parseInt(req.paramUserId);
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         next(new AppError(`Invalid userId ${userId}`, 400));
         return;
     }
-    if (userId !== req.userId) {
+    if (userId !== parseInt(req.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -32,13 +32,13 @@ router.get("/", authentication, async function (req, res, next) {
 });
 // To get all the listings from the favorite table
 router.get("/listings", authentication, async function (req, res, next) {
-    const userId = req.paramUserId;
+    const userId = parseInt(req.paramUserId);
     let listings = [];
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         next(new AppError(`Invalid userId ${userId}`, 400));
         return;
     }
-    if (userId !== req.userId) {
+    if (userId !== parseInt(req.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -79,14 +79,14 @@ router.get("/listings", authentication, async function (req, res, next) {
 
 // To insert or add  a listing into favorite table
 router.post("/", authentication, async function (req, res, next) {
-    const userId = req.paramUserId;
-    const cityId = req.body.cityId;
+    const userId = parseInt(req.paramUserId);
+    const cityId = parseInt(req.body.cityId);
     const listingId = req.body.listingId;
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         next(new AppError(`Invalid userId ${userId}`, 400));
         return;
     }
-    if (userId !== req.userId) {
+    if (userId !== parseInt(req.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -135,8 +135,8 @@ router.post("/", authentication, async function (req, res, next) {
 
 // To delete  a favorite listing from favorite table
 router.delete("/:id", authentication, async function (req, res, next) {
-    const favoriteId = req.params.id;
-    const userId = req.paramUserId;
+    const favoriteId = parseInt(req.params.id);
+    const userId = parseInt(req.paramUserId);
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         next(new AppError(`Invalid UserId ${userId}`, 400));
         return;
@@ -145,7 +145,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
         next(new AppError(`Invalid favoriteId ${favoriteId}`, 400));
         return;
     }
-    if (userId !== req.userId) {
+    if (userId !== parseInt(req.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );

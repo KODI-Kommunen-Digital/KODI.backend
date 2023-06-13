@@ -11,6 +11,7 @@ router.get("/", async function (req, res, next) {
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 9;
     const filters = {};
+
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
             new AppError(`Please enter a positive integer for pageNo`, 400)
