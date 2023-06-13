@@ -2,8 +2,8 @@ require('dotenv').config()
 const AppError = require("../utils/appError");
 const tokenUtil = require('../utils/token');
 
-var authentication = async function (req, res, next) {
-    const bearerToken = req.headers['authorization'];
+const authentication = async function (req, res, next) {
+    const bearerToken = req.headers.authorization;
     if (!bearerToken) {
         return next(new AppError(`Authorization token not present`, 401));
     }
@@ -23,7 +23,7 @@ var authentication = async function (req, res, next) {
         req.roleId = decodedToken.roleId;
     }
     catch (error) {
-        if (error.name == 'TokenExpiredError') {
+        if (error.name === 'TokenExpiredError') {
             return next(new AppError(`Unauthorized! Token was expired!`, 401));
         }
         return next(new AppError(error.message, 401));
