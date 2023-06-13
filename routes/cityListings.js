@@ -422,7 +422,7 @@ router.post("/", authentication, async function (req, res, next) {
     }
 
     if (!payload.startDate) {
-        if (payload.categoryId === categories.EventsOrNews) {
+        if (parseInt(payload.categoryId) === categories.EventsOrNews) {
             return next(new AppError(`Start date or Time is not present`, 400));
         }
     } else {
@@ -616,7 +616,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        if (req.roleId === roles.Admin) updationData.statusId = payload.statusId;
+        if (parseInt(req.roleId) === roles.Admin) updationData.statusId = payload.statusId;
         else
             return next(
                 new AppError("You dont have access to change this option", 403)
