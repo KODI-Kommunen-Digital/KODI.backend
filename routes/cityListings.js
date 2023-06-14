@@ -16,16 +16,20 @@ router.get("/", async function (req, res, next) {
     const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
     let listings = [];
 
-    if (!cityId || isNaN(cityId)){
+    if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            const response = await database.get(tables.CITIES_TABLE, { id: cityId });
+            const response = await database.get(tables.CITIES_TABLE, {
+                id: cityId,
+            });
             if (response.rows && response.rows.length === 0) {
-                return next(new AppError(`Invalid City '${cityId}' given`, 400));
+                return next(
+                    new AppError(`Invalid City '${cityId}' given`, 400)
+                );
             }
         } catch (err) {
             return next(new AppError(err));
@@ -42,8 +46,8 @@ router.get("/", async function (req, res, next) {
 
     if (
         isNaN(Number(pageSize)) ||
-    Number(pageSize) <= 0 ||
-    Number(pageSize) > 20
+        Number(pageSize) <= 0 ||
+        Number(pageSize) > 20
     ) {
         return next(
             new AppError(
@@ -64,7 +68,10 @@ router.get("/", async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Status '${params.statusId}' given`, 400)
+                    new AppError(
+                        `Invalid Status '${params.statusId}' given`,
+                        400
+                    )
                 );
             }
         } catch (err) {
@@ -84,7 +91,10 @@ router.get("/", async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
+                    new AppError(
+                        `Invalid Category '${params.categoryId}' given`,
+                        400
+                    )
                 );
             }
         } catch (err) {
@@ -126,8 +136,8 @@ router.get("/", async function (req, res, next) {
     const noOfListings = listings.length;
     if (
         noOfListings > 0 &&
-    params.translate &&
-    supportedLanguages.includes(params.translate)
+        params.translate &&
+        supportedLanguages.includes(params.translate)
     ) {
         try {
             const textToTranslate = [];
@@ -142,18 +152,21 @@ router.get("/", async function (req, res, next) {
             );
             for (let i = 0; i < noOfListings; i++) {
                 if (
-                    translations[2 * i].detectedSourceLang !== params.translate.slice(0, 2)
+                    translations[2 * i].detectedSourceLang !==
+                    params.translate.slice(0, 2)
                 ) {
-                    listings[i].titleLanguage = translations[2 * i].detectedSourceLang;
+                    listings[i].titleLanguage =
+                        translations[2 * i].detectedSourceLang;
                     listings[i].titleTranslation = translations[2 * i].text;
                 }
                 if (
                     translations[2 * i + 1].detectedSourceLang !==
-          params.translate.slice(0, 2)
+                    params.translate.slice(0, 2)
                 ) {
                     listings[i].descriptionLanguage =
-            translations[2 * i + 1].detectedSourceLang;
-                    listings[i].descriptionTranslation = translations[2 * i + 1].text;
+                        translations[2 * i + 1].detectedSourceLang;
+                    listings[i].descriptionTranslation =
+                        translations[2 * i + 1].text;
                 }
             }
         } catch (err) {
@@ -171,7 +184,7 @@ router.get("/:id", async function (req, res, next) {
     const id = req.params.id;
     const cityId = req.cityId;
 
-    if (!cityId || isNaN(cityId)){
+    if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
 
@@ -184,9 +197,13 @@ router.get("/:id", async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            const response = await database.get(tables.CITIES_TABLE, { id: cityId });
+            const response = await database.get(tables.CITIES_TABLE, {
+                id: cityId,
+            });
             if (response.rows && response.rows.length === 0) {
-                return next(new AppError(`Invalid City '${cityId}' given`, 404));
+                return next(
+                    new AppError(`Invalid City '${cityId}' given`, 404)
+                );
             }
         } catch (err) {
             return next(new AppError(err));
@@ -198,7 +215,9 @@ router.get("/:id", async function (req, res, next) {
         .then((response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
-                return next(new AppError(`Listings with id ${id} does not exist`, 404));
+                return next(
+                    new AppError(`Listings with id ${id} does not exist`, 404)
+                );
             }
             res.status(200).json({
                 status: "success",
@@ -226,9 +245,13 @@ router.post("/", authentication, async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            const response = await database.get(tables.CITIES_TABLE, { id: cityId });
+            const response = await database.get(tables.CITIES_TABLE, {
+                id: cityId,
+            });
             if (response.rows && response.rows.length === 0) {
-                return next(new AppError(`Invalid City '${cityId}' given`, 400));
+                return next(
+                    new AppError(`Invalid City '${cityId}' given`, 400)
+                );
             }
             city = response.rows[0];
         } catch (err) {
@@ -249,7 +272,7 @@ router.post("/", authentication, async function (req, res, next) {
 
     if (
         typeof parseInt(payload.villageId) === "number" &&
-    parseInt(payload.villageId) !== 0
+        parseInt(payload.villageId) !== 0
     ) {
         try {
             const response = await database.get(
@@ -261,7 +284,10 @@ router.post("/", authentication, async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Village id '${payload.villageId}' given`, 400)
+                    new AppError(
+                        `Invalid Village id '${payload.villageId}' given`,
+                        400
+                    )
                 );
             } else {
                 insertionData.villageId = payload.villageId;
@@ -290,7 +316,10 @@ router.post("/", authentication, async function (req, res, next) {
         return next(new AppError(`Description is not present`, 400));
     } else if (payload.description.length > 10000) {
         return next(
-            new AppError(`Length of Description cannot exceed 10000 characters`, 400)
+            new AppError(
+                `Length of Description cannot exceed 10000 characters`,
+                400
+            )
         );
     } else {
         insertionData.description = payload.description;
@@ -311,7 +340,10 @@ router.post("/", authentication, async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Category '${payload.categoryId}' given`, 400)
+                    new AppError(
+                        `Invalid Category '${payload.categoryId}' given`,
+                        400
+                    )
                 );
             }
         } catch (err) {
@@ -356,7 +388,10 @@ router.post("/", authentication, async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Status '${payload.statusId}' given`, 400)
+                    new AppError(
+                        `Invalid Status '${payload.statusId}' given`,
+                        400
+                    )
                 );
             }
         } catch (err) {
@@ -378,7 +413,10 @@ router.post("/", authentication, async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Source '${payload.sourceId}' given`, 400)
+                    new AppError(
+                        `Invalid Source '${payload.sourceId}' given`,
+                        400
+                    )
                 );
             }
         } catch (err) {
@@ -430,7 +468,7 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.latitude = payload.latitude;
     }
 
-    if (parseInt(payload.categoryId) === categories.EventsOrNews) {
+    if (parseInt(payload.categoryId) === categories.Events) {
         if (payload.startDate) {
             insertionData.startDate = new Date(payload.startDate)
                 .toISOString()
@@ -439,7 +477,7 @@ router.post("/", authentication, async function (req, res, next) {
         } else {
             return next(new AppError(`Start date or Time is not present`, 400));
         }
-    
+
         if (payload.endDate) {
             insertionData.endDate = new Date(payload.endDate)
                 .toISOString()
@@ -448,7 +486,7 @@ router.post("/", authentication, async function (req, res, next) {
         } else {
             return next(new AppError(`End date or Time is not present`, 400));
         }
-    } 
+    }
 
     insertionData.createdAt = new Date()
         .toISOString()
@@ -472,7 +510,11 @@ router.post("/", authentication, async function (req, res, next) {
                 delete user.socialMedia;
                 delete user.emailVerified;
                 delete user.socialMedia;
-                response = await database.create(tables.USER_TABLE, user, cityId);
+                response = await database.create(
+                    tables.USER_TABLE,
+                    user,
+                    cityId
+                );
                 const cityUserId = response.id;
                 await database.create(tables.USER_CITYUSER_MAPPING_TABLE, {
                     cityId,
@@ -511,8 +553,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     const payload = req.body;
     const updationData = {};
 
-
-    if (!cityId || isNaN(cityId)){
+    if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
 
@@ -520,7 +561,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         next(new AppError(`Invalid ListingsId ${id}`, 404));
         return;
     }
-	
+
     let response = await database.get(
         tables.USER_CITYUSER_MAPPING_TABLE,
         { userId: req.userId, cityId },
@@ -528,7 +569,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
     );
 
     // The current user might not be in the city db
-    const cityUserId = response.rows && response.rows.length > 0 ? response.rows[0].cityUserId : null;
+    const cityUserId =
+        response.rows && response.rows.length > 0
+            ? response.rows[0].cityUserId
+            : null;
 
     response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
     if (!response.rows || response.rows.length === 0) {
@@ -536,7 +580,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
     const currentListingData = response.rows[0];
 
-    if (currentListingData.userId !== cityUserId && req.roleId !== roles.Admin) {
+    if (
+        currentListingData.userId !== cityUserId &&
+        req.roleId !== roles.Admin
+    ) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -544,7 +591,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.title) {
         if (payload.title.length > 255) {
             return next(
-                new AppError(`Length of Title cannot exceed 255 characters`, 400)
+                new AppError(
+                    `Length of Title cannot exceed 255 characters`,
+                    400
+                )
             );
         }
         updationData.title = payload.title;
@@ -572,7 +622,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
     if (payload.email && payload.email !== currentListingData.email) {
         const re =
-      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
             return next(new AppError(`Invalid email given`, 400));
         }
@@ -625,14 +675,18 @@ router.patch("/:id", authentication, async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Status '${payload.statusId}' given`, 400)
+                    new AppError(
+                        `Invalid Status '${payload.statusId}' given`,
+                        400
+                    )
                 );
             }
             updationData.statusId = payload.statusId;
         } catch (err) {
             return next(new AppError(err));
         }
-        if (parseInt(req.roleId) === roles.Admin) updationData.statusId = payload.statusId;
+        if (parseInt(req.roleId) === roles.Admin)
+            updationData.statusId = payload.statusId;
         else
             return next(
                 new AppError("You dont have access to change this option", 403)
@@ -673,8 +727,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
     const id = req.params.id;
     const cityId = req.cityId;
 
-
-    if (!cityId || isNaN(cityId)){
+    if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
 
@@ -688,7 +741,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
         { userId: req.userId, cityId },
         "cityUserId"
     );
-    const currentUser = await database.get(tables.USER_TABLE, { id: req.userId });
+    const currentUser = await database.get(tables.USER_TABLE, {
+        id: req.userId,
+    });
     if (!response.rows || response.rows.length === 0) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
@@ -704,7 +759,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
     if (
         currentListingData.userId !== cityUserId &&
-    currentUser.rows[0].roleId !== roles.Admin
+        currentUser.rows[0].roleId !== roles.Admin
     ) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
