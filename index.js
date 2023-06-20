@@ -24,6 +24,7 @@ const app = express();
 // defining an array to work as the database (temporary solution)
 const message = {
   message: "Hello world! Welcome to HEIDI!",
+
 };
 
 // adding Helmet to enhance your Rest API's security
@@ -92,6 +93,7 @@ app.use(
 );
 app.all("*", (req, res, next) => {
   next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
+    
 });
 app.use(errorHandler);
 
@@ -108,3 +110,4 @@ process.on("uncaughtException", function (err) {
   );
   process.exit(1);
 });
+
