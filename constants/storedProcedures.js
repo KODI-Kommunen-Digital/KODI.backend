@@ -1,3 +1,3 @@
 module.exports = {
-  DELETE_USER: 'sp_DeleteAllUserData'
+    DELETE_USER: 'sp_DeleteAllUserData'
 }

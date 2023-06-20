@@ -5,18 +5,18 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 
 router.get("/", async function (req, res, next) {
-  database
-    .get(tables.CITIES_TABLE, null, "id,name,image", null, null, null, ["name"])
-    .then((response) => {
-      const data = response.rows;
-      res.status(200).json({
-        status: "success",
-        data,
-      });
-    })
-    .catch((err) => {
-      return next(new AppError(err));
-    });
+    database
+        .get(tables.CITIES_TABLE, null, "id,name,image", null, null, null, ["name"])
+        .then((response) => {
+            const data = response.rows;
+            res.status(200).json({
+                status: "success",
+                data,
+            });
+        })
+        .catch((err) => {
+            return next(new AppError(err));
+        });
 });
 
 module.exports = router;

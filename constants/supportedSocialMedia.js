@@ -1,6 +1,6 @@
 module.exports = [
-  "Facebook",
-  "Instagram",
-  "LinkedIn",
-  "Youtube",
-  "Twitter"]
+    "Facebook",
+    "Instagram",
+    "LinkedIn",
+    "Youtube",
+    "Twitter"]
