@@ -17,6 +17,7 @@ const statusRouter = require('./routes/status');
 const citizenServicesRouter = require('./routes/citizenServices');
 const fileUpload = require('express-fileupload');
 const forumsRouter = require('./routes/forums');
+const forumsPostRouter = require("./routes/forumsPost");
 
 // defining the Express app
 const app = express();
@@ -88,6 +89,21 @@ app.use('/cities/:cityId/listings', function (req, res, next) {
     req.cityId = req.params.cityId;
     next();
 }, cityListingsRouter);
+app.use(
+    "/cities/:cityId/forums/:forumId/post",
+    function (req, res, next) {
+        if (
+            isNaN(Number(req.params.cityId)) ||
+            Number(req.params.cityId) <= 0
+        ) {
+            return next(new AppError("Invalid city id given", 400));
+        }
+        req.cityId = req.params.cityId;
+        req.forumId = req.params.forumId;
+        next();
+    },
+    forumsPostRouter
+);
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
