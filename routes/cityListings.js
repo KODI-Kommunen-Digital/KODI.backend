@@ -430,10 +430,6 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.latitude = payload.latitude;
     }
 
-<<<<<<< HEAD
-    if (!payload.startDate) {
-        if (parseInt(payload.categoryId) === categories.Events) {
-=======
     if (parseInt(payload.categoryId) === categories.EventsOrNews) {
         if (payload.startDate) {
             insertionData.startDate = new Date(payload.startDate)
@@ -441,7 +437,6 @@ router.post("/", authentication, async function (req, res, next) {
                 .slice(0, 19)
                 .replace("T", " ");
         } else {
->>>>>>> efc7dd0a99d2e793704d608c98c84c17337dfff8
             return next(new AppError(`Start date or Time is not present`, 400));
         }
     
