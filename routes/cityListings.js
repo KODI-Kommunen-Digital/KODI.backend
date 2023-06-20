@@ -430,7 +430,7 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.latitude = payload.latitude;
     }
 
-    if (parseInt(payload.categoryId) === categories.EventsOrNews) {
+    if (parseInt(payload.categoryId) === categories.Events) {
         if (payload.startDate) {
             insertionData.startDate = new Date(payload.startDate)
                 .toISOString()
