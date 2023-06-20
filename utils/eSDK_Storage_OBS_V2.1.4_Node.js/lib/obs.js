@@ -52,13 +52,13 @@ ObsClient.prototype.initLog = function(param){
 
 ObsClient.prototype.factory = function(param){
 	param = param || {};
-	this.util.initFactory(param.access_key_id, param.secret_access_key, param.is_secure,
+	this.util.initFactory(param.accessKeyId, param.secretAccessKey, param.is_secure,
 			param.server, param.path_style, param.signature, param.region, param.port, param.max_retry_count, 
 			param.timeout, param.ssl_verify, param.long_conn_param, param.security_token);
 };
 
-ObsClient.prototype.refresh = function(access_key_id, secret_access_key, security_token){
-	this.util.refresh(access_key_id, secret_access_key, security_token);
+ObsClient.prototype.refresh = function(accessKeyId, secretAccessKey, security_token){
+	this.util.refresh(accessKeyId, secretAccessKey, security_token);
 };
 
 ObsClient.prototype.createBucket = function(param, callback){
