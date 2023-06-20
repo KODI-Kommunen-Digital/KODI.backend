@@ -431,7 +431,7 @@ router.post("/", authentication, async function (req, res, next) {
     }
 
     if (!payload.startDate) {
-        if (parseInt(payload.categoryId) === categories.EventsOrNews) {
+        if (parseInt(payload.categoryId) === categories.Events) {
             return next(new AppError(`Start date or Time is not present`, 400));
         }
     } else {

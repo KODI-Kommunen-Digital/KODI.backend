@@ -14,51 +14,10 @@ const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const roles = require("../constants/roles");
 
-function extractOSDetails(userAgent) {
-    const osRegex = /\((.*?)\)/;
-    const osMatch = userAgent.match(osRegex);
-    const osDetails = osMatch ? osMatch[1] : "";
-
-    return osDetails;
-}
-
-function getBrowserName(userAgent) {
-    const browsers = {
-        Edge: /Edg\/(\d+)/,
-        Safari: /Version\/(\d+).Safari/,
-        Application: /Dart\/(\d+)/,
-        Firefox: /Firefox\/(\d+)/,
-        Chrome: /Chrome\/(\d+)/,
-        IE: /Trident.*rv[ :](\d+)/
-    };
-
-    for (const [browser, regex] of Object.entries(browsers)) {
-        const match = userAgent.match(regex);
-        if (match) {
-            return browser;
-        }
-    }
-}
-
-router.get("/devices", (req, res) => {
-    const device = req.headers["user-agent"];
-
-    console.log("device: " + extractOSDetails(device));
-    return res.status(200).json({
-        status: "success",
-        data: {
-            device,
-        },
-    });
-});
-
 router.post("/login", async function (req, res, next) {
+    ;
     const payload = req.body;
-
-    const deviceDetails = req.headers["user-agent"];
-    const device = extractOSDetails(deviceDetails);
-    const browser = getBrowserName(deviceDetails);
-
+    const head = req.headers
     let sourceAddress = req.headers["x-forwarded-for"]
         ? req.headers["x-forwarded-for"].split(",").shift()
         : req.socket.remoteAddress;
@@ -112,22 +71,23 @@ router.post("/login", async function (req, res, next) {
             roleId: userData.roleId,
             rememberMe: payload.rememberMe,
         });
+
+        let refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, { userId: userData.id })
+        if (refreshData.rows.length > 0) {
+            refreshData = refreshData.rows[0]
+            if (refreshData.sourceAddress === sourceAddress && refreshData.browser === head.browsername && refreshData.device === head.devicetype) {
+                await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
+                    userId: userData.id
+                });
+            }
+        }
         const insertionData = {
             userId: userData.id,
             sourceAddress,
             refreshToken: tokens.refreshToken,
-            browser,
-            device
+            browser: head.browsername,
+            device: head.devicetype
         };
-        // try {
-        //     const refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, {userId: users.userId})
-        //     refreshData = refreshData.rows[0]
-        //     if (refreshData.sourceAddress === sourceAddress && refreshData.browser === browser && refreshData.device === device ){
-
-        //     }
-        // } catch (err) {
-            
-        // }
 
         await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
         return res.status(200).json({
@@ -254,7 +214,7 @@ router.post("/register", async function (req, res, next) {
 
                 if (
                     typeof socialMediaList[socialMedia] !== "string" ||
-          !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
+                    !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
                 ) {
                     return next(
                         new AppError(
@@ -264,7 +224,7 @@ router.post("/register", async function (req, res, next) {
                     );
                 }
             });
-	  insertionData.socialMedia = JSON.stringify(socialMediaList);
+            insertionData.socialMedia = JSON.stringify(socialMediaList);
         } catch (e) {
             return next(new AppError(`Invalid input given for social media`, 400));
         }
@@ -379,7 +339,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
     if (payload.email && payload.email !== currentUserData.email) {
         const re =
-      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
             return next(new AppError(`Invalid email given`, 400));
         }
@@ -411,7 +371,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
     if (payload.email) {
         const re =
-      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
             return next(new AppError(`Invalid email given`, 400));
         }
@@ -448,7 +408,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
                 if (
                     typeof socialMediaList[socialMedia] !== "string" ||
-          !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
+                    !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
                 ) {
                     return next(
                         new AppError(
@@ -542,9 +502,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
         userImageList.forEach(async (element) => {
             await axios.delete(
                 process.env.BUCKET_HOST +
-          "/" +
-          process.env.BUCKET_NAME +
-          element.Key._text
+                "/" +
+                process.env.BUCKET_NAME +
+                element.Key._text
             );
         });
 
@@ -612,8 +572,8 @@ router.get("/:id/listings", async function (req, res, next) {
 
     if (
         isNaN(Number(pageSize)) ||
-    Number(pageSize) <= 0 ||
-    Number(pageSize) > 20
+        Number(pageSize) <= 0 ||
+        Number(pageSize) > 20
     ) {
         return next(
             new AppError(
@@ -692,10 +652,8 @@ router.get("/:id/listings", async function (req, res, next) {
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${
-                cityMapping.cityId
-            }${cityMapping.inCityServer ? "_" : "."}listings WHERE userId = ${
-                cityMapping.cityUserId
+            let query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${cityMapping.cityId
+            }${cityMapping.inCityServer ? "_" : "."}listings WHERE userId = ${cityMapping.cityUserId
             }`;
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
@@ -1046,7 +1004,7 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
     }
     if (!req.body.refreshToken) {
         return next(
-    	new AppError(`Refresh Token not sent`, 403)
+            new AppError(`Refresh Token not sent`, 403)
         );
     }
     database
@@ -1102,5 +1060,33 @@ router.get("/", authentication, async function (req, res, next) {
             return next(new AppError(err));
         });
 });
+
+router.get("/:id/loginDevices", authentication, async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    database
+        .get(tables.REFRESH_TOKENS_TABLE, { userId })
+        .then((response) => {
+            const data = response.rows;
+            res.status(200).json({
+                status: "success",
+                data,
+            });
+        }).catch((err) => {
+            return next(new AppError(err));
+        });
+})
+
+router.delete("/:id/loginDevices", authentication, async function (req, res, next) {
+    const userId = parseInt(req.params.id)
+    const id = req.query.id
+    database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
+        .then(() => {
+            res.status(200).json({
+                status: "success"
+            });
+        }).catch((err) => {
+            return next(new AppError(err));
+        });
+})
 
 module.exports = router;
