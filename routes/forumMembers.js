@@ -5,21 +5,31 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 
-// Return all forums in a city
-router.get("/", async function (req, res, next) {
+router.get("/members", async function (req, res, next) {
   const cityId = req.cityId;
-  database
-    .get(tables.FORUMS,null,null,cityId)
-    .then((response) => {
-      res.status(200).json({
-        status: "success",
-        data: response.rows,
-      });
-    })
-    .catch((err) => {
-      return next(new AppError(err));
-    });
+  const forumId = req.forumId;
+  try {
+    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+      next(new AppError(`Invalid forumId ${cityId}`, 400));
+      return;
+    }
+    let response = await database.get(tables.CITIES_TABLE, { cityId });
+    if (response && response.length > 0) {
+      next(new AppError(`CityId ${cityId} not present`, 404));
+    }
+
+    if (!response.rows[0].hasForums) {
+      next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 400));
+    }
+        
+    response = await database.get(tables.FORUMS, { id: forumId }, null, cityId);
+  }
+  catch(err) {
+    return next(new AppError(err));
+  }
 });
+
+
 //  Get a particular forum
 router.get("/:id", async function (req, res, next) {
   const forumsId = req.params.id;
@@ -78,14 +88,14 @@ router.get("/:id/members", authentication, async function (req, res, next) {
       id: memberCityUserIds.rows.map(x => {
         return x.userId
       })
-    }, [
+    }, {columns: [
       "id",
       "username",
       "firstname",
       "lastname",
       "email",
       "phoneNumber"
-    ])
+    ]})
         
     res.status(200).json({
       status: "success",

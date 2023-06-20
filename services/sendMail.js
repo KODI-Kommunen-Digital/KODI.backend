@@ -1,6 +1,6 @@
-var nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');
 
-var transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   path: process.env.EMAIL_PATH,
   auth: {
@@ -10,18 +10,18 @@ var transporter = nodemailer.createTransport({
 });
 
 async function sendMail(to, subject, text, html) {
-    var mailOptions = {
-      from: process.env.EMAIL_ID,
-      to,
-      subject
-    };
-    if (text) {
-        mailOptions.text = text;
-    }
-    if (html) {
-        mailOptions.html = html;
-    }
-    return transporter.sendMail(mailOptions);
+  const mailOptions = {
+    from: process.env.EMAIL_ID,
+    to,
+    subject
+  };
+  if (text) {
+    mailOptions.text = text;
+  }
+  if (html) {
+    mailOptions.html = html;
+  }
+  return transporter.sendMail(mailOptions);
 }
 
 module.exports = sendMail

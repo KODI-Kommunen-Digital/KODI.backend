@@ -11,22 +11,38 @@
     "express-fileupload": "^1.4.0",
     "fs": "^0.0.1-security",
     "helmet": "^6.0.1",
+    "husky": "^8.0.3",
     "jsonwebtoken": "^9.0.0",
+    "log4js": "^1.1.1",
     "morgan": "^1.10.0",
     "mysql2": "^3.0.1",
     "nodemailer": "^6.9.1",
     "nodemon": "^2.0.20",
     "pm2": "^5.3.0",
-    "xml-js": "^1.6.11"
+    "xml-js": "^1.6.11",
+    "xml2js": "^0.4.17",
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^16.0.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier-eslint": "^15.0.1"
   },
   "name": "smart-region-m.backend",
   "description": "To make it easy for you to get started with GitLab, here's a list of recommended next steps.",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "lint": "eslint",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "deploy": "pm2 start index.js --name \"API\""
+    "deploy": "pm2 start index.js --name \"API\"",
+    "lint:fix": "eslint --fix --ext .js,.jsx .",
+    "prepare": "husky install && bash -c 'chmod ug+x .husky/*'"
   },
   "repository": {
     "type": "git",
@@ -38,5 +54,17 @@
   "bugs": {
     "url": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend/issues"
   },
-  "homepage": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend#readme"
+  "homepage": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend#readme",
+  "devDependencies": {
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^16.0.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier-eslint": "^15.0.1"
+  }
 }
