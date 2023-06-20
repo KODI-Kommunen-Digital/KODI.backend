@@ -11,7 +11,7 @@ const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
 const imageDelete = require("../utils/imageDelete");
 
-//const radiusSearch = require('../services/handler')
+// const radiusSearch = require('../services/handler')
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -41,7 +41,6 @@ router.get("/", async function (req, res, next) {
         }
     }
 
-
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 9;
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
@@ -65,9 +64,7 @@ router.get("/", async function (req, res, next) {
 
     if (params.statusId) {
         try {
-
             const response = await database.get(
-
                 tables.STATUS_TABLE,
                 { id: params.statusId },
                 null,
@@ -75,7 +72,7 @@ router.get("/", async function (req, res, next) {
             );
 
             const data = response.rows;
-            if (data && data.length === 0) 
+            if (data && data.length === 0) {
                 return next(
                     new AppError(
                         `Invalid Status '${params.statusId}' given`,
@@ -86,23 +83,19 @@ router.get("/", async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.statusId = payload.statusId;
-
+        filters.statusId = params.statusId;
     }
 
     if (params.categoryId) {
         try {
-
             const response = await database.get(
-
                 tables.CATEGORIES_TABLE,
                 { id: params.categoryId },
                 null,
                 cityId
             );
-   const data = response.rows;
+            const data = response.rows;
             if (data && data.length === 0) {
-
                 return next(
                     new AppError(
                         `Invalid Category '${params.categoryId}' given`,
@@ -118,7 +111,6 @@ router.get("/", async function (req, res, next) {
 
     if (params.userId) {
         try {
-
             const response = await database.get(
                 tables.USER_CITYUSER_MAPPING_TABLE,
                 { userId: params.userId, cityId },
@@ -135,7 +127,6 @@ router.get("/", async function (req, res, next) {
     }
 
     try {
-
         const response = await database.get(
             tables.LISTINGS_TABLE,
             filters,
@@ -149,7 +140,6 @@ router.get("/", async function (req, res, next) {
         return next(new AppError(err));
     }
 
-
     const noOfListings = listings.length;
     if (
         noOfListings > 0 &&
@@ -157,7 +147,6 @@ router.get("/", async function (req, res, next) {
         supportedLanguages.includes(params.translate)
     ) {
         try {
-
             const textToTranslate = [];
 
             listings.forEach((listing) => {
@@ -204,7 +193,6 @@ router.get("/:id", async function (req, res, next) {
     const id = req.params.id;
     const cityId = req.cityId;
 
-
     if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
@@ -217,7 +205,6 @@ router.get("/:id", async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-
             const response = await database.get(tables.CITIES_TABLE, {
                 id: cityId,
             });
@@ -234,7 +221,6 @@ router.get("/:id", async function (req, res, next) {
     database
         .get(tables.LISTINGS_TABLE, { id }, null, cityId)
         .then((response) => {
-
             const data = response.rows;
             if (!data || data.length === 0) {
                 return next(
@@ -252,7 +238,6 @@ router.get("/:id", async function (req, res, next) {
 });
 
 router.post("/", authentication, async function (req, res, next) {
-
     const payload = req.body;
     const cityId = req.cityId;
     const insertionData = {};
@@ -268,7 +253,6 @@ router.post("/", authentication, async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-
             const response = await database.get(tables.CITIES_TABLE, {
                 id: cityId,
             });
@@ -299,7 +283,6 @@ router.post("/", authentication, async function (req, res, next) {
         parseInt(payload.villageId) !== 0
     ) {
         try {
-
             const response = await database.get(
                 tables.VILLAGE_TABLE,
                 { id: payload.villageId },
@@ -357,7 +340,6 @@ router.post("/", authentication, async function (req, res, next) {
         return next(new AppError(`Category is not present`, 400));
     } else {
         try {
-
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
                 { id: payload.categoryId },
@@ -382,7 +364,6 @@ router.post("/", authentication, async function (req, res, next) {
 
     if (payload.subCategoryId) {
         try {
-
             const response = await database.get(
                 tables.SUBCATEGORIES_TABLE,
                 { id: payload.subCategoryId },
@@ -409,7 +390,6 @@ router.post("/", authentication, async function (req, res, next) {
         return next(new AppError(`Status is not present`, 400));
     } else {
         try {
-
             const response = await database.get(
                 tables.STATUS_TABLE,
                 { id: payload.statusId },
@@ -436,7 +416,6 @@ router.post("/", authentication, async function (req, res, next) {
         return next(new AppError(`Source is not present`, 400));
     } else {
         try {
-
             const response = await database.get(
                 tables.SOURCE_TABLE,
                 { id: payload.sourceId },
@@ -472,7 +451,6 @@ router.post("/", authentication, async function (req, res, next) {
     }
 
     if (payload.phone) {
-
         const re = /^[+]*[(]{0,1}[0-9]{1,3}[)]{0,1}[-\s\./0-9]*$/g;
         if (!re.test(payload.phone)) {
             return next(new AppError(`Invalid Phone number given`, 400));
@@ -503,7 +481,6 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.latitude = payload.latitude;
     }
 
-
     if (parseInt(payload.categoryId) === categories.Events) {
         if (payload.startDate) {
             insertionData.startDate = new Date(payload.startDate)
@@ -530,7 +507,6 @@ router.post("/", authentication, async function (req, res, next) {
         .replace("T", " ");
 
     try {
-
         let response = {};
         const userId = user.id;
         if (city.isAdminListings) {
@@ -608,7 +584,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
         "cityUserId"
     );
 
-
     // The current user might not be in the city db
     const cityUserId =
         response.rows && response.rows.length > 0
@@ -672,7 +647,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.email = payload.email;
     }
 
-
     if (payload.phone && payload.phone !== currentListingData.phone) {
         const re = /^[+][(]{0,1}[0-9]{1,3}[)]{0,1}[-\s./0-9]$/g;
         if (!re.test(payload.phone)) {
@@ -705,15 +679,12 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.logo = null;
     }
     if (payload.statusId) {
-
         if (req.roleId !== roles.Admin)
             return next(
                 new AppError("You dont have access to change this option", 403)
             );
         try {
-
             const response = await database.get(
-
                 tables.STATUS_TABLE,
                 { id: payload.statusId },
                 null,
@@ -776,7 +747,6 @@ router.delete("/:id", authentication, async function (req, res, next) {
     const id = req.params.id;
     const cityId = req.cityId;
 
-
     if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
@@ -784,7 +754,6 @@ router.delete("/:id", authentication, async function (req, res, next) {
         next(new AppError(`Invalid entry ${id}`, 404));
         return;
     }
-
 
     let response = await database.get(
         tables.USER_CITYUSER_MAPPING_TABLE,
@@ -819,7 +788,6 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
     await imageDelete([{ Key: currentListingData.logo }]);
 
-
     database
         .deleteData(tables.LISTINGS_TABLE, { id }, cityId)
         .then((response) => {
@@ -837,22 +805,21 @@ router.post(
     authentication,
     async function (req, res, next) {
         const id = req.params.id;
-        var cityId = req.cityId;
-        var payload = req.body;
+        const cityId = req.cityId;
 
         if (isNaN(Number(id)) || Number(id) <= 0) {
             next(new AppError(`Invalid ListingsId ${id}`, 404));
             return;
         }
 
-        var response = await database.get(
+        let response = await database.get(
             tables.USER_CITYUSER_MAPPING_TABLE,
             { userId: req.userId, cityId },
             "cityUserId"
         );
 
-        //The current user might not be in the city db
-        var cityUserId =
+        // The current user might not be in the city db
+        const cityUserId =
             response.rows && response.rows.length > 0
                 ? response.rows[0].cityUserId
                 : null;
@@ -863,15 +830,15 @@ router.post(
             null,
             cityId
         );
-        if (!response.rows || response.rows.length == 0) {
+        if (!response.rows || response.rows.length === 0) {
             return next(
                 new AppError(`Listing with id ${id} does not exist`, 404)
             );
         }
-        let currentListingData = response.rows[0];
+        const currentListingData = response.rows[0];
 
         if (
-            currentListingData.userId != cityUserId &&
+            currentListingData.userId !== cityUserId &&
             req.roleId !== roles.Admin
         ) {
             return next(
@@ -886,7 +853,7 @@ router.post(
         }
 
         try {
-            var filePath = `user_${req.userId}/city_${cityId}_listing_${id}`;
+            const filePath = `user_${req.userId}/city_${cityId}_listing_${id}`;
             const updationData = {};
 
             const { uploadStatus, objectKey } = await imageUpload(
@@ -917,22 +884,21 @@ router.delete(
     authentication,
     async function (req, res, next) {
         const id = req.params.id;
-        var cityId = req.cityId;
-        var payload = req.body;
+        const cityId = req.cityId;
 
         if (isNaN(Number(id)) || Number(id) <= 0) {
             next(new AppError(`Invalid ListingsId ${id}`, 404));
             return;
         }
 
-        var response = await database.get(
+        let response = await database.get(
             tables.USER_CITYUSER_MAPPING_TABLE,
             { userId: req.userId, cityId },
             "cityUserId"
         );
 
-        //The current user might not be in the city db
-        var cityUserId =
+        // The current user might not be in the city db
+        const cityUserId =
             response.rows && response.rows.length > 0
                 ? response.rows[0].cityUserId
                 : null;
@@ -943,15 +909,15 @@ router.delete(
             null,
             cityId
         );
-        if (!response.rows || response.rows.length == 0) {
+        if (!response.rows || response.rows.length === 0) {
             return next(
                 new AppError(`Listing with id ${id} does not exist`, 404)
             );
         }
-        let currentListingData = response.rows[0];
+        const currentListingData = response.rows[0];
 
         if (
-            currentListingData.userId != cityUserId &&
+            currentListingData.userId !== cityUserId &&
             req.roleId !== roles.Admin
         ) {
             return next(

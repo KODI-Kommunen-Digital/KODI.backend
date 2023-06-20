@@ -2,36 +2,35 @@ const ObsClient = require("./eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
 const http = require("http");
 
 const imageUpload = async (image, filePath) => {
-  var server = process.env.BUCKET_HOST;
-
+    const server = process.env.BUCKET_HOST;
 
     /*
-   * Initialize a obs client instance with your account for accessing OBS
-   */
-  var obs = new ObsClient({
-    access_key_id: process.env.ACCESS_KEY,
-    secret_access_key: process.env.SECRET_KEY,
-    server: server,
-  });
+     * Initialize a obs client instance with your account for accessing OBS
+     */
+    const obs = new ObsClient({
+        access_key_id: process.env.ACCESS_KEY, // eslint-disable-line camelcase
+        secret_access_key: process.env.SECRET_KEY, // eslint-disable-line camelcase
+        server,
+    });
 
-  var bucketName = process.env.BUCKET_NAME;
-  var objectKey = filePath;
-  var formParams = {
-    acl: obs.enums.AclPublicRead,
-    "content-type": "image/jpeg",
-    "x-amz-meta-meta1": "value1",
-    "x-amz-meta-meta2": "value2",
-  };
-  var res = obs.createV4PostSignatureSync({
-    Bucket: bucketName,
-    Key: objectKey,
-    Expires: 3600,
-    FormParams: formParams,
-  });
+    const bucketName = process.env.BUCKET_NAME;
+    const objectKey = filePath;
+    const formParams = {
+        acl: obs.enums.AclPublicRead,
+        "content-type": "image/jpeg",
+        "x-amz-meta-meta1": "value1",
+        "x-amz-meta-meta2": "value2",
+    };
+    const res = obs.createV4PostSignatureSync({
+        Bucket: bucketName,
+        Key: objectKey,
+        Expires: 3600,
+        FormParams: formParams,
+    });
 
-  /*
-   * Start to post object
-   */
+    /*
+     * Start to post object
+     */
     formParams.key = objectKey;
     formParams.policy = res.Policy;
     formParams["x-amz-algorithm"] = res.Algorithm;
@@ -42,8 +41,8 @@ const imageUpload = async (image, filePath) => {
     const boundary = "9431149156168";
 
     /*
-   * Construct form data
-   */
+     * Construct form data
+     */
     const buffers = [];
     let first = true;
 
@@ -68,8 +67,8 @@ const imageUpload = async (image, filePath) => {
     buffers.push(buffer);
 
     /*
-   * Construct file description
-   */
+     * Construct file description
+     */
     buffer = [];
     buffer.push("\r\n");
     buffer.push("--");
