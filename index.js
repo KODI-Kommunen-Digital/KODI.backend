@@ -18,6 +18,7 @@ const citizenServicesRouter = require('./routes/citizenServices');
 const fileUpload = require('express-fileupload');
 const forumsRouter = require('./routes/forums');
 const forumsPostRouter = require("./routes/forumsPost");
+const forumMembersRouter = require('./routes/forumMembers');
 
 // defining the Express app
 const app = express();
@@ -58,13 +59,6 @@ app.use('/listings', listingsRouter);
 app.use('/categories', categoriesRouter);
 app.use('/status', statusRouter);
 app.use('/citizenServices', citizenServicesRouter);
-app.use('/cities/:cityId/forums', function (req, res, next) {
-    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
-        return next(new AppError(`Invalid city id given`, 400));
-    }
-    req.cityId = req.params.cityId;
-    next();
-}, forumsRouter)
 app.use('/users/:userId/favorites', function (req, res, next) {
     if (isNaN(Number(req.params.userId)) || Number(req.params.userId) <= 0) {
         return next(new AppError(`Invalid user id given`, 400));
@@ -104,6 +98,21 @@ app.use(
     },
     forumsPostRouter
 );
+app.use('/cities/:cityId/forums', function (req, res, next) {
+    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    next();
+}, forumsRouter)
+app.use('/cities/:cityId/forums/:forumId/members', function (req, res, next) {
+    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    req.forumId = req.params.forumId;
+    next();
+}, forumMembersRouter)
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });

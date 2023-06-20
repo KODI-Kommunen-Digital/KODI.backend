@@ -8,6 +8,19 @@ const authentication = require("../middlewares/authentication");
 // Return all forums in a city
 router.get("/", async function (req, res, next) {
     const cityId = req.cityId;
+    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+        next(new AppError(`Invalid forumId ${cityId}`, 400));
+        return;
+    }
+    const response = await database.get(tables.CITIES_TABLE, { cityId });
+    if (response && response.length > 0) {
+        next(new AppError(`CityId ${cityId} not present`, 404));
+    }
+
+    if (!response.rows[0].hasForums) {
+        next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 400));
+    }
+
     database
         .get(tables.FORUMS,null,null,cityId)
         .then((response) => {
@@ -20,19 +33,33 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         });
 });
+
 //  Get a particular forum
 router.get("/:id", async function (req, res, next) {
     const forumsId = req.params.id;
-    const cityId = req.cityId
-    // console.log(req.params)
+    const cityId = req.cityId;
+
+    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+        next(new AppError(`Invalid forumId ${cityId}`, 400));
+        return;
+    }
+
+    const response = await database.get(tables.CITIES_TABLE, { cityId });
+    if (response && response.length > 0) {
+        next(new AppError(`CityId ${cityId} not present`, 404));
+    }
+
+    if (!response.rows[0].hasForums) {
+        next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 403));
+    }
+
     if (isNaN(Number(forumsId)) || Number(forumsId) <= 0) {
         next(new AppError(`Invalid forumId ${forumsId}`, 400));
         return;
     }
  
-
     database
-        .get(tables.FORUMS, { id: forumsId },null,cityId)
+        .get(tables.FORUMS, { id: forumsId }, null, cityId)
         .then((response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
@@ -48,8 +75,9 @@ router.get("/:id", async function (req, res, next) {
         });
 });
 
-router.get("/:id/members", authentication, async function (req, res, next) {
-    const forumId = req.params.id
+// To insert or add  a post into forums table  works fine but doesn't get updated in db
+router.post("/", authentication, async function (req, res, next) {
+    const payload = req.body
     const cityId = req.cityId;
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
         return next(new AppError(`Invalid cityId`, 400));
@@ -57,73 +85,53 @@ router.get("/:id/members", authentication, async function (req, res, next) {
         try {
             const response = await database.get(tables.CITIES_TABLE, { id: cityId });
             if (response.rows && response.rows.length === 0) {
-                return next(new AppError(`Invalid City '${cityId}' given`, 400));
+                return next(new AppError(`City not present '${cityId}' given`, 404));
+            }
+            if (!response.rows[0].hasForums) {
+                next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 403));
             }
         } catch (err) {
             return next(new AppError(err));
-        }
-		
+        }	
     }
-    if (isNaN(Number(forumId)) || Number(forumId) <= 0) {
-        return next(new AppError(`Invalid forumId`, 400));
+
+    if (!payload.title) {
+        return next(new AppError(`Title is not present`, 400));
     }
+
+    if (!payload.description) {
+        return next(new AppError(`Description is not present`, 400));
+    }
+
+    if (!payload.isPrivate) {
+        return next(new AppError(`IsPrivate not present`, 400));
+    } 
+    
+    if (payload.isPrivate === false || payload.isPrivate === true) {
+        return next(new AppError(`Invalid value for isPrivate`, 400));
+    }
+
     try {
-        const response = await database.get(tables.FORUM_MEMBERS, { forumId }, null, cityId);
-        const memberCityUserIds = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-            cityUserId: response.rows.map(x => {
-                return x.userId
-            })
-        }, null)
-        const memberUserIds = await database.get(tables.USER_TABLE, {
-            id: memberCityUserIds.rows.map(x => {
-                return x.userId
-            })
-        }, [
-            "id",
-            "username",
-            "firstname",
-            "lastname",
-            "email",
-            "phoneNumber"
-        ])
-        
+        const response = await database.create(tables.FORUMS, {
+            forumName: payload.title,
+            image: payload.image,
+            description: payload.description,
+            isPrivate: payload.isPrivate,
+            createdAt: new Date()
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ")
+        }, cityId);
+        const postId = response.id;
         res.status(200).json({
             status: "success",
-            data: memberUserIds.rows,
+            id: postId
         });
     } catch (err) {
         return next(new AppError(err));
     }
-	
 });
-// To insert or add  a post into forums table  works fine but doesn't get updated in db
-router.post("/:id", authentication, async function (req, res, next) {
-    const payload = req.body
-    const forumId = req.params.id
-    const cityId = req.cityId;
-    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-        return next(new AppError(`Invalid cityId`, 400));
-    }
-    if (isNaN(Number(forumId)) || Number(forumId) <= 0) {
-        return next(new AppError(`Invalid forumId`, 400));
-    }
-    await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-        userId: req.userId, cityId: req.cityId
-    }, null)
-    try {
-        database
-            .create(tables.FORUMS, {
-                forumName: payload.title,
-                image: payload.image,
-                description: payload.description,
-            }, cityId);
-    } catch (err) {
-        return next(new AppError(err));
-    }
-	  res.status(200).json({
-        status: "success",
-    });
-});
+
 //  Description Update a forum. (Only admins can do this)
 router.patch("/:id", authentication, async function (req, res, next) {
     const id = req.params.id;
