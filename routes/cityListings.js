@@ -430,23 +430,30 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.latitude = payload.latitude;
     }
 
+<<<<<<< HEAD
     if (!payload.startDate) {
         if (parseInt(payload.categoryId) === categories.Events) {
+=======
+    if (parseInt(payload.categoryId) === categories.EventsOrNews) {
+        if (payload.startDate) {
+            insertionData.startDate = new Date(payload.startDate)
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ");
+        } else {
+>>>>>>> efc7dd0a99d2e793704d608c98c84c17337dfff8
             return next(new AppError(`Start date or Time is not present`, 400));
         }
-    } else {
-        insertionData.startDate = new Date(payload.startDate)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
-    }
-
-    if (payload.endDate) {
-        insertionData.endDate = new Date(payload.endDate)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
-    }
+    
+        if (payload.endDate) {
+            insertionData.endDate = new Date(payload.endDate)
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ");
+        } else {
+            return next(new AppError(`End date or Time is not present`, 400));
+        }
+    } 
 
     insertionData.createdAt = new Date()
         .toISOString()
