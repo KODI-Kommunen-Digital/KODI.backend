@@ -1079,14 +1079,25 @@ router.get("/:id/loginDevices", authentication, async function (req, res, next) 
 router.delete("/:id/loginDevices", authentication, async function (req, res, next) {
     const userId = parseInt(req.params.id)
     const id = req.query.id
-    database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
-        .then(() => {
-            res.status(200).json({
-                status: "success"
+    if (!id) {
+        database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
+            .then(() => {
+                res.status(200).json({
+                    status: "success"
+                });
+            }).catch((err) => {
+                return next(new AppError(err));
             });
-        }).catch((err) => {
-            return next(new AppError(err));
-        });
+    } else {
+        database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
+            .then(() => {
+                res.status(200).json({
+                    status: "success"
+                });
+            }).catch((err) => {
+                return next(new AppError(err));
+            });
+    }
 })
 
 module.exports = router;
