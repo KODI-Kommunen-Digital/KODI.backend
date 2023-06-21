@@ -1,20 +1,20 @@
 const ObsClient = require("./eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
 const http = require("http");
 
-const imageUpload = async (image, id) => {
+const imageUpload = async (image, filePath) => {
     const server = process.env.BUCKET_HOST;
 
     /*
-   * Initialize a obs client instance with your account for accessing OBS
-   */
+     * Initialize a obs client instance with your account for accessing OBS
+     */
     const obs = new ObsClient({
-        accessKeyId: process.env.ACCESS_KEY,
-        secretAccessKey: process.env.SECRET_KEY,
+        access_key_id: process.env.ACCESS_KEY, // eslint-disable-line camelcase
+        secret_access_key: process.env.SECRET_KEY, // eslint-disable-line camelcase
         server,
     });
 
     const bucketName = process.env.BUCKET_NAME;
-    const objectKey = `user_${id}/${Date.now()}`;
+    const objectKey = filePath;
     const formParams = {
         acl: obs.enums.AclPublicRead,
         "content-type": "image/jpeg",
@@ -29,8 +29,8 @@ const imageUpload = async (image, id) => {
     });
 
     /*
-   * Start to post object
-   */
+     * Start to post object
+     */
     formParams.key = objectKey;
     formParams.policy = res.Policy;
     formParams["x-amz-algorithm"] = res.Algorithm;
@@ -41,8 +41,8 @@ const imageUpload = async (image, id) => {
     const boundary = "9431149156168";
 
     /*
-   * Construct form data
-   */
+     * Construct form data
+     */
     const buffers = [];
     let first = true;
 
@@ -67,8 +67,8 @@ const imageUpload = async (image, id) => {
     buffers.push(buffer);
 
     /*
-   * Construct file description
-   */
+     * Construct file description
+     */
     buffer = [];
     buffer.push("\r\n");
     buffer.push("--");
