@@ -8,8 +8,8 @@ const imageUpload = async (image, filePath) => {
      * Initialize a obs client instance with your account for accessing OBS
      */
     const obs = new ObsClient({
-        accessKeyId: process.env.ACCESS_KEY, // eslint-disable-line camelcase
-        secretAccessKey: process.env.SECRET_KEY, // eslint-disable-line camelcase
+        accessKeyId: process.env.BUCKET_ACCESS_KEY,
+        secretAccessKey: process.env.BUCKET_SECRET_KEY,
         server,
     });
 
@@ -106,7 +106,7 @@ const imageUpload = async (image, filePath) => {
         return { uploadStatus, objectKey };
     } catch (e) {
         console.log(e);
-        return e;
+        return { uploadStatus: e, objectKey: "" };
     }
 };
 
