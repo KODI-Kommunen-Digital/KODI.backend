@@ -17,7 +17,7 @@ const statusRouter = require('./routes/status');
 const citizenServicesRouter = require('./routes/citizenServices');
 const fileUpload = require('express-fileupload');
 const forumsRouter = require('./routes/forums');
-const forumsPostRouter = require("./routes/forumsPost");
+const forumsPostRouter = require("./routes/forumPosts");
 const forumMembersRouter = require('./routes/forumMembers');
 
 // defining the Express app
