@@ -698,11 +698,7 @@ router.post(
                 updationData.image = `user_${id}/profilePic`;
                 database
                     .update(tables.USER_TABLE, updationData, { id })
-                    .then((response) => {
-                        res.status(200).json({
-                            status: "success",
-                        });
-                    })
+                    .then((response) => {})
                     .catch((err) => {
                         return next(new AppError(err));
                     });
