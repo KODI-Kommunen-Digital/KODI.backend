@@ -873,6 +873,7 @@ router.post(
                         return next(new AppError(err));
                     });
             }
+            return next(new AppError("Image Upload failed"));
         } catch (err) {
             return next(new AppError(err));
         }

@@ -7,8 +7,8 @@ const imageDelete = async (keys) => {
      * Initialize a obs client instance with your account for accessing OBS
      */
     const obs = new ObsClient({
-        access_key_id: process.env.ACCESS_KEY, // eslint-disable-line camelcase
-        secret_access_key: process.env.SECRET_KEY, // eslint-disable-line camelcase
+        accessKeyId: process.env.ACCESS_KEY,
+        secretAccessKey: process.env.SECRET_KEY,
         server,
     });
 
