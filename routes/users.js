@@ -689,7 +689,24 @@ router.post(
                 );
             }
 
-            const { uploadStatus, objectKey } = await imageUpload(image, id);
+            const { uploadStatus, objectKey } = await imageUpload(
+                image,
+                `user_${id}/profilePic`
+            );
+            if (uploadStatus === "Success") {
+                const updationData = {};
+                updationData.image = `user_${id}/profilePic`;
+                database
+                    .update(tables.USER_TABLE, updationData, { id })
+                    .then((response) => {
+                        res.status(200).json({
+                            status: "success",
+                        });
+                    })
+                    .catch((err) => {
+                        return next(new AppError(err));
+                    });
+            }
 
             res.status(200).json({
                 status: "success",
@@ -1250,28 +1267,36 @@ router.get(
     }
 );
 
-router.delete("/:id/loginDevices", authentication, async function (req, res, next) {
-    const userId = parseInt(req.params.id)
-    const id = req.query.id
-    if (!id) {
-        database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
-            .then(() => {
-                res.status(200).json({
-                    status: "success"
+router.delete(
+    "/:id/loginDevices",
+    authentication,
+    async function (req, res, next) {
+        const userId = parseInt(req.params.id);
+        const id = req.query.id;
+        if (!id) {
+            database
+                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
+                .then(() => {
+                    res.status(200).json({
+                        status: "success",
+                    });
+                })
+                .catch((err) => {
+                    return next(new AppError(err));
                 });
-            }).catch((err) => {
-                return next(new AppError(err));
-            });
-    } else {
-        database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
-            .then(() => {
-                res.status(200).json({
-                    status: "success"
+        } else {
+            database
+                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
+                .then(() => {
+                    res.status(200).json({
+                        status: "success",
+                    });
+                })
+                .catch((err) => {
+                    return next(new AppError(err));
                 });
-            }).catch((err) => {
-                return next(new AppError(err));
-            });
+        }
     }
-})
+);
 
 module.exports = router;
