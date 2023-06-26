@@ -1295,7 +1295,8 @@ router.get("/:id/loginDevices", authentication, async function (req, res, next) 
                 status: "success",
                 data,
             });
-    }
+        }
+        )}
 );
 
 router.delete("/:id/loginDevices", authentication, async function (req, res, next) {
