@@ -1,9 +1,9 @@
-require('dotenv').config()
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
+require("dotenv").config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
 const AppError = require("./utils/appError");
 const errorHandler = require("./utils/errorHandler");
 const cityListingsRouter = require('./routes/cityListings');
@@ -26,7 +26,7 @@ const app = express();
 
 // defining an array to work as the database (temporary solution)
 const message = {
-    message: 'Hello world! Welcome to HEIDI!'
+    message: "Hello world! Welcome to HEIDI!",
 };
 
 // adding Helmet to enhance your Rest API's security
@@ -39,7 +39,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 // adding morgan to log HTTP requests
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 
 app.use(
     fileUpload({
@@ -50,7 +50,7 @@ app.use(
     })
 );
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
     res.send(message);
 });
 
@@ -160,7 +160,11 @@ app.listen(process.env.PORT, () => {
     console.log(`listening on port ${process.env.PORT}`);
 });
 
-process.on('uncaughtException', function (err) {
-    console.error(`${(new Date).toUTCString()}: UncaughtException: ${err.message}\n${err.stack}`);
-    process.exit(1)
-})
+process.on("uncaughtException", function (err) {
+    console.error(
+        `${new Date().toUTCString()}: UncaughtException: ${err.message}\n${
+            err.stack
+        }`
+    );
+    process.exit(1);
+});
