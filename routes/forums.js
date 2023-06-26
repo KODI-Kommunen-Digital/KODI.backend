@@ -87,7 +87,7 @@ router.post("/", authentication, async function (req, res, next) {
             if (response.rows && response.rows.length === 0) {
                 return next(new AppError(`City not present '${cityId}' given`, 404));
             }
-            if (!response.rows[0].hasForums) {
+            if (!response.rows[0].hasForum) {
                 next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 403));
             }
         } catch (err) {
@@ -107,7 +107,7 @@ router.post("/", authentication, async function (req, res, next) {
         return next(new AppError(`IsPrivate not present`, 400));
     }
     
-    if (payload.isPrivate === false || payload.isPrivate === true) {
+    if (payload.isPrivate !== false && payload.isPrivate !== true) {
         return next(new AppError(`Invalid value for isPrivate`, 400));
     }
 
@@ -128,17 +128,17 @@ router.post("/", authentication, async function (req, res, next) {
         let response = await database.create(tables.FORUMS, insertionData, cityId);
         const forumId = response.id;
 
-        const userResponse = await database.get(tables.USER_TABLE, insertionData, cityId);
-        const user = userResponse.rows[0];
-        const userId = user.id;
-        let cityUserId = 0;
 
         response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
             cityId,
-            userId
+            userId: req.userId
         });
 
+        let cityUserId = 0;
         if (!response.rows || response.rows.length === 0) {
+            const userResponse = await database.get(tables.USER_TABLE, { id: req.userId });
+            const user = userResponse.rows[0];
+            const userId = user.id;
             delete user.id;
             delete user.password;
             delete user.socialMedia;
@@ -164,7 +164,7 @@ router.post("/", authentication, async function (req, res, next) {
 
         response = await database.create(tables.FORUM_MEMBERS, insertionData, cityId);
 
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             id: forumId
         });
