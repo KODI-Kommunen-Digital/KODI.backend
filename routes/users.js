@@ -1289,10 +1289,11 @@ router.get("/:id/forums", authentication, async function (req, res, next) {
     }
 });
 
-router.get("/:id/loginDevices", authentication, async function (req, res, next) {
+router.post("/:id/loginDevices", authentication, async function (req, res, next) {
     const userId = parseInt(req.params.id);
+    const refreshToken = req.body.refreshToken;
     database
-        .get(tables.REFRESH_TOKENS_TABLE, { userId }, "id, userId, sourceAddress, browser, device")
+        .callQuery(`select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `, [userId, refreshToken])
         .then((response) => {
             const data = response.rows;
             res.status(200).json({
