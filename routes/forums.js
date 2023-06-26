@@ -75,7 +75,6 @@ router.get("/:id", async function (req, res, next) {
         });
 });
 
-// To insert or add  a post into forums table  works fine but doesn't get updated in db
 router.post("/", authentication, async function (req, res, next) {
     const payload = req.body
     const cityId = req.cityId;
