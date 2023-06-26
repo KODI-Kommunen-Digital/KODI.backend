@@ -8,6 +8,19 @@ const authentication = require("../middlewares/authentication");
 // Return all forums in a city
 router.get("/", async function (req, res, next) {
     const cityId = req.cityId;
+    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+        next(new AppError(`Invalid forumId ${cityId}`, 400));
+        return;
+    }
+    const response = await database.get(tables.CITIES_TABLE, { cityId });
+    if (response && response.length > 0) {
+        next(new AppError(`CityId ${cityId} not present`, 404));
+    }
+
+    if (!response.rows[0].hasForums) {
+        next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 400));
+    }
+
     database
         .get(tables.FORUMS,null,null,cityId)
         .then((response) => {
@@ -20,19 +33,33 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         });
 });
+
 //  Get a particular forum
 router.get("/:id", async function (req, res, next) {
     const forumsId = req.params.id;
-    const cityId = req.cityId
-    // console.log(req.params)
+    const cityId = req.cityId;
+
+    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+        next(new AppError(`Invalid forumId ${cityId}`, 400));
+        return;
+    }
+
+    const response = await database.get(tables.CITIES_TABLE, { cityId });
+    if (response && response.length > 0) {
+        next(new AppError(`CityId ${cityId} not present`, 404));
+    }
+
+    if (!response.rows[0].hasForums) {
+        next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 403));
+    }
+
     if (isNaN(Number(forumsId)) || Number(forumsId) <= 0) {
         next(new AppError(`Invalid forumId ${forumsId}`, 400));
         return;
     }
  
-
     database
-        .get(tables.FORUMS, { id: forumsId },null,cityId)
+        .get(tables.FORUMS, { id: forumsId }, null, cityId)
         .then((response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
@@ -48,8 +75,8 @@ router.get("/:id", async function (req, res, next) {
         });
 });
 
-router.get("/:id/members", authentication, async function (req, res, next) {
-    const forumId = req.params.id
+router.post("/", authentication, async function (req, res, next) {
+    const payload = req.body
     const cityId = req.cityId;
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
         return next(new AppError(`Invalid cityId`, 400));
@@ -57,73 +84,94 @@ router.get("/:id/members", authentication, async function (req, res, next) {
         try {
             const response = await database.get(tables.CITIES_TABLE, { id: cityId });
             if (response.rows && response.rows.length === 0) {
-                return next(new AppError(`Invalid City '${cityId}' given`, 400));
+                return next(new AppError(`City not present '${cityId}' given`, 404));
+            }
+            if (!response.rows[0].hasForum) {
+                next(new AppError(`CityId ${cityId} can not create forum related endpoints`, 403));
             }
         } catch (err) {
             return next(new AppError(err));
-        }
-		
+        }	
     }
-    if (isNaN(Number(forumId)) || Number(forumId) <= 0) {
-        return next(new AppError(`Invalid forumId`, 400));
+
+    if (!payload.title) {
+        return next(new AppError(`Title is not present`, 400));
     }
+
+    if (!payload.description) {
+        return next(new AppError(`Description is not present`, 400));
+    }
+
+    if (!payload.isPrivate) {
+        return next(new AppError(`IsPrivate not present`, 400));
+    }
+    
+    if (payload.isPrivate !== false && payload.isPrivate !== true) {
+        return next(new AppError(`Invalid value for isPrivate`, 400));
+    }
+
+    const currentTime = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ")
+
     try {
-        const response = await database.get(tables.FORUM_MEMBERS, { forumId }, null, cityId);
-        const memberCityUserIds = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-            cityUserId: response.rows.map(x => {
-                return x.userId
-            })
-        }, null)
-        const memberUserIds = await database.get(tables.USER_TABLE, {
-            id: memberCityUserIds.rows.map(x => {
-                return x.userId
-            })
-        }, [
-            "id",
-            "username",
-            "firstname",
-            "lastname",
-            "email",
-            "phoneNumber"
-        ])
-        
-        res.status(200).json({
+        let insertionData = {
+            forumName: payload.title,
+            image: payload.image,
+            description: payload.description,
+            isPrivate: payload.isPrivate,
+            createdAt: currentTime
+        }
+
+        let response = await database.create(tables.FORUMS, insertionData, cityId);
+        const forumId = response.id;
+
+
+        response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+            cityId,
+            userId: req.userId
+        });
+
+        let cityUserId = 0;
+        if (!response.rows || response.rows.length === 0) {
+            const userResponse = await database.get(tables.USER_TABLE, { id: req.userId });
+            const user = userResponse.rows[0];
+            const userId = user.id;
+            delete user.id;
+            delete user.password;
+            delete user.socialMedia;
+            delete user.emailVerified;
+            delete user.socialMedia;
+            response = await database.create(tables.USER_TABLE, user, cityId);
+            cityUserId = response.id;
+            await database.create(tables.USER_CITYUSER_MAPPING_TABLE, {
+                cityId,
+                userId,
+                cityUserId
+            });
+        } else {
+            cityUserId = response.rows[0].cityUserId;
+        }
+
+        insertionData = {
+            forumId,
+            userId: cityUserId,
+            JoinedAt: currentTime,
+            isAdmin: true
+        }
+
+        response = await database.create(tables.FORUM_MEMBERS, insertionData, cityId);
+
+        return res.status(200).json({
             status: "success",
-            data: memberUserIds.rows,
+            id: forumId
         });
     } catch (err) {
         return next(new AppError(err));
     }
-	
 });
-// To insert or add  a post into forums table  works fine but doesn't get updated in db
-router.post("/:id", authentication, async function (req, res, next) {
-    const payload = req.body
-    const forumId = req.params.id
-    const cityId = req.cityId;
-    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-        return next(new AppError(`Invalid cityId`, 400));
-    }
-    if (isNaN(Number(forumId)) || Number(forumId) <= 0) {
-        return next(new AppError(`Invalid forumId`, 400));
-    }
-    await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-        userId: req.userId, cityId: req.cityId
-    }, null)
-    try {
-        database
-            .create(tables.FORUMS, {
-                forumName: payload.title,
-                image: payload.image,
-                description: payload.description,
-            }, cityId);
-    } catch (err) {
-        return next(new AppError(err));
-    }
-	  res.status(200).json({
-        status: "success",
-    });
-});
+
 //  Description Update a forum. (Only admins can do this)
 router.patch("/:id", authentication, async function (req, res, next) {
     const id = req.params.id;
@@ -135,26 +183,31 @@ router.patch("/:id", authentication, async function (req, res, next) {
         next(new AppError(`Invalid forumId ${id}`, 404));
         return;
     }
-    let response = await database.get(
-        tables.FORUMS,
-        { id },null,cityId);
-    const memberCityUserId = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-        userId: req.userId, cityId
-    }, null)
-    const userDetails = await database.get(tables.FORUM_MEMBERS, { forumId: id, userId: memberCityUserId.rows[0].cityUserId }, null, cityId);
-    if (!userDetails.rows || userDetails.rows.length>0 || !userDetails.rows[0].isAdmin) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
-    if (!response.rows || response.rows.length === 0) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
-    response = await database.get(tables.FORUMS, { id},null,cityId);
-    if (!response.rows || response.rows.length === 0) {
-        return next(new AppError(`ForumId ${id} does not exist`, 404));
+
+    try {
+        const response = await database.get(tables.FORUMS, { id},null,cityId);
+        if (!response.rows || response.rows.length === 0) {
+            return next(new AppError(`ForumId ${id} does not exist`, 404));
+        }
+
+        const memberCityUserId = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+            userId: req.userId, cityId
+        }, null)
+    
+        const userDetails = await database.get(tables.FORUM_MEMBERS, { forumId: id, userId: memberCityUserId.rows[0].cityUserId }, null, cityId);
+        if (!userDetails.rows || userDetails.rows.length>0 || !userDetails.rows[0].isAdmin) {
+            return next(
+                new AppError(`You are not allowed to access this resource`, 403)
+            );
+        }
+    
+        if (!response.rows || response.rows.length === 0) {
+            return next(
+                new AppError(`You are not allowed to access this resource`, 403)
+            );
+        }
+    } catch (err) {
+        return next(new AppError(err));
     }
 
     if (payload.title) {
@@ -196,7 +249,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         
     database
         .update(tables.FORUMS, updationData, { id }, cityId)
-        .then((response) => {
+        .then(() => {
             res.status(200).json({
                 status: "success",
                 data: id
@@ -206,6 +259,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
             return next(new AppError(err));
         });
 });
+
 // To delete  a forum listing from forums table shows 500 bad request
 router.delete("/:id", authentication, async function (req, res, next) { 
     // We need to delete all forum related data first. 

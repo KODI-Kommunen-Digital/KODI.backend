@@ -19,6 +19,7 @@ const fileUpload = require('express-fileupload');
 const forumsRouter = require('./routes/forums');
 const forumsPostRouter = require("./routes/forumPosts");
 const forumsMemberRequestsRouter = require("./routes/forumsMemberRequest")
+const forumMembersRouter = require('./routes/forumMembers');
 
 // defining the Express app
 const app = express();
@@ -133,6 +134,21 @@ app.use(
     forumsPostRouter
 );
 
+app.use('/cities/:cityId/forums', function (req, res, next) {
+    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    next();
+}, forumsRouter)
+app.use('/cities/:cityId/forums/:forumId/members', function (req, res, next) {
+    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    req.forumId = req.params.forumId;
+    next();
+}, forumMembersRouter)
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
