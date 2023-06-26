@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
+const storedProcedures = require("../constants/storedProcedures");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 
@@ -115,7 +116,8 @@ router.delete("/:id", authentication, async function (req, res, next) {
             if (response.id !== memberId || !response.isAdmin) {
                 return next(new AppError(`You are not allowed to call this endpoint`, 403));
             }
-            await database.deleteData(tables.FORUM_MEMBERS, { forumId, userId: cityUserId }, cityId);
+
+            await database.callStoredProcedure(storedProcedures.DELETE_FORUM_MEMBER, { forumId, cityUserId }, cityId);
 
             res.status(200).json({
                 status: "success"
@@ -178,6 +180,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
             }
 
             if (updationData) {
+                const response = await database.get(tables.FORUM_MEMBERS, { forumId, id: memberId }, null, cityId);
+                if (response.rows && response.rows.length === 0) {
+                    return next(new AppError(`Member '${memberId}' not present in forum '${forumId}'`, 404));
+                }
                 await database.update(tables.FORUM_MEMBERS, updationData, { id: memberId }, cityId);
             }
 
