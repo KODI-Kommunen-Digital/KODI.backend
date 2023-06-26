@@ -271,6 +271,7 @@ router.get("/:id/reports", authentication, async function (req, res, next) {
     const cityId = req.cityId;
     const forumId = req.params.id;
     const userId = req.userId;
+    const minReports = req.query.minReports || 3;
 
     if (!cityId) {
         return next(new AppError(`City is not present`, 400));
@@ -363,11 +364,18 @@ router.get("/:id/reports", authentication, async function (req, res, next) {
     }
 
     try {
+        if (isNaN(Number(minReports)) || Number(minReports) <= 0) {
+            next(new AppError(`Invalid params minReports '${minReports}'`, 400));
+            return;
+        }
+
         const query = `SELECT 
             forumId, postId , COUNT(postId) AS numberOfReports 
             FROM postreports 
             WHERE forumId = ${forumId} 
-            GROUP BY postId ORDER BY numberOfReports DESC;`;
+            GROUP BY postId 
+            HAVING numberOfReports >= ${minReports}
+            ORDER BY numberOfReports DESC;`;
         const response = await database.callQuery(
             query,
             null,
