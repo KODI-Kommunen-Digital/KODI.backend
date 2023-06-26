@@ -4,7 +4,6 @@ const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
-const { parseBooleans } = require("xml2js/lib/processors");
 
 // Return all forums in a city
 router.get("/", async function (req, res, next) {
@@ -107,29 +106,67 @@ router.post("/", authentication, async function (req, res, next) {
     if (!payload.isPrivate) {
         return next(new AppError(`IsPrivate not present`, 400));
     }
-    const isPrivate = parseBooleans(payload.isPrivate)
     
-    if (isPrivate === false || isPrivate === true) {
+    if (payload.isPrivate === false || payload.isPrivate === true) {
         return next(new AppError(`Invalid value for isPrivate`, 400));
     }
 
-    const insertionData = {
-        forumName: payload.title,
-        image: payload.image,
-        description: payload.description,
-        isPrivate,
-        createdAt: new Date()
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ")
-    }
+    const currentTime = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ")
 
     try {
-        const response = await database.create(tables.FORUMS, insertionData, cityId);
-        const postId = response.id;
+        let insertionData = {
+            forumName: payload.title,
+            image: payload.image,
+            description: payload.description,
+            isPrivate: payload.isPrivate,
+            createdAt: currentTime
+        }
+
+        let response = await database.create(tables.FORUMS, insertionData, cityId);
+        const forumId = response.id;
+
+        const userResponse = await database.get(tables.USER_TABLE, insertionData, cityId);
+        const user = userResponse.rows[0];
+        const userId = user.id;
+        let cityUserId = 0;
+
+        response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
+            cityId,
+            userId
+        });
+
+        if (!response.rows || response.rows.length === 0) {
+            delete user.id;
+            delete user.password;
+            delete user.socialMedia;
+            delete user.emailVerified;
+            delete user.socialMedia;
+            response = await database.create(tables.USER_TABLE, user, cityId);
+            cityUserId = response.id;
+            await database.create(tables.USER_CITYUSER_MAPPING_TABLE, {
+                cityId,
+                userId,
+                cityUserId
+            });
+        } else {
+            cityUserId = response.rows[0].cityUserId;
+        }
+
+        insertionData = {
+            forumId,
+            userId: cityUserId,
+            JoinedAt: currentTime,
+            isAdmin: true
+        }
+
+        response = await database.create(tables.FORUM_MEMBERS, insertionData, cityId);
+
         res.status(200).json({
             status: "success",
-            id: postId
+            id: forumId
         });
     } catch (err) {
         return next(new AppError(err));
