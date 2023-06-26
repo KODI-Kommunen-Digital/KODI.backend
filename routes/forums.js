@@ -265,7 +265,121 @@ router.delete("/:id", authentication, async function (req, res, next) {
     // We need to delete all forum related data first. 
     // Delete posts, members, comments, then the forum.
     // Let this logic be be in a Stored procedure
-
-
 });
+
+router.get("/:id/reports", authentication, async function (req, res, next) {
+    const cityId = req.cityId;
+    const forumId = req.params.id;
+    const userId = req.userId;
+
+    if (!cityId) {
+        return next(new AppError(`City is not present`, 400));
+    } else {
+        try {
+            if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+                next(new AppError(`Invalid cityId ${cityId}`, 400));
+                return;
+            }
+            const response = await database.get(tables.CITIES_TABLE, {
+                id: cityId,
+            });
+            if (response.rows && response.rows.length === 0) {
+                return next(
+                    new AppError(`City '${cityId}' not present`, 404)
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    try {
+        const response = await database.get(tables.USER_TABLE, { id: userId });
+        const data = response.rows;
+        if (data && data.length === 0) {
+            return next(new AppError(`Invalid User '${userId}' given`, 400));
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+
+    if (!forumId) {
+        return next(new AppError(`ForumId is not present`, 400));
+    } else {
+        try {
+            if (isNaN(Number(forumId)) || Number(forumId) <= 0) {
+                next(new AppError(`Invalid forumId ${forumId}`, 400));
+                return;
+            }
+            let response = await database.get(
+                tables.FORUMS,
+                {
+                    id: forumId,
+                },
+                null,
+                cityId
+            );
+            if (response.rows && response.rows.length === 0) {
+                return next(
+                    new AppError(`Forum Id'${forumId}' not present`, 404)
+                );
+            }
+
+            response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId, cityId });
+            if (response.rows && response.rows.length === 0) {
+                return next(new AppError(`Invalid User '${userId}' given`, 400));
+            }
+
+            const forumUser = await database.get(
+                tables.FORUM_MEMBERS,
+                {
+                    forumId,
+                    userId: response.rows[0].cityUserId
+                },
+                null,
+                cityId
+            );
+
+            if (forumUser.rows && forumUser.rows.length === 0) {
+                return next(
+                    new AppError(
+                        `User Not found in This Forum '${forumId}' given`,
+                        400
+                    )
+                );
+            }
+
+            if (!forumUser.rows[0].isAdmin) {
+                return next(
+                    new AppError(
+                        `Only admins can call this endpoint`,
+                        403
+                    )
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    try {
+        const query = `SELECT 
+            forumId, postId , COUNT(postId) AS numberOfReports 
+            FROM postreports 
+            WHERE forumId = ${forumId} 
+            GROUP BY postId ORDER BY numberOfReports DESC;`;
+        const response = await database.callQuery(
+            query,
+            null,
+            cityId
+        );
+        return res.status(200).json({
+            status: "success",
+            id: response.rows
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    }
+});
+
 module.exports = router;
