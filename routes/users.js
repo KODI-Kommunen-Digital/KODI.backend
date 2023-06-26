@@ -1129,6 +1129,52 @@ router.delete("/:id/loginDevices", authentication, async function (req, res, nex
                 return next(new AppError(err));
             });
     }
-})
+});
+
+router.get("/:id/memberRequests", authentication, async function(req, res, next){
+    const userId = parseInt(req.params.id)
+    const requests = [];
+
+    // City Id code commented. Can be used in future if we want to filter the requests based on city
+    // let cityId =0;
+    // if (req.query.cityId){
+    //     if(Number(req.query.cityId)>0){
+    //         cityId = parseInt(req.query.cityId)
+    //     }else{
+    //         return next(new AppError('Invalid cityId given', 400));
+    //     }
+    // }
+    if(userId !== req.userId){
+        return next(new AppError('You are not allowed to access this resource'))
+    }
+    if(isNaN(Number(userId)) || Number(userId) <= 0) {
+        return next(new AppError(`Invalid userId given`, 400));
+    }
+
+    let response = await database.get(tables.CITIES_TABLE)
+    const cities = response.rows;
+    for(const city in cities){
+        try {
+            response = await database.get(tables.FORUM_REQUEST, {userId}, null, cities[city].id)
+            if(response.rows.length>0){
+                requests.push(response.rows)
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }    
+    }
+    
+    if(requests.length<=0){
+        res.status(200).json({
+            status:"success",
+            message:"No requests found"
+        });
+    }else{
+        res.status(200).json({
+            status:"success",
+            requests
+        });
+    }
+});
 
 module.exports = router;
