@@ -19,6 +19,7 @@ const fileUpload = require('express-fileupload');
 const forumsRouter = require('./routes/forums');
 const forumsPostRouter = require("./routes/forumPosts");
 const forumsMemberRequestsRouter = require("./routes/forumsMemberRequest")
+const forumPostReportsRouter = require("./routes/forumPostReports");
 const forumMembersRouter = require('./routes/forumMembers');
 
 // defining the Express app
@@ -84,6 +85,13 @@ app.use('/cities/:cityId/listings', function (req, res, next) {
     req.cityId = req.params.cityId;
     next();
 }, cityListingsRouter);
+app.use('/cities/:cityId/forums', function (req, res, next) {
+    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
+        return next(new AppError(`Invalid city id given`, 400));
+    }
+    req.cityId = req.params.cityId;
+    next();
+}, forumsRouter)
 app.use(
     '/cities/:cityId/forums/:forumId/memberRequests',
     function (req, res, next) {
@@ -133,14 +141,22 @@ app.use(
     },
     forumsPostRouter
 );
-
-app.use('/cities/:cityId/forums', function (req, res, next) {
-    if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
-        return next(new AppError(`Invalid city id given`, 400));
-    }
-    req.cityId = req.params.cityId;
-    next();
-}, forumsRouter)
+app.use(
+    "/cities/:cityId/forums/:forumId/post/:postId/reports",
+    function (req, res, next) {
+        if (
+            isNaN(Number(req.params.cityId)) ||
+            Number(req.params.cityId) <= 0
+        ) {
+            return next(new AppError("Invalid city id given", 400));
+        }
+        req.cityId = req.params.cityId;
+        req.forumId = req.params.forumId;
+        req.postId = req.params.postId;
+        next();
+    },
+    forumPostReportsRouter
+);
 app.use('/cities/:cityId/forums/:forumId/members', function (req, res, next) {
     if (isNaN(Number(req.params.cityId)) || Number(req.params.cityId) <= 0) {
         return next(new AppError(`Invalid city id given`, 400));

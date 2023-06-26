@@ -129,7 +129,6 @@ router.delete("/:id", authentication, async function (req, res, next) {
 	
 });
 
-
 router.patch("/:id", authentication, async function (req, res, next) {
     const forumId = req.forumId
     const cityId = req.cityId;
@@ -196,4 +195,5 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 	
 });
+
 module.exports = router;
