@@ -1114,9 +1114,13 @@ router.get("/:id/forums", authentication, async function (req, res, next) {
                 userId
             }, null)
             for (const memberCityUserId of memberCityUserIds.rows) {
-                const userForums = await database.get(tables.FORUM_MEMBERS, {
-                    userId: memberCityUserId.cityUserId
-                }, null, memberCityUserId.cityId)
+                const query = `SELECT 
+                forumName, forumId, fm.id as memberId, image, isPrivate, isAdmin, JoinedAt FROM 
+                heidi_city_${memberCityUserId.cityId}.forums f 
+                INNER JOIN 
+                heidi_city_${memberCityUserId.cityId}.forummembers fm on f.id = fm.forumId
+                where userId = ${memberCityUserId.cityUserId};`
+                const userForums = await database.callQuery(query, null, memberCityUserId.cityId)
                 userForumsList.push(... userForums.rows)
             }
         
@@ -1124,7 +1128,7 @@ router.get("/:id/forums", authentication, async function (req, res, next) {
             return next(new AppError(err));
         }
     
-        res.status(200).json({
+        return res.status(200).json({
             status: "success",
             data: userForumsList
         });
