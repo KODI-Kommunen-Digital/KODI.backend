@@ -843,7 +843,7 @@ router.post(
 
         response = await database.get(
             tables.LISTINGS_TABLE,
-            { listingId },
+            { id: listingId },
             null,
             cityId
         );
@@ -882,7 +882,7 @@ router.post(
                 await database.update(
                     tables.LISTINGS_TABLE,
                     updationData,
-                    { listingId },
+                    { id: listingId },
                     cityId
                 );
 
