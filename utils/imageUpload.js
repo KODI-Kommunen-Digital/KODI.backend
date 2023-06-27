@@ -105,7 +105,6 @@ const imageUpload = async (image, filePath) => {
         const uploadStatus = await makeHttpRequest(options, buffers, image);
         return { uploadStatus, objectKey };
     } catch (e) {
-        console.log(e);
         return { uploadStatus: e, objectKey: "" };
     }
 };

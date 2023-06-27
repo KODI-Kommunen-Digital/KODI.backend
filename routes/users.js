@@ -312,7 +312,7 @@ router.get("/:id", async function (req, res, next) {
                     new AppError(`User with id ${userId} does not exist`, 404)
                 );
             }
-            console.log(Array.isArray(rows));
+            // console.log(Array.isArray(rows));
             userId = cityUsers.rows[0].userId;
         } catch (err) {
             return next(new AppError(err));
@@ -320,18 +320,17 @@ router.get("/:id", async function (req, res, next) {
     }
 
     database
-        .get(tables.USER_TABLE, { id: userId },
-            [
-                "id",
-                "username",
-                "socialMedia",
-                "email",
-                "website",
-                "image",
-                "firstname",
-                "lastname",
-                "roleId"
-            ])
+        .get(tables.USER_TABLE, { id: userId }, [
+            "id",
+            "username",
+            "socialMedia",
+            "email",
+            "website",
+            "image",
+            "firstname",
+            "lastname",
+            "roleId",
+        ])
         .then((response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
@@ -1233,21 +1232,17 @@ router.get("/", authentication, async function (req, res, next) {
     const params = req.query;
     const ids = params.id.split(",").map((id) => parseInt(id));
     database
-        .get(
-            tables.USER_TABLE,
-            { id: ids },
-            [
-                "id",
-                "username",
-                "socialMedia",
-                "email",
-                "website",
-                "image",
-                "firstname",
-                "lastname",
-                "roleId"
-            ]
-        )
+        .get(tables.USER_TABLE, { id: ids }, [
+            "id",
+            "username",
+            "socialMedia",
+            "email",
+            "website",
+            "image",
+            "firstname",
+            "lastname",
+            "roleId",
+        ])
         .then((response) => {
             res.status(200).json({
                 status: "success",
@@ -1259,25 +1254,25 @@ router.get("/", authentication, async function (req, res, next) {
         });
 });
 
-router.get(
-    "/:id/loginDevices",
-    authentication,
-    async function (req, res, next) {
-        const userId = parseInt(req.params.id);
-        database
-            .get(tables.REFRESH_TOKENS_TABLE, { userId })
-            .then((response) => {
-                const data = response.rows;
-                res.status(200).json({
-                    status: "success",
-                    data,
-                });
-            })
-            .catch((err) => {
-                return next(new AppError(err));
-            });
+router.post("/:id/loginDevices", authentication, async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    const refreshToken = req.body.refreshToken;
+    if(userId !== req.userId){
+        return next(new AppError('You are not allowed to access this resource'))
     }
-);
+    database
+        .callQuery(`select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `, [userId, refreshToken])
+        .then((response) => {
+            const data = response.rows;
+            res.status(200).json({
+                status: "success",
+                data,
+            });
+        })
+        .catch((err) =>{
+            return next(new AppError(err));
+        });
+});
 
 router.delete(
     "/:id/loginDevices",
