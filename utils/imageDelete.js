@@ -23,15 +23,13 @@ const imageDelete = async (keys) => {
             },
             (err, result) => {
                 if (!err && result.CommonMsg.Status < 300) {
-                    console.log("Deleteds:");
                     return "Success";
                 } else {
-                    console.log("FAILEDDDD :(((");
+                    return "Failed";
                 }
             }
         );
     } catch (e) {
-        console.log("Error", e);
         return e;
     }
 };

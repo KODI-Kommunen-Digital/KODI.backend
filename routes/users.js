@@ -312,7 +312,7 @@ router.get("/:id", async function (req, res, next) {
                     new AppError(`User with id ${userId} does not exist`, 404)
                 );
             }
-            console.log(Array.isArray(rows));
+            // console.log(Array.isArray(rows));
             userId = cityUsers.rows[0].userId;
         } catch (err) {
             return next(new AppError(err));
