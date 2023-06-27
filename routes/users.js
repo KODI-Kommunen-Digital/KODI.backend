@@ -634,7 +634,7 @@ router.post(
                 );
             }
 
-            const { uploadStatus, objectKey } = await imageUpload(
+            const { uploadStatus } = await imageUpload(
                 image,
                 `user_${id}/profilePic`
             );
