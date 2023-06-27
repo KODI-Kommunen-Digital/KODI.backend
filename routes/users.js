@@ -1230,25 +1230,22 @@ router.get("/", authentication, async function (req, res, next) {
         });
 });
 
-router.get(
-    "/:id/loginDevices",
-    authentication,
-    async function (req, res, next) {
-        const userId = parseInt(req.params.id);
-        database
-            .get(tables.REFRESH_TOKENS_TABLE, { userId })
-            .then((response) => {
-                const data = response.rows;
-                res.status(200).json({
-                    status: "success",
-                    data,
-                });
-            })
-            .catch((err) => {
-                return next(new AppError(err));
-            });
+router.post("/:id/loginDevices", authentication, async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    const refreshToken = req.body.refreshToken;
+    if(userId !== req.userId){
+        return next(new AppError('You are not allowed to access this resource'))
     }
-);
+    database
+        .callQuery(`select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `, [userId, refreshToken])
+        .then((response) => {
+            const data = response.rows;
+            res.status(200).json({
+                status: "success",
+                data,
+            });
+        })
+});
 
 router.delete("/:id/loginDevices", authentication, async function (req, res, next) {
     const userId = parseInt(req.params.id)
