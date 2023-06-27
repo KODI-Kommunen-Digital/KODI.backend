@@ -12,12 +12,12 @@ const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
+const imageDelete = require("../utils/imageDelete");
 const roles = require("../constants/roles");
 
 router.post("/login", async function (req, res, next) {
-    ;
     const payload = req.body;
-    const head = req.headers
+    const head = req.headers;
     let sourceAddress = req.headers["x-forwarded-for"]
         ? req.headers["x-forwarded-for"].split(",").shift()
         : req.socket.remoteAddress;
@@ -72,12 +72,18 @@ router.post("/login", async function (req, res, next) {
             rememberMe: payload.rememberMe,
         });
 
-        let refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, { userId: userData.id })
+        let refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, {
+            userId: userData.id,
+        });
         if (refreshData.rows.length > 0) {
-            refreshData = refreshData.rows[0]
-            if (refreshData.sourceAddress === sourceAddress && refreshData.browser === head.browsername && refreshData.device === head.devicetype) {
+            refreshData = refreshData.rows[0];
+            if (
+                refreshData.sourceAddress === sourceAddress &&
+                refreshData.browser === head.browsername &&
+                refreshData.device === head.devicetype
+            ) {
                 await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                    userId: userData.id
+                    userId: userData.id,
                 });
             }
         }
@@ -86,7 +92,7 @@ router.post("/login", async function (req, res, next) {
             sourceAddress,
             refreshToken: tokens.refreshToken,
             browser: head.browsername,
-            device: head.devicetype
+            device: head.devicetype,
         };
 
         await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
@@ -208,13 +214,18 @@ router.post("/register", async function (req, res, next) {
             Object.keys(socialMediaList).forEach((socialMedia) => {
                 if (!supportedSocialMedia.includes(socialMedia)) {
                     return next(
-                        new AppError(`Unsupported social media '${socialMedia}'`, 400)
+                        new AppError(
+                            `Unsupported social media '${socialMedia}'`,
+                            400
+                        )
                     );
                 }
 
                 if (
                     typeof socialMediaList[socialMedia] !== "string" ||
-                    !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
+                    !socialMediaList[socialMedia].includes(
+                        socialMedia.toLowerCase()
+                    )
                 ) {
                     return next(
                         new AppError(
@@ -226,12 +237,17 @@ router.post("/register", async function (req, res, next) {
             });
             insertionData.socialMedia = JSON.stringify(socialMediaList);
         } catch (e) {
-            return next(new AppError(`Invalid input given for social media`, 400));
+            return next(
+                new AppError(`Invalid input given for social media`, 400)
+            );
         }
     }
 
     try {
-        const response = await database.create(tables.USER_TABLE, insertionData);
+        const response = await database.create(
+            tables.USER_TABLE,
+            insertionData
+        );
         const userId = response.id;
         const now = new Date();
         now.setHours(now.getHours() + 24);
@@ -275,19 +291,30 @@ router.get("/:id", async function (req, res, next) {
             return next(new AppError(`City id not given`, 400));
         }
         try {
-            const { rows } = await database.get(tables.CITIES_TABLE, { id: cityId });
+            const { rows } = await database.get(tables.CITIES_TABLE, {
+                id: cityId,
+            });
             if (!rows || rows.length === 0) {
-                return next(new AppError(`City with id ${cityId} does not exist`, 400));
+                return next(
+                    new AppError(`City with id ${cityId} does not exist`, 400)
+                );
             }
 
-            const cityUsers = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-                cityId,
-                cityUserId: userId,
-            });
+            const cityUsers = await database.get(
+                tables.USER_CITYUSER_MAPPING_TABLE,
+                {
+                    cityId,
+                    cityUserId: userId,
+                }
+            );
             if (!cityUsers.rows || cityUsers.rows.length === 0) {
-                return next(new AppError(`User with id ${userId} does not exist`, 404));
+                return next(
+                    new AppError(
+                        `User ${userId} is not found in city ${cityId}`,
+                        404
+                    )
+                );
             }
-            console.log(Array.isArray(rows))
             userId = cityUsers.rows[0].userId;
         } catch (err) {
             return next(new AppError(err));
@@ -295,22 +322,23 @@ router.get("/:id", async function (req, res, next) {
     }
 
     database
-        .get(tables.USER_TABLE, { id: userId },
-            [
-                "id",
-                "username",
-                "socialMedia",
-                "email",
-                "website",
-                "image",
-                "firstname",
-                "lastname",
-                "roleId"
-            ])
+        .get(tables.USER_TABLE, { id: userId }, [
+            "id",
+            "username",
+            "socialMedia",
+            "email",
+            "website",
+            "image",
+            "firstname",
+            "lastname",
+            "roleId",
+        ])
         .then((response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
-                return next(new AppError(`User with id ${userId} does not exist`, 404));
+                return next(
+                    new AppError(`User with id ${userId} does not exist`, 404)
+                );
             }
             res.status(200).json({
                 status: "success",
@@ -364,10 +392,15 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.newPassword) {
         if (!payload.currentPassword) {
             return next(
-                new AppError(`Current password not given to update password`, 400)
+                new AppError(
+                    `Current password not given to update password`,
+                    400
+                )
             );
         }
-        if (!bcrypt.compare(payload.currentPassword, currentUserData.password)) {
+        if (
+            !bcrypt.compare(payload.currentPassword, currentUserData.password)
+        ) {
             return next(new AppError(`Incorrect current password given`, 401));
         }
         updationData.password = await bcrypt.hash(
@@ -380,20 +413,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.lastname = payload.lastname;
     }
 
-    if (payload.email) {
-        const re =
-            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-        if (!re.test(payload.email)) {
-            return next(new AppError(`Invalid email given`, 400));
-        }
-        updationData.email = payload.email;
-    }
-
     if (payload.phoneNumber) {
         const re = /^\+49\d{11}$/;
         if (!re.test(payload.phoneNumber))
             return next(new AppError("Phone number is not valid", 400));
         updationData.phoneNumber = payload.phoneNumber;
+    }
+
+    if (payload.description) {
+        updationData.description = payload.description;
+    }
+
+    if (payload.website) {
+        updationData.website = payload.website;
     }
 
     if (payload.image || payload.image === "") {
@@ -413,13 +445,18 @@ router.patch("/:id", authentication, async function (req, res, next) {
             Object.keys(socialMediaList).forEach((socialMedia) => {
                 if (!supportedSocialMedia.includes(socialMedia)) {
                     return next(
-                        new AppError(`Unsupported social media '${socialMedia}'`, 400)
+                        new AppError(
+                            `Unsupported social media '${socialMedia}'`,
+                            400
+                        )
                     );
                 }
 
                 if (
                     typeof socialMediaList[socialMedia] !== "string" ||
-                    !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
+                    !socialMediaList[socialMedia].includes(
+                        socialMedia.toLowerCase()
+                    )
                 ) {
                     return next(
                         new AppError(
@@ -431,7 +468,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
             });
             updationData.socialMedia = JSON.stringify(socialMediaList);
         } catch (e) {
-            return next(new AppError(`Invalid input given for social media`, 400));
+            return next(
+                new AppError(`Invalid input given for social media`, 400)
+            );
         }
     }
 
@@ -461,7 +500,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
         return;
     }
 
-    if (id !== parseInt(req.userId)) {
+    if (id !== req.userId) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -497,7 +536,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
             userId: id,
         });
         await database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId: id });
-        await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, { userId: id });
+        await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
+            userId: id,
+        });
         await database.deleteData(tables.FAVORITES_TABLE, { userId: id });
         await database.deleteData(tables.USER_TABLE, { id });
 
@@ -507,17 +548,12 @@ router.delete("/:id", authentication, async function (req, res, next) {
         imageList = JSON.parse(
             parser.xml2json(imageList.data, { compact: true, spaces: 4 })
         );
-        const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-            obj.Key._text.includes("user_" + id)
+        const userImageList = imageList.ListBucketResult.Contents.filter(
+            (obj) => obj.Key._text.includes("user_" + id)
         );
-        userImageList.forEach(async (element) => {
-            await axios.delete(
-                process.env.BUCKET_HOST +
-                "/" +
-                process.env.BUCKET_NAME +
-                element.Key._text
-            );
-        });
+        await imageDelete(
+            userImageList.map((image) => ({ Key: image.Key._text }))
+        );
 
         return res.status(200).json({
             status: "success",
@@ -526,6 +562,50 @@ router.delete("/:id", authentication, async function (req, res, next) {
         return next(new AppError(err));
     }
 });
+
+router.delete(
+    "/:id/imageDelete",
+    authentication,
+    async function (req, res, next) {
+        const id = req.params.id;
+
+        if (isNaN(Number(id)) || Number(id) <= 0) {
+            next(new AppError(`Invalid UserId ${id}`, 404));
+            return;
+        }
+
+        try {
+            if (id !== req.userId) {
+                return next(
+                    new AppError(
+                        `You are not allowed to access this resource`,
+                        403
+                    )
+                );
+            }
+
+            const uploadStatus = await imageDelete([
+                { Key: `user_${id}/profilePic` },
+            ]);
+            if (uploadStatus === "Success") {
+                const updationData = {};
+                updationData.image = "";
+                database
+                    .update(tables.USER_TABLE, updationData, { id })
+                    .then((response) => {
+                        res.status(200).json({
+                            status: "success",
+                        });
+                    })
+                    .catch((err) => {
+                        return next(new AppError(err));
+                    });
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+);
 
 router.post(
     "/:id/imageUpload",
@@ -547,11 +627,27 @@ router.post(
         try {
             if (id !== parseInt(req.userId)) {
                 return next(
-                    new AppError(`You are not allowed to access this resource`, 403)
+                    new AppError(
+                        `You are not allowed to access this resource`,
+                        403
+                    )
                 );
             }
 
-            const { uploadStatus, objectKey } = await imageUpload(image, id);
+            const { uploadStatus, objectKey } = await imageUpload(
+                image,
+                `user_${id}/profilePic`
+            );
+            if (uploadStatus === "Success") {
+                const updationData = {};
+                updationData.image = `user_${id}/profilePic`;
+                database
+                    .update(tables.USER_TABLE, updationData, { id })
+                    .then((response) => {})
+                    .catch((err) => {
+                        return next(new AppError(err));
+                    });
+            }
 
             res.status(200).json({
                 status: "success",
@@ -604,7 +700,10 @@ router.get("/:id/listings", async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Status '${req.query.statusId}' given`, 400)
+                    new AppError(
+                        `Invalid Status '${req.query.statusId}' given`,
+                        400
+                    )
                 );
             }
         } catch (err) {
@@ -623,15 +722,21 @@ router.get("/:id/listings", async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Category '${req.query.categoryId}' given`, 400)
+                    new AppError(
+                        `Invalid Category '${req.query.categoryId}' given`,
+                        400
+                    )
                 );
             } else {
                 if (req.query.subCategoryId) {
                     try {
-                        const response = database.get(tables.SUBCATEGORIES_TABLE, {
-                            categoryId: req.query.categoryId,
-                            subCategoryId: req.query.subCategoryId,
-                        });
+                        const response = database.get(
+                            tables.SUBCATEGORIES_TABLE,
+                            {
+                                categoryId: req.query.categoryId,
+                                subCategoryId: req.query.subCategoryId,
+                            }
+                        );
                         const data = response.rows;
                         if (data && data.length === 0) {
                             return next(
@@ -663,9 +768,11 @@ router.get("/:id/listings", async function (req, res, next) {
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT *, ${cityMapping.cityId} as cityId FROM heidi_city_${cityMapping.cityId
-            }${cityMapping.inCityServer ? "_" : "."}listings WHERE userId = ${cityMapping.cityUserId
-            }`;
+            let query = `SELECT *, ${
+                cityMapping.cityId
+            } as cityId FROM heidi_city_${cityMapping.cityId}${
+                cityMapping.inCityServer ? "_" : "."
+            }listings WHERE userId = ${cityMapping.cityUserId}`;
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
                     query += ` AND categoryId = ${filters.categoryId}`;
@@ -744,7 +851,9 @@ router.post("/:id/refresh", async function (req, res, next) {
             sourceAddress,
             refreshToken: newTokens.refreshToken,
         };
-        await database.deleteData(tables.REFRESH_TOKENS_TABLE, { id: data[0].id });
+        await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
+            id: data[0].id,
+        });
         await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
 
         return res.status(200).json({
@@ -781,7 +890,9 @@ router.post("/forgotPassword", async function (req, res, next) {
         let response = await database.get(tables.USER_TABLE, { username });
         const data = response.rows;
         if (data && data.length === 0) {
-            return next(new AppError(`Username ${username} does not exist`, 404));
+            return next(
+                new AppError(`Username ${username} does not exist`, 404)
+            );
         }
         const user = data[0];
 
@@ -866,7 +977,10 @@ router.post("/resetPassword", async function (req, res, next) {
             return next(new AppError(`Token Expired`, 400));
         }
 
-        const hashedPassword = await bcrypt.hash(password, Number(process.env.SALT));
+        const hashedPassword = await bcrypt.hash(
+            password,
+            Number(process.env.SALT)
+        );
         await database.update(
             tables.USER_TABLE,
             { password: hashedPassword },
@@ -874,7 +988,10 @@ router.post("/resetPassword", async function (req, res, next) {
         );
 
         const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
-        const { subject, body } = passwordResetDone(user.firstname, user.lastname);
+        const { subject, body } = passwordResetDone(
+            user.firstname,
+            user.lastname
+        );
         await sendMail(user.email, subject, null, body);
         return res.status(200).json({
             status: "success",
@@ -994,7 +1111,10 @@ router.post("/verifyEmail", async function (req, res, next) {
         );
 
         const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
-        const { subject, body } = verificationDone(user.firstname, user.lastname);
+        const { subject, body } = verificationDone(
+            user.firstname,
+            user.lastname
+        );
         await sendMail(user.email, subject, null, body);
         return res.status(200).json({
             status: "success",
@@ -1014,12 +1134,12 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
         );
     }
     if (!req.body.refreshToken) {
-        return next(
-            new AppError(`Refresh Token not sent`, 403)
-        );
+        return next(new AppError(`Refresh Token not sent`, 403));
     }
     database
-        .get(tables.REFRESH_TOKENS_TABLE, { refreshToken: req.body.refreshToken })
+        .get(tables.REFRESH_TOKENS_TABLE, {
+            refreshToken: req.body.refreshToken,
+        })
         .then(async (response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
@@ -1047,21 +1167,17 @@ router.get("/", authentication, async function (req, res, next) {
     const params = req.query;
     const ids = params.id.split(",").map((id) => parseInt(id));
     database
-        .get(
-            tables.USER_TABLE,
-            { id: ids },
-            [
-                "id",
-                "username",
-                "socialMedia",
-                "email",
-                "website",
-                "image",
-                "firstname",
-                "lastname",
-                "roleId"
-            ]
-        )
+        .get(tables.USER_TABLE, { id: ids }, [
+            "id",
+            "username",
+            "socialMedia",
+            "email",
+            "website",
+            "image",
+            "firstname",
+            "lastname",
+            "roleId",
+        ])
         .then((response) => {
             res.status(200).json({
                 status: "success",
@@ -1073,32 +1189,65 @@ router.get("/", authentication, async function (req, res, next) {
         });
 });
 
-router.get("/:id/loginDevices", authentication, async function (req, res, next) {
-    const userId = parseInt(req.params.id);
-    database
-        .get(tables.REFRESH_TOKENS_TABLE, { userId })
-        .then((response) => {
-            const data = response.rows;
-            res.status(200).json({
-                status: "success",
-                data,
+router.post(
+    "/:id/loginDevices",
+    authentication,
+    async function (req, res, next) {
+        const userId = parseInt(req.params.id);
+        const refreshToken = req.body.refreshToken;
+        if (userId !== req.userId) {
+            return next(
+                new AppError("You are not allowed to access this resource")
+            );
+        }
+        database
+            .callQuery(
+                `select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `,
+                [userId, refreshToken]
+            )
+            .then((response) => {
+                const data = response.rows;
+                res.status(200).json({
+                    status: "success",
+                    data,
+                });
+            })
+            .catch((err) => {
+                return next(new AppError(err));
             });
-        }).catch((err) => {
-            return next(new AppError(err));
-        });
-})
+    }
+);
 
-router.delete("/:id/loginDevices", authentication, async function (req, res, next) {
-    const userId = parseInt(req.params.id)
-    const id = req.query.id
-    database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
-        .then(() => {
-            res.status(200).json({
-                status: "success"
-            });
-        }).catch((err) => {
-            return next(new AppError(err));
-        });
-})
+router.delete(
+    "/:id/loginDevices",
+    authentication,
+    async function (req, res, next) {
+        const userId = parseInt(req.params.id);
+        const id = req.query.id;
+        if (!id) {
+            database
+                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
+                .then(() => {
+                    res.status(200).json({
+                        status: "success",
+                    });
+                })
+                .catch((err) => {
+                    return next(new AppError(err));
+                });
+        } else {
+            database
+                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
+                .then(() => {
+                    res.status(200).json({
+                        status: "success",
+                    });
+                })
+                .catch((err) => {
+                    return next(new AppError(err));
+                });
+        }
+    }
+);
 
 module.exports = router;
