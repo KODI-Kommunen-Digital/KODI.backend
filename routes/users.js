@@ -295,7 +295,18 @@ router.get("/:id", async function (req, res, next) {
     }
 
     database
-        .get(tables.USER_TABLE, { id: userId })
+        .get(tables.USER_TABLE, { id: userId },
+            [
+                "id",
+                "username",
+                "socialMedia",
+                "email",
+                "website",
+                "image",
+                "firstname",
+                "lastname",
+                "roleId"
+            ])
         .then((response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
@@ -1048,6 +1059,7 @@ router.get("/", authentication, async function (req, res, next) {
                 "image",
                 "firstname",
                 "lastname",
+                "roleId"
             ]
         )
         .then((response) => {
