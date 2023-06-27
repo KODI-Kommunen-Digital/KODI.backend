@@ -1269,6 +1269,9 @@ router.post("/:id/loginDevices", authentication, async function (req, res, next)
                 data,
             });
         })
+        .catch((err) =>{
+            return next(new AppError(err));
+        });
 });
 
 router.delete(
