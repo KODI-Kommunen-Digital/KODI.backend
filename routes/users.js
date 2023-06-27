@@ -309,10 +309,12 @@ router.get("/:id", async function (req, res, next) {
             );
             if (!cityUsers.rows || cityUsers.rows.length === 0) {
                 return next(
-                    new AppError(`User with id ${userId} does not exist`, 404)
+                    new AppError(
+                        `User ${userId} is not found in city ${cityId}`,
+                        404
+                    )
                 );
             }
-            // console.log(Array.isArray(rows));
             userId = cityUsers.rows[0].userId;
         } catch (err) {
             return next(new AppError(err));
@@ -411,15 +413,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.lastname = payload.lastname;
     }
 
-    if (payload.email) {
-        const re =
-            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-        if (!re.test(payload.email)) {
-            return next(new AppError(`Invalid email given`, 400));
-        }
-        updationData.email = payload.email;
-    }
-
     if (payload.phoneNumber) {
         const re = /^\+49\d{11}$/;
         if (!re.test(payload.phoneNumber))
@@ -433,64 +426,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
     if (payload.website) {
         updationData.website = payload.website;
-    }
-    if (payload.socialMedia) {
-        const socialMediaList = payload.socialMedia;
-        Object.keys(socialMediaList).forEach((socialMedia) => {
-            if (!supportedSocialMedia.includes(socialMedia)) {
-                return next(
-                    new AppError(
-                        `Unsupported social media '${socialMedia}'`,
-                        400
-                    )
-                );
-            }
-            updationData.email = payload.email;
-        });
-    }
-
-    if (payload.firstname) {
-        updationData.firstname = payload.firstname;
-    }
-
-    if (payload.newPassword) {
-        if (!payload.currentPassword) {
-            return next(
-                new AppError(
-                    `Current password not given to update password`,
-                    400
-                )
-            );
-        }
-        if (
-            !bcrypt.compare(payload.currentPassword, currentUserData.password)
-        ) {
-            return next(new AppError(`Incorrect current password given`, 401));
-        }
-        updationData.password = await bcrypt.hash(
-            payload.newPassword,
-            Number(process.env.SALT)
-        );
-    }
-
-    if (payload.lastname) {
-        updationData.lastname = payload.lastname;
-    }
-
-    if (payload.email) {
-        const re =
-            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-        if (!re.test(payload.email)) {
-            return next(new AppError(`Invalid email given`, 400));
-        }
-        updationData.email = payload.email;
-    }
-
-    if (payload.phoneNumber) {
-        const re = /^\+49\d{11}$/;
-        if (!re.test(payload.phoneNumber))
-            return next(new AppError("Phone number is not valid", 400));
-        updationData.phoneNumber = payload.phoneNumber;
     }
 
     if (payload.image || payload.image === "") {
@@ -558,7 +493,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 });
 
 router.delete("/:id", authentication, async function (req, res, next) {
-    const id = req.params.id;
+    const id = parseInt(req.params.id);
 
     if (isNaN(Number(id)) || Number(id) <= 0) {
         next(new AppError(`Invalid UserId ${id}`, 404));
@@ -1254,25 +1189,34 @@ router.get("/", authentication, async function (req, res, next) {
         });
 });
 
-router.post("/:id/loginDevices", authentication, async function (req, res, next) {
-    const userId = parseInt(req.params.id);
-    const refreshToken = req.body.refreshToken;
-    if(userId !== req.userId){
-        return next(new AppError('You are not allowed to access this resource'))
-    }
-    database
-        .callQuery(`select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `, [userId, refreshToken])
-        .then((response) => {
-            const data = response.rows;
-            res.status(200).json({
-                status: "success",
-                data,
+router.post(
+    "/:id/loginDevices",
+    authentication,
+    async function (req, res, next) {
+        const userId = parseInt(req.params.id);
+        const refreshToken = req.body.refreshToken;
+        if (userId !== req.userId) {
+            return next(
+                new AppError("You are not allowed to access this resource")
+            );
+        }
+        database
+            .callQuery(
+                `select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `,
+                [userId, refreshToken]
+            )
+            .then((response) => {
+                const data = response.rows;
+                res.status(200).json({
+                    status: "success",
+                    data,
+                });
+            })
+            .catch((err) => {
+                return next(new AppError(err));
             });
-        })
-        .catch((err) =>{
-            return next(new AppError(err));
-        });
-});
+    }
+);
 
 router.delete(
     "/:id/loginDevices",
