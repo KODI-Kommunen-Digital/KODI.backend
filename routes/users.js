@@ -330,6 +330,7 @@ router.get("/:id", async function (req, res, next) {
                 "image",
                 "firstname",
                 "lastname",
+                "roleId"
             ])
         .then((response) => {
             const data = response.rows;
@@ -1232,16 +1233,21 @@ router.get("/", authentication, async function (req, res, next) {
     const params = req.query;
     const ids = params.id.split(",").map((id) => parseInt(id));
     database
-        .get(tables.USER_TABLE, { id: ids }, [
-            "id",
-            "username",
-            "socialMedia",
-            "email",
-            "website",
-            "image",
-            "firstname",
-            "lastname",
-        ])
+        .get(
+            tables.USER_TABLE,
+            { id: ids },
+            [
+                "id",
+                "username",
+                "socialMedia",
+                "email",
+                "website",
+                "image",
+                "firstname",
+                "lastname",
+                "roleId"
+            ]
+        )
         .then((response) => {
             res.status(200).json({
                 status: "success",
