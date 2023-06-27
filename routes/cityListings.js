@@ -678,7 +678,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.removeImage) {
         updationData.logo = null;
     }
-    if (payload.statusId) {
+    if (payload.statusId !== currentListingData.statusId) {
         if (req.roleId !== roles.Admin)
             return next(
                 new AppError("You dont have access to change this option", 403)
@@ -854,24 +854,26 @@ router.post(
 
         try {
             const filePath = `user_${req.userId}/city_${cityId}_listing_${id}`;
-            const updationData = {};
 
             const { uploadStatus, objectKey } = await imageUpload(
                 image,
                 filePath
             );
-            updationData.logo = objectKey;
+            const updationData = { logo: objectKey };
+
             if (uploadStatus === "Success") {
-                database
-                    .update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
-                    .then((response) => {
-                        res.status(200).json({
-                            status: "success",
-                        });
-                    })
-                    .catch((err) => {
-                        return next(new AppError(err));
-                    });
+                await database.update(
+                    tables.LISTINGS_TABLE,
+                    updationData,
+                    { id },
+                    cityId
+                );
+
+                return res.status(200).json({
+                    status: "success",
+                });
+            } else {
+                return next(new AppError("Image Upload failed"));
             }
         } catch (err) {
             return next(new AppError(err));

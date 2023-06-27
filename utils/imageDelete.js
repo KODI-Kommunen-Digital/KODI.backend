@@ -7,8 +7,8 @@ const imageDelete = async (keys) => {
      * Initialize a obs client instance with your account for accessing OBS
      */
     const obs = new ObsClient({
-        access_key_id: process.env.ACCESS_KEY, // eslint-disable-line camelcase
-        secret_access_key: process.env.SECRET_KEY, // eslint-disable-line camelcase
+        accessKeyId: process.env.BUCKET_ACCESS_KEY,
+        secretAccessKey: process.env.BUCKET_SECRET_KEY,
         server,
     });
 
@@ -23,15 +23,13 @@ const imageDelete = async (keys) => {
             },
             (err, result) => {
                 if (!err && result.CommonMsg.Status < 300) {
-                    console.log("Deleteds:");
                     return "Success";
                 } else {
-                    console.log("FAILEDDDD :(((");
+                    return "Failed";
                 }
             }
         );
     } catch (e) {
-        console.log("Error", e);
         return e;
     }
 };

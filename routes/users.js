@@ -312,7 +312,7 @@ router.get("/:id", async function (req, res, next) {
                     new AppError(`User with id ${userId} does not exist`, 404)
                 );
             }
-            console.log(Array.isArray(rows));
+            // console.log(Array.isArray(rows));
             userId = cityUsers.rows[0].userId;
         } catch (err) {
             return next(new AppError(err));
@@ -320,7 +320,17 @@ router.get("/:id", async function (req, res, next) {
     }
 
     database
-        .get(tables.USER_TABLE, { id: userId })
+        .get(tables.USER_TABLE, { id: userId }, [
+            "id",
+            "username",
+            "socialMedia",
+            "email",
+            "website",
+            "image",
+            "firstname",
+            "lastname",
+            "roleId",
+        ])
         .then((response) => {
             const data = response.rows;
             if (!data || data.length === 0) {
@@ -689,7 +699,20 @@ router.post(
                 );
             }
 
-            const { uploadStatus, objectKey } = await imageUpload(image, id);
+            const { uploadStatus, objectKey } = await imageUpload(
+                image,
+                `user_${id}/profilePic`
+            );
+            if (uploadStatus === "Success") {
+                const updationData = {};
+                updationData.image = `user_${id}/profilePic`;
+                database
+                    .update(tables.USER_TABLE, updationData, { id })
+                    .then((response) => {})
+                    .catch((err) => {
+                        return next(new AppError(err));
+                    });
+            }
 
             res.status(200).json({
                 status: "success",
@@ -1218,6 +1241,7 @@ router.get("/", authentication, async function (req, res, next) {
             "image",
             "firstname",
             "lastname",
+            "roleId",
         ])
         .then((response) => {
             res.status(200).json({
@@ -1247,28 +1271,36 @@ router.post("/:id/loginDevices", authentication, async function (req, res, next)
         })
 });
 
-router.delete("/:id/loginDevices", authentication, async function (req, res, next) {
-    const userId = parseInt(req.params.id)
-    const id = req.query.id
-    if (!id) {
-        database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
-            .then(() => {
-                res.status(200).json({
-                    status: "success"
+router.delete(
+    "/:id/loginDevices",
+    authentication,
+    async function (req, res, next) {
+        const userId = parseInt(req.params.id);
+        const id = req.query.id;
+        if (!id) {
+            database
+                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
+                .then(() => {
+                    res.status(200).json({
+                        status: "success",
+                    });
+                })
+                .catch((err) => {
+                    return next(new AppError(err));
                 });
-            }).catch((err) => {
-                return next(new AppError(err));
-            });
-    } else {
-        database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
-            .then(() => {
-                res.status(200).json({
-                    status: "success"
+        } else {
+            database
+                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
+                .then(() => {
+                    res.status(200).json({
+                        status: "success",
+                    });
+                })
+                .catch((err) => {
+                    return next(new AppError(err));
                 });
-            }).catch((err) => {
-                return next(new AppError(err));
-            });
+        }
     }
-})
+);
 
 module.exports = router;
