@@ -651,8 +651,6 @@ router.post(
 
             res.status(200).json({
                 status: "success",
-                path: objectKey,
-                uploadStatus,
             });
         } catch (err) {
             return next(new AppError(err));
