@@ -649,11 +649,11 @@ router.post(
                         return next(new AppError(err));
                     });
 
-                res.status(200).json({
+                return res.status(200).json({
                     status: "success",
                 });
             } else {
-                res.status(500).json({
+                return res.status(500).json({
                     status: "Failed!! Please try again",
                 });
             }
