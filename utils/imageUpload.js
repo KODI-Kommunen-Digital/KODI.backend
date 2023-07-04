@@ -130,7 +130,6 @@ function makeHttpRequest(options, buffers, image) {
         });
 
         req.on("error", (err) => {
-            console.log(err);
             reject(err);
         });
         req.write(buffers[0]);
