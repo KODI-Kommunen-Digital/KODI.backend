@@ -41,7 +41,7 @@ function LogUtil(){
 
 LogUtil.prototype.initLog = function(filename, maxLogSize, backups, level, logToConsole){
 	process.on('uncaughtException', function (err) {
-		console.log(err);
+		
 	});
 	var dir = path.dirname(filename);
 	checkAndCreateDir(dir,path);

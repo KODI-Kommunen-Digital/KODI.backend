@@ -644,7 +644,6 @@ router.post(
                 database
                     .update(tables.USER_TABLE, updationData, { id })
                     .then((response) => {
-                        console.log(response)
                     })
                     .catch((err) => {
                         return next(new AppError(err));
