@@ -15,3 +15,7 @@ To start the program, run this command
 npm start
 ```
 Now, the api would start running on your local host
+
+## Detailed documentation 
+
+[Document](https://github.com/HEIDI-Heimat-Digital/documentation/wiki)
