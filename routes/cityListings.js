@@ -21,11 +21,11 @@ router.get("/", async function (req, res, next) {
 
     let listings = [];
 
-    if (!cityId || isNaN(cityId)) {
-        return next(new AppError(`invalid cityId given`, 400));
+    if (!cityId) {
+        return next(new AppError(`CityId not given`, 400));
     }
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-        return next(new AppError(`City is not present`, 404));
+        return next(new AppError(`Invalid City '${cityId}' given`, 404));
     } else {
         try {
             const response = await database.get(tables.CITIES_TABLE, {
@@ -33,7 +33,7 @@ router.get("/", async function (req, res, next) {
             });
             if (response.rows && response.rows.length === 0) {
                 return next(
-                    new AppError(`Invalid City '${cityId}' given`, 400)
+                    new AppError(`Invalid City '${cityId}' given`, 404)
                 );
             }
         } catch (err) {
@@ -804,11 +804,28 @@ router.post(
     "/:id/imageUpload",
     authentication,
     async function (req, res, next) {
-        const id = req.params.id;
+        const listingId = req.params.id;
         const cityId = req.cityId;
 
-        if (isNaN(Number(id)) || Number(id) <= 0) {
-            next(new AppError(`Invalid ListingsId ${id}`, 404));
+        if (!cityId) {
+            return next(new AppError(`City is not present`, 404));
+        } else {
+            try {
+                const response = await database.get(tables.CITIES_TABLE, {
+                    id: cityId,
+                });
+                if (response.rows && response.rows.length === 0) {
+                    return next(
+                        new AppError(`City '${cityId}' not found`, 404)
+                    );
+                }
+            } catch (err) {
+                return next(new AppError(err));
+            }
+        }
+
+        if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+            next(new AppError(`Invalid ListingsId ${listingId} given`, 400));
             return;
         }
 
@@ -826,13 +843,13 @@ router.post(
 
         response = await database.get(
             tables.LISTINGS_TABLE,
-            { id },
+            { id: listingId },
             null,
             cityId
         );
         if (!response.rows || response.rows.length === 0) {
             return next(
-                new AppError(`Listing with id ${id} does not exist`, 404)
+                new AppError(`Listing with id ${listingId} does not exist`, 404)
             );
         }
         const currentListingData = response.rows[0];
@@ -853,7 +870,7 @@ router.post(
         }
 
         try {
-            const filePath = `user_${req.userId}/city_${cityId}_listing_${id}`;
+            const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
 
             const { uploadStatus, objectKey } = await imageUpload(
                 image,
@@ -865,7 +882,7 @@ router.post(
                 await database.update(
                     tables.LISTINGS_TABLE,
                     updationData,
-                    { id },
+                    { id: listingId },
                     cityId
                 );
 
@@ -887,6 +904,23 @@ router.delete(
     async function (req, res, next) {
         const id = req.params.id;
         const cityId = req.cityId;
+
+        if (!cityId) {
+            return next(new AppError(`City is not present`, 404));
+        } else {
+            try {
+                const response = await database.get(tables.CITIES_TABLE, {
+                    id: cityId,
+                });
+                if (response.rows && response.rows.length === 0) {
+                    return next(
+                        new AppError(`City '${cityId}' not found`, 404)
+                    );
+                }
+            } catch (err) {
+                return next(new AppError(err));
+            }
+        }
 
         if (isNaN(Number(id)) || Number(id) <= 0) {
             next(new AppError(`Invalid ListingsId ${id}`, 404));

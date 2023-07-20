@@ -11,6 +11,7 @@ router.get("/", async function (req, res, next) {
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 9;
     const filters = {};
+    let sortByCreatedDate = false;
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
@@ -28,6 +29,16 @@ router.get("/", async function (req, res, next) {
                 400
             )
         );
+    }
+
+    if (filters.sortByCreatedDate) {
+        if (filters.sortByCreatedDate !== true && filters.sortByCreatedDate !== false) {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            sortByCreatedDate = filters.sortByCreatedDate;
+        }
     }
 
     if (params.statusId) {
@@ -101,6 +112,7 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             } else {
+                const sortBy = sortByCreatedDate ? ["createdAt", "startDate"] : ["startDate", "createdAt"];
                 response = await database.get(
                     tables.LISTINGS_TABLE,
                     filters,
@@ -108,7 +120,7 @@ router.get("/", async function (req, res, next) {
                     params.cityId,
                     pageNo,
                     pageSize,
-                    ["startDate", "createdAt"],
+                    sortBy,
                     true
                 );
                 return res.status(200).json({
@@ -154,7 +166,7 @@ router.get("/", async function (req, res, next) {
 
         const query = `select * from (
                 ${individualQueries.join(" union all ")}
-            ) a order by startDate, createdAt desc LIMIT ${
+            ) a order by ${sortByCreatedDate ? "createdAt, startDate" : "startDate, createdAt"} desc LIMIT ${
     (pageNo - 1) * pageSize
 }, ${pageSize};`;
         response = await database.callQuery(query);
