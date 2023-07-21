@@ -409,7 +409,13 @@ router.post("/", authentication, async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        insertionData.statusId = payload.statusId;
+        if( req.roleId !== roles.Admin){
+            insertionData.statusId = payload.statusId;
+        }
+        else{
+            insertionData.statusId = 1;
+
+        }
     }
 
     if (!payload.sourceId) {
