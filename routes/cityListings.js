@@ -785,19 +785,18 @@ router.delete("/:id", authentication, async function (req, res, next) {
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
-
-    await imageDelete([{ Key: currentListingData.logo }]);
-
-    database
-        .deleteData(tables.LISTINGS_TABLE, { id }, cityId)
-        .then((response) => {
-            res.status(200).json({
-                status: "success",
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
+    const onSucccess = async () => {
+        database.deleteData(tables.LISTINGS_TABLE, { id }, cityId);
+        return res.status(200).json({
+            status: "success",
         });
+    };
+    const onFail = (err) => {
+        return next(
+            new AppError("Image Delete failed with Error Code: " + err)
+        );
+    };
+    await imageDelete(currentListingData.logo, onSucccess, onFail);
 });
 
 router.post(
@@ -961,23 +960,30 @@ router.delete(
             );
         }
         try {
-            const uploadStatus = await imageDelete([
-                { Keys: `user_${req.userId}/city_${cityId}_listing_${id}` },
-            ]);
-            if (uploadStatus === "Success") {
+            const onSucccess = async () => {
                 const updationData = {};
                 updationData.logo = "";
-                database
-                    .update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
-                    .then((response) => {
-                        res.status(200).json({
-                            status: "success",
-                        });
-                    })
-                    .catch((err) => {
-                        return next(new AppError(err));
-                    });
-            }
+
+                await database.update(
+                    tables.LISTINGS_TABLE,
+                    updationData,
+                    { id },
+                    cityId
+                );
+                return res.status(200).json({
+                    status: "success",
+                });
+            };
+            const onFail = (err) => {
+                return next(
+                    new AppError("Image Delete failed with Error Code: " + err)
+                );
+            };
+            await imageDelete(
+                `user_${req.userId}/city_${cityId}_listing_${id}`,
+                onSucccess,
+                onFail
+            );
         } catch (err) {
             return next(new AppError(err));
         }

@@ -1,6 +1,6 @@
 const ObsClient = require("./eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
 
-const imageDelete = async (imagePath, onSuccess, onFail) => {
+const imageDeleteMultiple = async (imagePaths, onSuccess, onFail) => {
     const server = process.env.BUCKET_HOST;
 
     /*
@@ -15,11 +15,11 @@ const imageDelete = async (imagePath, onSuccess, onFail) => {
     const bucketName = process.env.BUCKET_NAME;
 
     try {
-        obs.deleteObject(
+        obs.deleteObjects(
             {
                 Bucket: bucketName,
                 Quiet: false,
-                Key: imagePath,
+                Objects: imagePaths,
             },
             async (err, result) => {
                 if (!err && result.CommonMsg.Status < 300) {
@@ -36,4 +36,4 @@ const imageDelete = async (imagePath, onSuccess, onFail) => {
     }
 };
 
-module.exports = imageDelete;
+module.exports = imageDeleteMultiple;
