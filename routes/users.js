@@ -589,7 +589,7 @@ router.delete(
         }
 
         try {
-            if (id !== req.userId) {
+            if (parseInt(id) !== parseInt(req.userId)) {
                 return next(
                     new AppError(
                         `You are not allowed to access this resource`,
