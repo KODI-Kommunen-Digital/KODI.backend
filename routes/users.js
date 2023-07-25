@@ -13,6 +13,7 @@ const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const imageDelete = require("../utils/imageDelete");
+const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 
 router.post("/login", async function (req, res, next) {
@@ -517,30 +518,6 @@ router.delete("/:id", authentication, async function (req, res, next) {
             userId: id,
         });
         const cityUsers = response.rows;
-        for (const cityUser of cityUsers) {
-            await database.deleteData(
-                tables.LISTINGS_TABLE,
-                { userId: cityUser.cityUserId },
-                cityUser.cityId
-            );
-            await database.deleteData(
-                tables.USER_TABLE,
-                { id: cityUser.cityUserId },
-                cityUser.cityId
-            );
-        }
-        await database.deleteData(tables.USER_CITYUSER_MAPPING_TABLE, {
-            userId: id,
-        });
-        await database.deleteData(tables.USER_LISTING_MAPPING_TABLE, {
-            userId: id,
-        });
-        await database.deleteData(tables.REFRESH_TOKENS_TABLE, { userId: id });
-        await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
-            userId: id,
-        });
-        await database.deleteData(tables.FAVORITES_TABLE, { userId: id });
-        await database.deleteData(tables.USER_TABLE, { id });
 
         let imageList = await axios.get(
             process.env.BUCKET_HOST + "/" + process.env.BUCKET_NAME
@@ -551,13 +528,50 @@ router.delete("/:id", authentication, async function (req, res, next) {
         const userImageList = imageList.ListBucketResult.Contents.filter(
             (obj) => obj.Key._text.includes("user_" + id)
         );
-        await imageDelete(
-            userImageList.map((image) => ({ Key: image.Key._text }))
-        );
 
-        return res.status(200).json({
-            status: "success",
-        });
+        const onSucccess = async () => {
+            for (const cityUser of cityUsers) {
+                await database.deleteData(
+                    tables.LISTINGS_TABLE,
+                    { userId: cityUser.cityUserId },
+                    cityUser.cityId
+                );
+                await database.deleteData(
+                    tables.USER_TABLE,
+                    { id: cityUser.cityUserId },
+                    cityUser.cityId
+                );
+            }
+            await database.deleteData(tables.USER_CITYUSER_MAPPING_TABLE, {
+                userId: id,
+            });
+            await database.deleteData(tables.USER_LISTING_MAPPING_TABLE, {
+                userId: id,
+            });
+            await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
+                userId: id,
+            });
+            await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
+                userId: id,
+            });
+            await database.deleteData(tables.FAVORITES_TABLE, { userId: id });
+            await database.deleteData(tables.USER_TABLE, { id });
+
+            return res.status(200).json({
+                status: "success",
+            });
+        };
+
+        const onFail = (err) => {
+            return next(
+                new AppError("Image Delete failed with Error Code: " + err)
+            );
+        };
+        await imageDeleteMultiple(
+            userImageList.map((image) => ({ Key: image.Key._text })),
+            onSucccess,
+            onFail
+        );
     } catch (err) {
         return next(new AppError(err));
     }
@@ -575,7 +589,7 @@ router.delete(
         }
 
         try {
-            if (id !== req.userId) {
+            if (parseInt(id) !== parseInt(req.userId)) {
                 return next(
                     new AppError(
                         `You are not allowed to access this resource`,
@@ -583,24 +597,21 @@ router.delete(
                     )
                 );
             }
-
-            const uploadStatus = await imageDelete([
-                { Key: `user_${id}/profilePic` },
-            ]);
-            if (uploadStatus === "Success") {
+            const onSucccess = async () => {
                 const updationData = {};
                 updationData.image = "";
-                database
-                    .update(tables.USER_TABLE, updationData, { id })
-                    .then((response) => {
-                        res.status(200).json({
-                            status: "success",
-                        });
-                    })
-                    .catch((err) => {
-                        return next(new AppError(err));
-                    });
-            }
+
+                await database.update(tables.USER_TABLE, updationData, { id });
+                return res.status(200).json({
+                    status: "success",
+                });
+            };
+            const onFail = (err) => {
+                return next(
+                    new AppError("Image Delete failed with Error Code: " + err)
+                );
+            };
+            await imageDelete(`user_${id}/profilePic`, onSucccess, onFail);
         } catch (err) {
             return next(new AppError(err));
         }
@@ -643,8 +654,7 @@ router.post(
                 updationData.image = `user_${id}/profilePic`;
                 database
                     .update(tables.USER_TABLE, updationData, { id })
-                    .then((response) => {
-                    })
+                    .then((response) => {})
                     .catch((err) => {
                         return next(new AppError(err));
                     });
@@ -657,7 +667,6 @@ router.post(
                     status: "Failed!! Please try again",
                 });
             }
-
         } catch (err) {
             return next(new AppError(err));
         }
