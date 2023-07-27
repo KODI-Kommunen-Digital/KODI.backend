@@ -661,6 +661,9 @@ router.post(
 
                 return res.status(200).json({
                     status: "success",
+                    data:{
+                        image:updationData.image
+                    }
                 });
             } else {
                 return res.status(500).json({
