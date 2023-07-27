@@ -5,6 +5,7 @@ const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
+const status = require("../constants/status");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 const deepl = require("deepl-node");
@@ -409,12 +410,10 @@ router.post("/", authentication, async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        if( req.roleId !== roles.Admin){
+        if (req.roleId !== roles.Admin) {
+            insertionData.statusId = status.Pending;
+        } else {
             insertionData.statusId = payload.statusId;
-        }
-        else{
-            insertionData.statusId = 1;
-
         }
     }
 
