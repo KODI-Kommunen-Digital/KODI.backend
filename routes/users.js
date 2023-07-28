@@ -329,6 +329,7 @@ router.get("/:id", async function (req, res, next) {
             "socialMedia",
             "email",
             "website",
+            "description",
             "image",
             "firstname",
             "lastname",
