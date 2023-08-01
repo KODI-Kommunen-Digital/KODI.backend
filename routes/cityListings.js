@@ -112,7 +112,7 @@ router.get("/", async function (req, res, next) {
 
     if (params.subcategoryId) {
         if(!params.categoryId)
-        return next(new AppError(`categoryId not present`, 400));
+            return next(new AppError(`categoryId not present`, 400));
         try {
             const response = await database.get(
                 tables.SUBCATEGORIES_TABLE,
