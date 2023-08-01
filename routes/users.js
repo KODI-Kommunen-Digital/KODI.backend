@@ -520,7 +520,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
         const cityUsers = response.rows;
 
         let imageList = await axios.get(
-            process.env.BUCKET_HOST + "/" + process.env.BUCKET_NAME
+            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
         );
         imageList = JSON.parse(
             parser.xml2json(imageList.data, { compact: true, spaces: 4 })
