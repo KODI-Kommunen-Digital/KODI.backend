@@ -442,38 +442,32 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.website = payload.website;
     }
     if (payload.socialMedia) {
-        try {
-            const socialMediaList = payload.socialMedia;
-            Object.keys(socialMediaList).forEach((socialMedia) => {
-                if (!supportedSocialMedia.includes(socialMedia)) {
-                    return next(
-                        new AppError(
-                            `Unsupported social media '${socialMedia}'`,
-                            400
-                        )
-                    );
-                }
-
-                if (
-                    typeof socialMediaList[socialMedia] !== "string" ||
-                    !socialMediaList[socialMedia].includes(
-                        socialMedia.toLowerCase()
+        const socialMediaList = JSON.parse(payload.socialMedia);
+        socialMediaList.forEach((socialMedia) => {
+            if (!supportedSocialMedia.includes(Object.keys(socialMedia)[0])) {
+                return next(
+                    new AppError(
+                        `Unsupported social media '${socialMedia}'`,
+                        400
                     )
-                ) {
-                    return next(
-                        new AppError(
-                            `Invalid input given for social '${socialMedia}' `,
-                            400
-                        )
-                    );
-                }
-            });
-            updationData.socialMedia = JSON.stringify(socialMediaList);
-        } catch (e) {
-            return next(
-                new AppError(`Invalid input given for social media`, 400)
-            );
-        }
+                );
+            }
+
+            if (
+                typeof socialMedia[Object.keys(socialMedia)[0]] !== "string" ||
+                !socialMedia[Object.keys(socialMedia)[0]].includes(
+                    Object.values(socialMedia)[0].toLowerCase()
+                )
+            ) {
+                return next(
+                    new AppError(
+                        `Invalid input given for social '${socialMedia}' `,
+                        400
+                    )
+                );
+            }
+        });
+        updationData.socialMedia = JSON.stringify(socialMediaList);
     }
 
     if (updationData !== {}) {
@@ -521,7 +515,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
         const cityUsers = response.rows;
 
         let imageList = await axios.get(
-            process.env.BUCKET_HOST + "/" + process.env.BUCKET_NAME
+            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
         );
         imageList = JSON.parse(
             parser.xml2json(imageList.data, { compact: true, spaces: 4 })
@@ -662,6 +656,9 @@ router.post(
 
                 return res.status(200).json({
                     status: "success",
+                    data:{
+                        image:updationData.image
+                    }
                 });
             } else {
                 return res.status(500).json({

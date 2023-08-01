@@ -19,18 +19,17 @@ router.get("/", async function (req, res, next) {
 });
 
 router.get("/listingsCount", async function(req, res, next){
-    let query = `SELECT categoryId, SUM(count) AS totalCount FROM (`;
+    let query = `SELECT categoryId, COUNT(categoryId) AS totalCount FROM  (`;
     let innerQuery = ``;
     try {
         const cityConnection = await database.get(tables.CITIES_TABLE, null, "id");
         for (const data of cityConnection.rows){
-            console.log(data.id)
-            innerQuery += `SELECT categoryId, COUNT(id) AS count FROM heidi_city_${data.id}.listings GROUP BY categoryId UNION ALL `
+            innerQuery += `SELECT categoryId FROM heidi_city_${data.id}.listings UNION ALL `
         }
         innerQuery = innerQuery.slice(0,-11);
         query += innerQuery + `) AS combinedResults GROUP BY categoryId;`;
 
-        response = await database.callQuery(query)
+        const response = await database.callQuery(query)
         res.status(200).json({
             status:"success",
             data:response.rows
