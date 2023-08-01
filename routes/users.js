@@ -329,6 +329,7 @@ router.get("/:id", async function (req, res, next) {
             "socialMedia",
             "email",
             "website",
+            "description",
             "image",
             "firstname",
             "lastname",
@@ -658,6 +659,9 @@ router.post(
 
                 return res.status(200).json({
                     status: "success",
+                    data:{
+                        image:updationData.image
+                    }
                 });
             } else {
                 return res.status(500).json({

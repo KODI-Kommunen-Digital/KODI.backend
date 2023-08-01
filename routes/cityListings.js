@@ -110,6 +110,31 @@ router.get("/", async function (req, res, next) {
         filters.categoryId = params.categoryId;
     }
 
+    if (params.subcategoryId) {
+        if(!params.categoryId)
+            return next(new AppError(`categoryId not present`, 400));
+        try {
+            const response = await database.get(
+                tables.SUBCATEGORIES_TABLE,
+                { id: params.subcategoryId, categoryId:params.categoryId },
+                null,
+                cityId
+            );
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(
+                        `Invalid subcategory '${params.subcategoryId}' given`,
+                        400
+                    )
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.subcategoryId = params.subcategoryId;
+    }
+
     if (params.userId) {
         try {
             const response = await database.get(
