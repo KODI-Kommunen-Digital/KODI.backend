@@ -551,6 +551,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
             await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
                 userId: id,
             });
+            await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
+                userId: id,
+            });
             await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
                 userId: id,
             });
