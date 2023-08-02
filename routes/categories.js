@@ -36,10 +36,10 @@ router.get("/listingsCount", async function(req, res, next){
         }
         const query = `SELECT categoryId, COUNT(*) as count FROM heidi_city_${params.cityId}.listings GROUP BY categoryId;`;
         const response = await database.callQuery(query)
-            res.status(200).json({
-                status:"success",
-                data:response.rows
-            });
+        res.status(200).json({
+            status:"success",
+            data:response.rows
+        });
     }else{
         let query = `SELECT categoryId, COUNT(categoryId) AS totalCount FROM  (`;
         let innerQuery = ``;
