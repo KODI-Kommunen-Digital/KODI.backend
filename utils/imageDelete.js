@@ -15,22 +15,26 @@ const imageDelete = async (imagePath, onSuccess, onFail) => {
     const bucketName = process.env.BUCKET_NAME;
 
     try {
-        obs.deleteObject(
-            {
-                Bucket: bucketName,
-                Quiet: false,
-                Key: imagePath,
-            },
-            async (err, result) => {
-                if (!err && result.CommonMsg.Status < 300) {
-                    onSuccess();
-                    // return "Success";
-                } else {
-                    onFail(result.CommonMsg.Status);
-                    // return "Failed";
+        if (!imagePath) {
+            onSuccess();
+        } else {
+            obs.deleteObject(
+                {
+                    Bucket: bucketName,
+                    Quiet: false,
+                    Key: imagePath,
+                },
+                async (err, result) => {
+                    if (!err && result.CommonMsg.Status < 300) {
+                        onSuccess();
+                        // return "Success";
+                    } else {
+                        onFail(result.CommonMsg.Status);
+                        // return "Failed";
+                    }
                 }
-            }
-        );
+            );
+        }
     } catch (e) {
         return e;
     }

@@ -546,6 +546,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
             await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
                 userId: id,
             });
+            await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
+                userId: id,
+            });
             await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
                 userId: id,
             });
@@ -1176,19 +1179,33 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
 
 router.get("/", authentication, async function (req, res, next) {
     const params = req.query;
-    const ids = params.id.split(",").map((id) => parseInt(id));
+    const columsToQuery = [
+        "id",
+        "username",
+        "socialMedia",
+        "email",
+        "website",
+        "image",
+        "firstname",
+        "lastname",
+        "roleId",
+    ];
+    const filter = {}
+    if (params.ids) {
+        const ids = params.ids.split(",").map((id) => parseInt(id))
+        if (ids && ids.length > 10) {
+            throw new AppError("You can only fetch upto 10 users");
+        }
+        filter.id = ids;
+    }
+    if (params.username) {
+        filter.username = params.username;
+    }
+    if (!filter) {
+        throw new new AppError("You need to send some params to filter")
+    }
     database
-        .get(tables.USER_TABLE, { id: ids }, [
-            "id",
-            "username",
-            "socialMedia",
-            "email",
-            "website",
-            "image",
-            "firstname",
-            "lastname",
-            "roleId",
-        ])
+        .get(tables.USER_TABLE, filter, columsToQuery)
         .then((response) => {
             res.status(200).json({
                 status: "success",
