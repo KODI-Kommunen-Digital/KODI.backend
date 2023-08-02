@@ -1191,11 +1191,18 @@ router.get("/", authentication, async function (req, res, next) {
         "roleId",
     ];
     const filter = {}
-    if (params.id) {
-        filter.id = params.id.split(",").map((id) => parseInt(id))
+    if (params.ids) {
+        const ids = params.ids.split(",").map((id) => parseInt(id))
+        if (ids && ids.length > 10) {
+            throw new AppError("You can only fetch upto 10 users");
+        }
+        filter.id = ids;
     }
     if (params.username) {
         filter.username = params.username;
+    }
+    if (!filter) {
+        throw new new AppError("You need to send some params to filter")
     }
     database
         .get(tables.USER_TABLE, filter, columsToQuery)
