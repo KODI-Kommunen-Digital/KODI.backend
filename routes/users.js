@@ -137,6 +137,14 @@ router.post("/register", async function (req, res, next) {
                     )
                 );
             }
+            if(/\s/.test(payload.username)  || /^_/.test(payload.username) || /^[^a-z_]/.test(payload.username)) {
+                return next(
+                    new AppError(
+                        `Username '${payload.username}' is not valid`,
+                        400
+                    )
+                );
+            }
         } catch (err) {
             return next(new AppError(err));
         }
