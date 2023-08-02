@@ -3,6 +3,7 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
+const source = require("../constants/source");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
 const status = require("../constants/status");
@@ -413,60 +414,36 @@ router.post("/", authentication, async function (req, res, next) {
     }
 
     if (!payload.statusId) {
-        return next(new AppError(`Status is not present`, 400));
+        insertionData.statusId = status.Pending;
     } else {
-        try {
-            const response = await database.get(
-                tables.STATUS_TABLE,
-                { id: payload.statusId },
-                null,
-                cityId
-            );
-
-            const data = response.rows;
-            if (data && data.length === 0) {
-                return next(
-                    new AppError(
-                        `Invalid Status '${payload.statusId}' given`,
-                        400
-                    )
-                );
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
         if (req.roleId !== roles.Admin) {
             insertionData.statusId = status.Pending;
         } else {
+            try {
+                const response = await database.get(
+                    tables.STATUS_TABLE,
+                    { id: payload.statusId },
+                    null,
+                    cityId
+                );
+    
+                const data = response.rows;
+                if (data && data.length === 0) {
+                    return next(
+                        new AppError(
+                            `Invalid Status '${payload.statusId}' given`,
+                            400
+                        )
+                    );
+                }
+            } catch (err) {
+                return next(new AppError(err));
+            }
             insertionData.statusId = payload.statusId;
         }
     }
 
-    if (!payload.sourceId) {
-        return next(new AppError(`Source is not present`, 400));
-    } else {
-        try {
-            const response = await database.get(
-                tables.SOURCE_TABLE,
-                { id: payload.sourceId },
-                null,
-                cityId
-            );
-
-            const data = response.rows;
-            if (data && data.length === 0) {
-                return next(
-                    new AppError(
-                        `Invalid Source '${payload.sourceId}' given`,
-                        400
-                    )
-                );
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-        insertionData.sourceId = payload.sourceId;
-    }
+    insertionData.sourceId = source.UserEntry;
 
     if (payload.address) {
         insertionData.address = payload.address;
