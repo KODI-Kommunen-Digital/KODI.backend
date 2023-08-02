@@ -1179,19 +1179,26 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
 
 router.get("/", authentication, async function (req, res, next) {
     const params = req.query;
-    const ids = params.id.split(",").map((id) => parseInt(id));
+    const columsToQuery = [
+        "id",
+        "username",
+        "socialMedia",
+        "email",
+        "website",
+        "image",
+        "firstname",
+        "lastname",
+        "roleId",
+    ];
+    const filter = {}
+    if (params.id) {
+        filter.id = params.id.split(",").map((id) => parseInt(id))
+    }
+    if (params.username) {
+        filter.username = params.username;
+    }
     database
-        .get(tables.USER_TABLE, { id: ids }, [
-            "id",
-            "username",
-            "socialMedia",
-            "email",
-            "website",
-            "image",
-            "firstname",
-            "lastname",
-            "roleId",
-        ])
+        .get(tables.USER_TABLE, filter, columsToQuery)
         .then((response) => {
             res.status(200).json({
                 status: "success",
