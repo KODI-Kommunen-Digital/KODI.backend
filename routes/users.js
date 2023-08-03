@@ -189,10 +189,16 @@ router.post("/register", async function (req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400));
     } else {
-        insertionData.password = await bcrypt.hash(
-            payload.password,
-            Number(process.env.SALT)
-        );
+        const re = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+        if(!re.test(payload.password)){
+            return next(new AppError(`Invalid Password. `, 400));
+        } else {
+            insertionData.password = await bcrypt.hash(
+                payload.password,
+                Number(process.env.SALT)
+            );
+        }
+        
     }
 
     if (payload.email) {
