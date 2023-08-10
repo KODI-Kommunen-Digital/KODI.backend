@@ -4,16 +4,14 @@ const sendMail = require("../services/sendMail");
 const database = require("../services/database");
 const AppError = require("../utils/appError");
 const tables = require("../constants/tableNames");
+const authentication = require("../middlewares/authentication");
 
-router.get("/contactUs", async function (req, res, next) {
+router.post("/",authentication, async function (req, res, next) {
     const username = req.body.username;
+    const id = req.userId;
     const language = req.body.language || "de";
     const token = req.body.token;    
-    const email = req.body;
-
-    if (!username) {
-        return next(new AppError(`Username not present`, 400));
-    }
+    const email = req.body.email;
 
     if (!token) {
         return next(new AppError(`Token not present`, 400));
@@ -28,7 +26,7 @@ router.get("/contactUs", async function (req, res, next) {
     }
 
     try {
-        const response = await database.get(tables.USER_TABLE, { username });
+        const response = await database.get(tables.USER_TABLE, { id });
         const data = response.rows;
         if (data && data.length === 0) {
             return next(
@@ -39,9 +37,10 @@ router.get("/contactUs", async function (req, res, next) {
         const contactUsEmail = require(`../emailTemplates/${language}/contactUsEmail`);
         const { subject } = contactUsEmail(
             user.firstname,
-            user.lastname
+            user.lastname,
+            user.email
         );
-        await sendMail('info@heidi-app.de', subject, null, email);
+        await sendMail('denvershaji005@gmail.com', subject, email, null);
         return res.status(200).json({
             status: "success",
         });
@@ -51,3 +50,4 @@ router.get("/contactUs", async function (req, res, next) {
 }
 
 )
+module.exports = router;
