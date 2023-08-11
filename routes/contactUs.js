@@ -40,7 +40,7 @@ router.post("/",authentication, async function (req, res, next) {
             user.lastname,
             user.email
         );
-        await sendMail('denvershaji005@gmail.com', subject, email, null);
+        await sendMail('info@heidi-app.de', subject, email, null);
         return res.status(200).json({
             status: "success",
         });
