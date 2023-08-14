@@ -20,7 +20,7 @@ router.post("/",authentication, async function (req, res, next) {
         const data = response.rows;
         if (data && data.length === 0) {
             return next(
-                new AppError(`Username ${id} does not exist`, 404)
+                new AppError(`UserID ${id} does not exist`, 404)
             );
         }
         const user = data[0];
