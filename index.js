@@ -15,6 +15,7 @@ const villageRouter = require("./routes/village");
 const categoriesRouter = require("./routes/categories");
 const statusRouter = require("./routes/status");
 const citizenServicesRouter = require("./routes/citizenServices");
+const contactUsRouter = require("./routes/contactUs");
 const fileUpload = require("express-fileupload");
 
 // defining the Express app
@@ -56,6 +57,7 @@ app.use("/listings", listingsRouter);
 app.use("/categories", categoriesRouter);
 app.use("/status", statusRouter);
 app.use("/citizenServices", citizenServicesRouter);
+app.use("/contactUs", contactUsRouter);
 app.use(
     "/users/:userId/favorites",
     function (req, res, next) {
