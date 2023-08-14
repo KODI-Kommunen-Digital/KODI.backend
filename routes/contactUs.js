@@ -7,22 +7,12 @@ const tables = require("../constants/tableNames");
 const authentication = require("../middlewares/authentication");
 
 router.post("/",authentication, async function (req, res, next) {
-    const username = req.body.username;
     const id = req.userId;
     const language = req.body.language || "de";
-    const token = req.body.token;    
-    const email = req.body.email;
+    const body = req.body.email;
 
-    if (!token) {
-        return next(new AppError(`Token not present`, 400));
-    }
-
-    if (!email) {
+    if (!body) {
         return next(new AppError(`Message not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
     }
 
     try {
@@ -30,7 +20,7 @@ router.post("/",authentication, async function (req, res, next) {
         const data = response.rows;
         if (data && data.length === 0) {
             return next(
-                new AppError(`Username ${username} does not exist`, 404)
+                new AppError(`Username ${id} does not exist`, 404)
             );
         }
         const user = data[0];
@@ -40,7 +30,7 @@ router.post("/",authentication, async function (req, res, next) {
             user.lastname,
             user.email
         );
-        await sendMail('info@heidi-app.de', subject, email, null);
+        await sendMail('info@heidi-app.de', subject, body, null);
         return res.status(200).json({
             status: "success",
         });
