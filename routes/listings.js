@@ -116,7 +116,7 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             } else {
-                const sortBy = sortByCreatedDate ? ["createdAt DESC", "startDate"] : ["startDate", "createdAt"];
+                const sortBy = sortByCreatedDate ? ["createdAt DESC", "startDate DESC"] : ["startDate DESC", "createdAt DESC"];
                 response = await database.get(
                     tables.LISTINGS_TABLE,
                     filters,
@@ -170,7 +170,7 @@ router.get("/", async function (req, res, next) {
 
         const query = `select * from (
             ${individualQueries.join(" union all ")}
-            ) a order by ${sortByCreatedDate ? "createdAt desc, startDate" : "startDate, createdAt"} LIMIT ${
+            ) a order by ${sortByCreatedDate ? "createdAt DESC, startDate DESC" : "startDate DESC, createdAt DESC"} LIMIT ${
     (pageNo - 1) * pageSize
 }, ${pageSize};`;
 
