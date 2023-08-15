@@ -1191,7 +1191,7 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
         });
 });
 
-router.get("/", authentication, async function (req, res, next) {
+router.get("/", async function (req, res, next) {
     const params = req.query;
     const columsToQuery = [
         "id",
