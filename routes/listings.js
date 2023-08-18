@@ -31,13 +31,14 @@ router.get("/", async function (req, res, next) {
         );
     }
 
-    if (filters.sortByCreatedDate) {
-        if (filters.sortByCreatedDate !== true && filters.sortByCreatedDate !== false) {
+    if (params.sortByCreatedDate) {
+        const sortByCreatedDateString = params.sortByCreatedDate.toString()
+        if (sortByCreatedDateString !== 'true' && sortByCreatedDateString !== 'false') {
             return next(
                 new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
             );
         } else {
-            sortByCreatedDate = filters.sortByCreatedDate;
+            sortByCreatedDate = sortByCreatedDateString === 'true';
         }
     }
 
@@ -112,7 +113,7 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             } else {
-                const sortBy = sortByCreatedDate ? ["createdAt", "startDate"] : ["startDate", "createdAt"];
+                const sortBy = sortByCreatedDate ? ["createdAt desc"] : ["startDate", "createdAt"];
                 response = await database.get(
                     tables.LISTINGS_TABLE,
                     filters,
@@ -145,9 +146,8 @@ router.get("/", async function (req, res, next) {
             } as cityId FROM heidi_city_${city.id}${
                 city.inCityServer ? "_" : "."
             }listings L 
-			inner join heidi_city_${city.id}${
-    city.inCityServer ? "_" : "."
-}users U on U.id = L.userId `;
+			inner join heidi_city_${city.id}${city.inCityServer ? "_" : "."}
+            users U on U.id = L.userId `;
             if (filters.categoryId || filters.statusId) {
                 query += " WHERE ";
                 if (filters.categoryId) {
@@ -166,9 +166,7 @@ router.get("/", async function (req, res, next) {
 
         const query = `select * from (
                 ${individualQueries.join(" union all ")}
-            ) a order by ${sortByCreatedDate ? "createdAt, startDate" : "startDate, createdAt"} desc LIMIT ${
-    (pageNo - 1) * pageSize
-}, ${pageSize};`;
+            ) a order by ${sortByCreatedDate ? "createdAt desc" : "startDate, createdAt"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
         response = await database.callQuery(query);
 
         const listings = response.rows;
