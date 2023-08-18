@@ -11,7 +11,7 @@ router.get("/", async function (req, res, next) {
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 9;
     const filters = {};
-    let sortByCreatedDate = false;
+    let sortByStartDate = false;
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
@@ -31,14 +31,14 @@ router.get("/", async function (req, res, next) {
         );
     }
 
-    if (params.sortByCreatedDate) {
-        const sortByCreatedDateString = params.sortByCreatedDate.toString()
-        if (sortByCreatedDateString !== 'true' && sortByCreatedDateString !== 'false') {
+    if (params.sortByStartDate) {
+        const sortByStartDateString = params.sortByStartDate.toString()
+        if (sortByStartDateString !== 'true' && sortByStartDateString !== 'false') {
             return next(
                 new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
             );
         } else {
-            sortByCreatedDate = sortByCreatedDateString === 'true';
+            sortByStartDate = sortByStartDateString === 'true';
         }
     }
 
@@ -113,7 +113,7 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             } else {
-                const sortBy = sortByCreatedDate ? ["createdAt desc"] : ["startDate", "createdAt"];
+                const sortBy = sortByStartDate ?  ["startDate", "createdAt"] : ["createdAt desc"];
                 response = await database.get(
                     tables.LISTINGS_TABLE,
                     filters,
@@ -166,7 +166,7 @@ router.get("/", async function (req, res, next) {
 
         const query = `select * from (
                 ${individualQueries.join(" union all ")}
-            ) a order by ${sortByCreatedDate ? "createdAt desc" : "startDate, createdAt"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+            ) a order by ${sortByStartDate ?  "startDate, createdAt" : "createdAt desc"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
         response = await database.callQuery(query);
 
         const listings = response.rows;
