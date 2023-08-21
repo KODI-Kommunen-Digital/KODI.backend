@@ -121,8 +121,7 @@ router.get("/", async function (req, res, next) {
                     params.cityId,
                     pageNo,
                     pageSize,
-                    sortBy,
-                    true
+                    sortBy
                 );
                 return res.status(200).json({
                     status: "success",
