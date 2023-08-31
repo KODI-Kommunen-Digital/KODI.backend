@@ -419,6 +419,13 @@ router.patch("/:id", authentication, async function (req, res, next) {
         ) {
             return next(new AppError(`Incorrect current password given`, 401));
         }
+        const passwordCheck = await bcrypt.compare(
+            payload.newPassword,
+            currentUserData.password
+        );
+        if(passwordCheck){
+            return next(new AppError(`New password should not be same as the old password`, 400));
+        }
         updationData.password = await bcrypt.hash(
             payload.newPassword,
             Number(process.env.SALT)
@@ -988,6 +995,13 @@ router.post("/resetPassword", async function (req, res, next) {
         }
         const user = data[0];
 
+        const passwordCheck = await bcrypt.compare(
+            password,
+            user.password
+        );
+        if(passwordCheck){
+            return next(new AppError(`New password should not be same as the old password`, 400));
+        }
         response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
             userId,
             token,
