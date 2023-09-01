@@ -25,16 +25,16 @@ router.post("/login", async function (req, res, next) {
         : req.socket.remoteAddress;
     sourceAddress = sourceAddress.toString().replace("::ffff:", "");
 
-    if (!payload) {
-        return next(new AppError({message:`Empty payload sent`, errorCode:errorCodes.EMPTY_PAYLOAD}, 400));
+    if (!payload.username && !payload.password) {
+        return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
     }
 
     if (!payload.username) {
-        return next(new AppError({message:`Username is not present`,errorCode:errorCodes.MISSING_USERNAME}, 400));
+        return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     }
 
     if (!payload.password) {
-        return next(new AppError({message:`Password is not present`, errorCode:errorCodes.MISSING_PASSWORD}, 400));
+        return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     }
 
     try {
@@ -42,16 +42,16 @@ router.post("/login", async function (req, res, next) {
             username: payload.username,
         });
         if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError({message:`Invalid username`, errorCode:errorCodes.INVALID_USERNAME}, 401));
+            return next(new AppError(`Invalid username`, 401, errorCodes.INVALID_USERNAME));
         }
 
         const userData = users.rows[0];
         if (!userData.emailVerified) {
             return next(
                 new AppError(
-                    {message:`Verification email sent to your email id. Please verify first before trying to login.`,
-                        errorCode:errorCodes.EMAIL_NOT_VERIFIED},
-                    401
+                    `Verification email sent to your email id. Please verify first before trying to login.`,
+                    401,
+                    errorCodes.EMAIL_NOT_VERIFIED
                 )
             );
         }
@@ -61,7 +61,7 @@ router.post("/login", async function (req, res, next) {
             userData.password
         );
         if (!correctPassword) {
-            return next(new AppError({message:`Invalid password`, errorCode:errorCodes.INVALID_PASSWORD}, 401));
+            return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
         }
 
         const userMappings = await database.get(
@@ -109,7 +109,7 @@ router.post("/login", async function (req, res, next) {
             },
         });
     } catch (err) {
-        return next(new AppError({message:err, errorCode:errorCodes.DATABASE_ERROR}, 500,  ));
+        return next(new AppError(err, 500));
     }
 });
 

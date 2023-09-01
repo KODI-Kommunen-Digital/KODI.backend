@@ -1,9 +1,9 @@
 class AppError extends Error {
-    constructor(errorData, statusCode) {
-        super(errorData.message);
+    constructor(msg, statusCode, errorCode) {
+        super(msg);
 
         this.statusCode = statusCode || 500;
-        this.errorCode = errorData.errorCode;
+        this.errorCode = errorCode;
         this.error = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
         this.isOperational = true;
 
