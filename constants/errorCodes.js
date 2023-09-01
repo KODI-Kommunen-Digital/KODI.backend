@@ -1,0 +1,10 @@
+module.exports = {
+    EMPTY_PAYLOAD: 1001,
+    MISSING_USERNAME: 1002,
+    MISSING_PASSWORD: 1003,
+    INVALID_USERNAME: 1004,
+    INVALID_PASSWORD: 1005,
+    EMAIL_NOT_VERIFIED: 2001,
+    DATABASE_ERROR: 3001
+    // Add more custom error codes as needed
+}
