@@ -15,7 +15,7 @@ const imageUpload = require("../utils/imageUpload");
 const imageDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
-const errorCodes = require('../constants/errorCodes')
+const errorCodes = require('../constants/errorCodes');
 
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
@@ -1002,7 +1002,7 @@ router.post("/resetPassword", async function (req, res, next) {
             user.password
         );
         if(passwordCheck){
-            return next(new AppError(`New password should not be same as the old password`, 400));
+            return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
         }
         response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
             userId,
