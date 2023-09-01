@@ -4,7 +4,9 @@ module.exports = {
     MISSING_PASSWORD: 1003,
     INVALID_USERNAME: 1004,
     INVALID_PASSWORD: 1005,
+    NEW_OLD_PASSWORD_DIFFERENT:1006,
     EMAIL_NOT_VERIFIED: 2001,
-    DATABASE_ERROR: 3001
+    DATABASE_ERROR: 3001,
+
     // Add more custom error codes as needed
 }
