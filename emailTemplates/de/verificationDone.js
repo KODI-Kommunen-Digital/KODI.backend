@@ -1,11 +1,12 @@
 module.exports = function (firstName, lastName) {
     return {
-        subject: "Dein Passwort wurde zurückgesetzt",
-        body: `<h1>Dein Passwort wurde zurückgesetzt</h1>
-                <p>Hey  ${firstName} ${lastName},<br>
-                das Passwort für dein Konto wurde erfolgreich zurückgesetzt.<br>
+        Subject: "Dein Account wurde erfolgreich verifiziert",
+        body: `<h1> Dein Account wurde erfolgreich verifiziert",</h1>
+                <p>Hey ${firstName} ${lastName},<br>
+                Dein Account wurde erfolgreich verifizier.<br>
                 <br>
                 Liebe Grüße!,<br>
-                Heidi-Team</p>`
+                Das ${process.env.REGION}-Team</p>`
+
     }
 }
