@@ -11,7 +11,7 @@ router.get("/", async function (req, res, next) {
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 9;
     const filters = {};
-    let sortByCreatedDate = false;
+    let sortByStartDate = false;
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
@@ -31,18 +31,15 @@ router.get("/", async function (req, res, next) {
         );
     }
 
-    if (filters.sortByCreatedDate) {
-        if (filters.sortByCreatedDate !== true && filters.sortByCreatedDate !== false) {
+    if (params.sortByStartDate) {
+        const sortByStartDateString = params.sortByStartDate.toString()
+        if (sortByStartDateString !== 'true' && sortByStartDateString !== 'false') {
             return next(
                 new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
             );
         } else {
-            sortByCreatedDate = filters.sortByCreatedDate;
+            sortByStartDate = sortByStartDateString === 'true';
         }
-    }
-
-    if (params.sortByCreatedDate !== undefined) {
-        sortByCreatedDate = params.sortByCreatedDate === 'true' ? true : false;
     }
 
     if (params.statusId) {
@@ -116,7 +113,7 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             } else {
-                const sortBy = sortByCreatedDate ? ["createdAt DESC", "startDate DESC"] : ["startDate DESC", "createdAt DESC"];
+                const sortBy = sortByStartDate ?  ["startDate", "createdAt"] : ["createdAt desc"];
                 response = await database.get(
                     tables.LISTINGS_TABLE,
                     filters,
@@ -149,9 +146,8 @@ router.get("/", async function (req, res, next) {
             } as cityId FROM heidi_city_${city.id}${
                 city.inCityServer ? "_" : "."
             }listings L 
-			inner join heidi_city_${city.id}${
-    city.inCityServer ? "_" : "."
-}users U on U.id = L.userId `;
+			inner join heidi_city_${city.id}${city.inCityServer ? "_" : "."}
+            users U on U.id = L.userId `;
             if (filters.categoryId || filters.statusId) {
                 query += " WHERE ";
                 if (filters.categoryId) {
@@ -169,11 +165,8 @@ router.get("/", async function (req, res, next) {
         }
 
         const query = `select * from (
-            ${individualQueries.join(" union all ")}
-            ) a order by ${sortByCreatedDate ? "createdAt DESC, startDate DESC" : "startDate DESC, createdAt DESC"} LIMIT ${
-    (pageNo - 1) * pageSize
-}, ${pageSize};`;
-
+                ${individualQueries.join(" union all ")}
+            ) a order by ${sortByStartDate ?  "startDate, createdAt" : "createdAt desc"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
         response = await database.callQuery(query);
 
         const listings = response.rows;
