@@ -12,7 +12,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
-const imageDelete = require("../utils/imageDelete");
+const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 const errorCodes = require('../constants/errorCodes');
@@ -632,7 +632,7 @@ router.delete(
                     new AppError("Image Delete failed with Error Code: " + err)
                 );
             };
-            await imageDelete(`user_${id}/profilePic`, onSucccess, onFail);
+            await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
         } catch (err) {
             return next(new AppError(err));
         }
