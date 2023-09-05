@@ -11,6 +11,7 @@ const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
+const pdfUpload = require("../utils/pdfUpload")
 const imageDelete = require("../utils/imageDelete");
 
 // const radiusSearch = require('../services/handler')
@@ -904,6 +905,104 @@ router.post(
     }
 );
 
+router.post(
+    "/:id/pdfUpload",
+    authentication,
+    async function (req, res, next) {
+        const listingId = req.params.id;
+        const cityId = req.cityId;
+
+        if (!cityId) {
+            return next(new AppError(`City is not present`, 404));
+        } else {
+            try {
+                const response = await database.get(tables.CITIES_TABLE, {
+                    id: cityId,
+                });
+                if (response.rows && response.rows.length === 0) {
+                    return next(
+                        new AppError(`City '${cityId}' not found`, 404)
+                    );
+                }
+            } catch (err) {
+                return next(new AppError(err));
+            }
+        }
+
+        if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+            next(new AppError(`Invalid ListingsId ${listingId} given`, 400));
+            return;
+        }
+
+        let response = await database.get(
+            tables.USER_CITYUSER_MAPPING_TABLE,
+            { userId: req.userId, cityId },
+            "cityUserId"
+        );
+
+        // The current user might not be in the city db
+        const cityUserId =
+            response.rows && response.rows.length > 0
+                ? response.rows[0].cityUserId
+                : null;
+
+        response = await database.get(
+            tables.LISTINGS_TABLE,
+            { id: listingId },
+            null,
+            cityId
+        );
+        if (!response.rows || response.rows.length === 0) {
+            return next(
+                new AppError(`Listing with id ${listingId} does not exist`, 404)
+            );
+        }
+        const currentListingData = response.rows[0];
+
+        if (
+            currentListingData.userId !== cityUserId &&
+            req.roleId !== roles.Admin
+        ) {
+            return next(
+                new AppError(`You are not allowed to access this resource`, 403)
+            );
+        }
+        const { pdf } = req.files;
+
+        if (!pdf) {
+            next(new AppError(`Pdf not uploaded`, 400));
+            return;
+        }
+
+        try {
+            const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
+
+            const { uploadStatus, objectKey } = await pdfUpload(
+                pdf,
+                filePath
+            );
+            const updationData = { pdf: objectKey };
+
+            if (uploadStatus === "Success") {
+                await database.update(
+                    tables.LISTINGS_TABLE,
+                    updationData,
+                    { id: listingId },
+                    cityId
+                );
+
+                return res.status(200).json({
+                    status: "success",
+                });
+            } else {
+                return next(new AppError("pdf Upload failed"));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+);
+
 router.delete(
     "/:id/imageDelete",
     authentication,
@@ -996,5 +1095,99 @@ router.delete(
         }
     }
 );
+
+router.delete(
+    "/:id/pdfDelete",
+    authentication,
+    async function (req, res, next) {
+        const id = req.params.id;
+        const cityId = req.cityId;
+
+        if (!cityId) {
+            return next(new AppError(`City is not present`, 404));
+        } else {
+            try {
+                const response = await database.get(tables.CITIES_TABLE, {
+                    id: cityId,
+                });
+                if (response.rows && response.rows.length === 0) {
+                    return next(
+                        new AppError(`City '${cityId}' not found`, 404)
+                    );
+                }
+            } catch (err) {
+                return next(new AppError(err));
+            }
+        }
+
+        if (isNaN(Number(id)) || Number(id) <= 0) {
+            next(new AppError(`Invalid ListingsId ${id}`, 404));
+            return;
+        }
+
+        let response = await database.get(
+            tables.USER_CITYUSER_MAPPING_TABLE,
+            { userId: req.userId, cityId },
+            "cityUserId"
+        );
+
+        // The current user might not be in the city db
+        const cityUserId =
+            response.rows && response.rows.length > 0
+                ? response.rows[0].cityUserId
+                : null;
+
+        response = await database.get(
+            tables.LISTINGS_TABLE,
+            { id },
+            null,
+            cityId
+        );
+        if (!response.rows || response.rows.length === 0) {
+            return next(
+                new AppError(`Listing with id ${id} does not exist`, 404)
+            );
+        }
+        const currentListingData = response.rows[0];
+
+        if (
+            currentListingData.userId !== cityUserId &&
+            req.roleId !== roles.Admin
+        ) {
+            return next(
+                new AppError(`You are not allowed to access this resource`, 403)
+            );
+        }
+        try {
+            const onSucccess = async () => {
+                const updationData = {};
+                updationData.pdf = "";
+
+                await database.update(
+                    tables.LISTINGS_TABLE,
+                    updationData,
+                    { id },
+                    cityId
+                );
+                return res.status(200).json({
+                    status: "success",
+                });
+            };
+            const onFail = (err) => {
+                return next(
+                    new AppError("Pdf Delete failed with Error Code: " + err)
+                );
+            };
+            await imageDelete(
+                `user_${req.userId}/city_${cityId}_listing_${id}_PDF.pdf`,
+                onSucccess,
+                onFail
+            );
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+);
+
 
 module.exports = router;
