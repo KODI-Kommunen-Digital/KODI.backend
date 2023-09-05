@@ -103,7 +103,7 @@ router.get("/", async function (req, res, next) {
 
     if (params.cityId) {
         try {
-            let response = await database.get(
+            const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
                 null
@@ -118,7 +118,7 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         }
     } else {
-        let response = await database.get(tables.CITIES_TABLE);
+        const response = await database.get(tables.CITIES_TABLE);
         cities = response.rows;
     }
 
@@ -154,7 +154,7 @@ router.get("/", async function (req, res, next) {
         const query = `select * from (
                 ${individualQueries.join(" union all ")}
             ) a order by ${sortByStartDate ?  "startDate, createdAt" : "createdAt desc"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
-        response = await database.callQuery(query); 
+        const response = await database.callQuery(query); 
 
         const listings = response.rows;
         const noOfListings = listings.length;
