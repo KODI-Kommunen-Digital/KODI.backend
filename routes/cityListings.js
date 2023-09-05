@@ -869,11 +869,28 @@ router.post(
                 new AppError(`You are not allowed to access this resource`, 403)
             );
         }
+        if(currentListingData.pdf && currentListingData.pdf.length > 0) {
+            return next(
+                new AppError(`Pdf is present in listing So can not upload image.`, 403) 
+            );
+        }
         const { image } = req.files;
 
         if (!image) {
             next(new AppError(`Image not uploaded`, 400));
             return;
+        }
+        const arrayOfAllowedFiles = ['png', 'jpeg', 'jpg', 'gif'];
+        const arrayOfAllowedFileTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+        
+        const fileExtension = image.originalname.slice(
+            ((image.originalname.lastIndexOf('.') - 1) >>> 0) + 2
+        );
+
+        if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(image.memetype)) {
+            return next(
+                new AppError(`Invalid Image type`, 403) 
+            );
         }
 
         try {
@@ -967,11 +984,30 @@ router.post(
                 new AppError(`You are not allowed to access this resource`, 403)
             );
         }
+
+        if(currentListingData.logo && currentListingData.logo.length > 0) {
+            return next(
+                new AppError(`Image is present in listing So can not upload pdf.`, 403)
+            );
+        }
         const { pdf } = req.files;
 
         if (!pdf) {
             next(new AppError(`Pdf not uploaded`, 400));
             return;
+        }
+
+        const arrayOfAllowedFiles = ['pdf'];
+        const arrayOfAllowedFileTypes = ['application/pdf'];
+        
+        const fileExtension = pdf.originalname.slice(
+            ((pdf.originalname.lastIndexOf('.') - 1) >>> 0) + 2
+        );
+
+        if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(pdf.memetype)) {
+            return next(
+                new AppError(`Invalid Pdf type`, 403) 
+            );
         }
 
         try {
