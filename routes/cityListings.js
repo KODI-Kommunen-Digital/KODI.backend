@@ -887,7 +887,7 @@ router.post(
             ((image.name.lastIndexOf('.') - 1) >>> 0) + 2
         );
 
-        if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(image.memetype)) {
+        if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(image.mimetype)) {
             return next(
                 new AppError(`Invalid Image type`, 403) 
             );
@@ -1004,7 +1004,7 @@ router.post(
             ((pdf.name.lastIndexOf('.') - 1) >>> 0) + 2
         );
 
-        if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(pdf.memetype)) {
+        if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(pdf.mimetype)) {
             return next(
                 new AppError(`Invalid Pdf type`, 403) 
             );
