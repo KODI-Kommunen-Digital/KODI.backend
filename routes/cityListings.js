@@ -883,8 +883,8 @@ router.post(
         const arrayOfAllowedFiles = ['png', 'jpeg', 'jpg', 'gif'];
         const arrayOfAllowedFileTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
         
-        const fileExtension = image.originalname.slice(
-            ((image.originalname.lastIndexOf('.') - 1) >>> 0) + 2
+        const fileExtension = image.name.slice(
+            ((image.name.lastIndexOf('.') - 1) >>> 0) + 2
         );
 
         if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(image.memetype)) {
@@ -1000,8 +1000,8 @@ router.post(
         const arrayOfAllowedFiles = ['pdf'];
         const arrayOfAllowedFileTypes = ['application/pdf'];
         
-        const fileExtension = pdf.originalname.slice(
-            ((pdf.originalname.lastIndexOf('.') - 1) >>> 0) + 2
+        const fileExtension = pdf.name.slice(
+            ((pdf.name.lastIndexOf('.') - 1) >>> 0) + 2
         );
 
         if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(pdf.memetype)) {
