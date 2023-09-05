@@ -12,7 +12,7 @@ const authentication = require("../middlewares/authentication");
 const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload")
-const imageDelete = require("../utils/imageDelete");
+const objectDelete = require("../utils/imageDelete");
 
 // const radiusSearch = require('../services/handler')
 
@@ -804,7 +804,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
             new AppError("Image Delete failed with Error Code: " + err)
         );
     };
-    await imageDelete(currentListingData.logo, onSucccess, onFail);
+    await objectDelete(currentListingData.logo, onSucccess, onFail);
 });
 
 router.post(
@@ -1121,7 +1121,7 @@ router.delete(
                     new AppError("Image Delete failed with Error Code: " + err)
                 );
             };
-            await imageDelete(
+            await objectDelete(
                 `user_${req.userId}/city_${cityId}_listing_${id}`,
                 onSucccess,
                 onFail
@@ -1214,7 +1214,7 @@ router.delete(
                     new AppError("Pdf Delete failed with Error Code: " + err)
                 );
             };
-            await imageDelete(
+            await objectDelete(
                 `user_${req.userId}/city_${cityId}_listing_${id}_PDF.pdf`,
                 onSucccess,
                 onFail
