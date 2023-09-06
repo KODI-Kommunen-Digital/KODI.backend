@@ -1261,7 +1261,7 @@ router.post(
         }
         database
             .callQuery(
-                `select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `,
+                `select id, userId, sourceAddress, browser, device from refreshtokens where userId = ? and refreshToken NOT IN (?); `,
                 [userId, refreshToken]
             )
             .then((response) => {
