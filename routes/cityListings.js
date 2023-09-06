@@ -990,7 +990,7 @@ router.post(
                 new AppError(`Image is present in listing So can not upload pdf.`, 403)
             );
         }
-        const { pdf } = req.files;
+        const { pdf } = req.files ? req.files : false;
 
         if (!pdf) {
             next(new AppError(`Pdf not uploaded`, 400));

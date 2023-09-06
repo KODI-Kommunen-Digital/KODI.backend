@@ -1217,6 +1217,7 @@ router.get("/", async function (req, res, next) {
         "website",
         "image",
         "firstname",
+        "description",
         "lastname",
         "roleId",
     ];
