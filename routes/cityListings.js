@@ -880,14 +880,8 @@ router.post(
             next(new AppError(`Image not uploaded`, 400));
             return;
         }
-        const arrayOfAllowedFiles = ['png', 'jpeg', 'jpg', 'gif'];
-        const arrayOfAllowedFileTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
         
-        const fileExtension = image.name.slice(
-            ((image.name.lastIndexOf('.') - 1) >>> 0) + 2
-        );
-
-        if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(image.mimetype)) {
+        if (!image.mimetype.includes("image/")) {
             return next(
                 new AppError(`Invalid Image type`, 403) 
             );
