@@ -1,28 +1,23 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
-const server = require('../testServer'); // Import your test server
+const server = require('../testServer'); 
 const createMockDatabase = require('./statusDb');
 const { expect } = chai;
 chai.use(chaiHttp);
 const { describe, before, after, it } = require('mocha');
 
 describe('Endpoint Test with Mock Database', () => {
-    let mockDb; // Declare a variable to hold the mock database instance
-
-    // Before running the tests, create the mock database and start the server
+    let mockDb; 
     before(async () => {
         try {
-            // Create the mock database
             mockDb = await createMockDatabase();
         } catch (err) {
             console.error('Error creating mock database:', err);
         }
     });
 
-    // After running the tests, close the mock database and stop the server
     after(async () => {
         try {
-            // Close the mock database if it's defined
             if (mockDb) {
                 await mockDb.close();
             }

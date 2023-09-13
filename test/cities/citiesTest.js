@@ -36,8 +36,6 @@ describe('Cities Endpoint Test', () => {
                 // Sort both arrays by id for comparison
                 responseData.sort((a, b) => a.id - b.id);
                 expectedData.sort((a, b) => a.id - b.id);
-    
-                // Compare the response data with the expected data
                 expect(res.body.status).to.equal('success');
                 expect(responseData).to.deep.equal(expectedData);
                 done();
