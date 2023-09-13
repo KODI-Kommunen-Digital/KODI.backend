@@ -75,7 +75,7 @@ describe('Citizen Services Endpoint Test', () => {
             })
     });
     it('should handle an invalid cityId by returning a 404 error', (done) => {
-        const cityId = 999; 
+        const cityId = Math.floor(Math.random() * 1000);
         mockDb.all(`SELECT * FROM CITIZEN_SERVICES WHERE cityId=${cityId} `)
             .then(() => {
                 return chai.request(server).get(`/citizenServices?cityId=${cityId}`).send();

@@ -76,7 +76,8 @@ describe('Village Endpoint Test', () => {
     });
   
     it('non-existent village id', async () => {
-        const dbResponse = await mockDb.all('SELECT * FROM village WHERE id = ?', [4]);
+        const villageId = Math.floor(Math.random() * 1000);
+        const dbResponse = await mockDb.all('SELECT * FROM village WHERE id = ?', [villageId]);
         const res = await chai
             .request(server)
             .get('/cities/1/villages') 
