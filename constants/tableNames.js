@@ -14,6 +14,6 @@ module.exports = {
     FORGOT_PASSWORD_TOKENS_TABLE: 'forgot_password_tokens',
     VERIFICATION_TOKENS_TABLE: 'verification_tokens',
     EXCEPTIONS_TABLE: 'exceptions',
-    FAVORITES_TABLE: 'FAVORITES',
-    CITIZEN_SERVICES_TABLE: 'CITIZEN_SERVICES'
+    FAVORITES_TABLE: 'favorites',
+    CITIZEN_SERVICES_TABLE: 'citizen_services'
 }
