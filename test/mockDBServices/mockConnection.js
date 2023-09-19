@@ -5,9 +5,7 @@ const MockDb = require('./mockDb.js');
 
 async function getConnection(cityId) {
     const db = new MockDb(cityId);
-
     return db;
 }
-
 
 module.exports = { getConnection };

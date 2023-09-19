@@ -13,7 +13,7 @@ const {open} = require("sqlite");
 const dbPath = path.join(__dirname, '.', 'test.db');
 const sqlite3 = require('sqlite3').verbose();
 
-const mockConnection = require('./services/mockConnection')
+const mockConnection = require('./mockDBServices/mockConnection')
 
 const database = rewire('../services/database');
 database.__set__('getConnection', mockConnection.getConnection);
