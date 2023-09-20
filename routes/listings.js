@@ -12,6 +12,7 @@ router.get("/", async function (req, res, next) {
     const pageSize = params.pageSize || 9;
     const filters = {};
     let sortByStartDate = false;
+    let cities = [];
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
@@ -102,52 +103,38 @@ router.get("/", async function (req, res, next) {
 
     if (params.cityId) {
         try {
-            let response = await database.get(
+            const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
                 null
             );
-            const data = response.rows;
-            if (data && data.length === 0) {
+            cities = response.rows;
+            if (cities && cities.length === 0) {
                 return next(
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
-            } else {
-                const sortBy = sortByStartDate ?  ["startDate", "createdAt"] : ["createdAt desc"];
-                response = await database.get(
-                    tables.LISTINGS_TABLE,
-                    filters,
-                    `*, ${params.cityId} as cityId`,
-                    params.cityId,
-                    pageNo,
-                    pageSize,
-                    sortBy,
-                    true
-                );
-                return res.status(200).json({
-                    status: "success",
-                    data: response.rows,
-                });
             }
         } catch (err) {
             return next(new AppError(err));
         }
+    } else {
+        const response = await database.get(tables.CITIES_TABLE);
+        cities = response.rows;
     }
 
     try {
-        let response = await database.get(tables.CITIES_TABLE);
-        const cities = response.rows;
         const individualQueries = [];
         for (const city of cities) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT L.*, U.username, ${
+            let query = `SELECT L.*, U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
                 city.id
             } as cityId FROM heidi_city_${city.id}${
                 city.inCityServer ? "_" : "."
             }listings L 
-			inner join heidi_city_${city.id}${city.inCityServer ? "_" : "."}
-            users U on U.id = L.userId `;
+			inner join
+            user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
+			inner join users U on U.id = UM.userId `;
             if (filters.categoryId || filters.statusId) {
                 query += " WHERE ";
                 if (filters.categoryId) {
@@ -167,7 +154,7 @@ router.get("/", async function (req, res, next) {
         const query = `select * from (
                 ${individualQueries.join(" union all ")}
             ) a order by ${sortByStartDate ?  "startDate, createdAt" : "createdAt desc"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
-        response = await database.callQuery(query);
+        const response = await database.callQuery(query); 
 
         const listings = response.rows;
         const noOfListings = listings.length;

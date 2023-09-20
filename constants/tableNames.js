@@ -10,10 +10,10 @@ module.exports = {
     STATUS_TABLE: 'status',
     SOURCE_TABLE: 'source',
     SUBCATEGORIES_TABLE: 'subcategory',
-    REFRESH_TOKENS_TABLE: 'refreshTokens',
+    REFRESH_TOKENS_TABLE: 'refreshtokens',
     FORGOT_PASSWORD_TOKENS_TABLE: 'forgot_password_tokens',
     VERIFICATION_TOKENS_TABLE: 'verification_tokens',
     EXCEPTIONS_TABLE: 'exceptions',
-    FAVORITES_TABLE: 'FAVORITES',
-    CITIZEN_SERVICES_TABLE: 'CITIZEN_SERVICES'
+    FAVORITES_TABLE: 'favorites',
+    CITIZEN_SERVICES_TABLE: 'citizen_services'
 }

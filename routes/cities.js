@@ -10,7 +10,7 @@ router.get("/", async function (req, res, next) {
         filter.hasForum = true;
     }
     database
-        .get(tables.CITIES_TABLE, filter, "id,name,image", null, null, null, [
+        .get(tables.CITIES_TABLE, filter, "id,name,image, hasForum", null, null, null, [
             "name",
         ])
         .then((response) => {

@@ -28,7 +28,7 @@ async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, de
     if (pageNo && pageSize) {
         query += ` LIMIT ${(pageNo - 1) * pageSize}, ${pageSize}`;
     }
-    const {rows, fields} = await connection.query(query, queryParams);
+    const [rows, fields] = await connection.query(query, queryParams);
     connection.release();
     return { rows, fields };
 }

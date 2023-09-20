@@ -12,9 +12,10 @@ const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
-const imageDelete = require("../utils/imageDelete");
+const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
+const errorCodes = require('../constants/errorCodes');
 
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
@@ -24,16 +25,16 @@ router.post("/login", async function (req, res, next) {
         : req.socket.remoteAddress;
     sourceAddress = sourceAddress.toString().replace("::ffff:", "");
 
-    if (!payload) {
-        return next(new AppError(`Empty payload sent`, 400));
+    if (!payload.username && !payload.password) {
+        return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
     }
 
     if (!payload.username) {
-        return next(new AppError(`Username is not present`, 400));
+        return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     }
 
     if (!payload.password) {
-        return next(new AppError(`Password is not present`, 400));
+        return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     }
 
     try {
@@ -41,7 +42,7 @@ router.post("/login", async function (req, res, next) {
             username: payload.username,
         });
         if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError(`Invalid username`, 401));
+            return next(new AppError(`Invalid username`, 401, errorCodes.INVALID_USERNAME));
         }
 
         const userData = users.rows[0];
@@ -49,7 +50,8 @@ router.post("/login", async function (req, res, next) {
             return next(
                 new AppError(
                     `Verification email sent to your email id. Please verify first before trying to login.`,
-                    401
+                    401,
+                    errorCodes.EMAIL_NOT_VERIFIED
                 )
             );
         }
@@ -59,7 +61,7 @@ router.post("/login", async function (req, res, next) {
             userData.password
         );
         if (!correctPassword) {
-            return next(new AppError(`Invalid password`, 401));
+            return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
         }
 
         const userMappings = await database.get(
@@ -107,7 +109,7 @@ router.post("/login", async function (req, res, next) {
             },
         });
     } catch (err) {
-        return next(new AppError(err));
+        return next(new AppError(err, 500));
     }
 });
 
@@ -419,6 +421,13 @@ router.patch("/:id", authentication, async function (req, res, next) {
         ) {
             return next(new AppError(`Incorrect current password given`, 401));
         }
+        const passwordCheck = await bcrypt.compare(
+            payload.newPassword,
+            currentUserData.password
+        );
+        if(passwordCheck){
+            return next(new AppError(`New password should not be same as the old password`, 400));
+        }
         updationData.password = await bcrypt.hash(
             payload.newPassword,
             Number(process.env.SALT)
@@ -623,7 +632,7 @@ router.delete(
                     new AppError("Image Delete failed with Error Code: " + err)
                 );
             };
-            await imageDelete(`user_${id}/profilePic`, onSucccess, onFail);
+            await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
         } catch (err) {
             return next(new AppError(err));
         }
@@ -988,6 +997,13 @@ router.post("/resetPassword", async function (req, res, next) {
         }
         const user = data[0];
 
+        const passwordCheck = await bcrypt.compare(
+            password,
+            user.password
+        );
+        if(passwordCheck){
+            return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
+        }
         response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
             userId,
             token,
@@ -1244,7 +1260,7 @@ router.post(
         }
         database
             .callQuery(
-                `select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `,
+                `select id, userId, sourceAddress, browser, device from refreshtokens where userId = ? and refreshToken NOT IN (?); `,
                 [userId, refreshToken]
             )
             .then((response) => {
