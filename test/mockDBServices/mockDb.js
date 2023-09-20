@@ -1,7 +1,9 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const getConnection = require('./mockConnection')
-const dbPath = path.join(__dirname,'..', 'test.db'); 
+
+const dbPath = path.join(__dirname,'..', 'test.db'); // mockdb to be replaces
+const cityPath = path.join(__dirname,'..', 'city-1.db'); // mockdb to be replaces
 
 let db; // sqlitedb
 
@@ -9,14 +11,7 @@ class MockDb{
     constructor(cityId) {
         db = new sqlite3.Database(dbPath);
         if (cityId) {
-            const query = `SELECT * FROM cities WHERE id = ${cityId}`;
-            const rows = query;
-            if (rows.length > 0) {
-                const connectionString = rows[0].connectionString;
-                db = new sqlite3.Database(connectionString);
-
-                
-            }
+            db = new sqlite3.Database(cityPath);
         }
     }
 
@@ -29,6 +24,21 @@ class MockDb{
                 } else {
                     db.close();
                     resolve({rows, fields: null});
+                }
+            });
+        });
+    }
+
+    async createQuery(sql, params) {
+        return new Promise((resolve, reject) => {
+            const db = new sqlite3.Database(dbPath);
+            db.run(sql, params, function(err, rows) {
+                if (err) {
+                    reject(err);
+                } else {
+                    db.close();
+                    this.insertId = this.lastID;
+                    resolve(this);
                 }
             });
         });

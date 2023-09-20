@@ -23,23 +23,26 @@ categoriesRouter.__set__('database', database);
 
 const indexFile = rewire('./testServer');
 indexFile.__set__('categoriesRouter', categoriesRouter);
+const categoriesStaticData = require('./staticdata/categoriesStaticData.json')
 
 describe('Categories Endpoint Test', () => {
     let mockDbSQL;
     let app;
     let server;
+    let staticData;
 
     before(async () => {
         mockDbSQL = await open({
             filename: dbPath,
             driver: sqlite3.Database,
         });
+        staticData =categoriesStaticData;
         server = new indexFile.Server();
         app = server.init();
     });
 
     after(async () => {
-        await server.close();
+        // await server.close();
         await mockDbSQL.close();
     });
 
@@ -61,7 +64,8 @@ describe('Categories Endpoint Test', () => {
                         }
                         const responseData = res.body.data;
                         expect(res).to.status(200);
-                        expect(responseData).to.deep.equal(expectedData);
+                        expect(expectedData).to.deep.equal(staticData);
+                        expect(responseData).to.deep.equal(staticData);
                         done();
                     });
             })
@@ -131,7 +135,7 @@ describe('Categories Endpoint Test', () => {
                 }
             });
 
-    });// .timeout(3000);
+    }).timeout(3000);
 
     it('should handle an invalid cityId by returning a 404 error', (done) => {
         const invalidCityId = Math.floor(Math.random() * 1000);
