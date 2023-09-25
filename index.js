@@ -41,7 +41,7 @@ app.use(morgan("combined"));
 app.use(
     fileUpload({
         limits: {
-            fileSize: 10000000,
+            fileSize: 25000000,
         },
         abortOnLimit: true,
     })
