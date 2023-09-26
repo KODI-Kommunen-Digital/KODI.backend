@@ -1,3 +1,7 @@
 /node_modules
 /images
 .env
+/testReports
+/test/test.db
+/test/city.db
+.DS_Store
