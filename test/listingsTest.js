@@ -25,7 +25,7 @@ cityListingsRouter.__set__('database', database);
 const indexFile = rewire('./testServer');
 indexFile.__set__('listingsRouter', cityListingsRouter);
 
-const data = require("./staticdata/listingsStaticData1.json");
+// const data = require("./staticdata/listingsStaticData1.json");
 
 describe(' Listing Endpoints Test', () => {
     let coreDb;
