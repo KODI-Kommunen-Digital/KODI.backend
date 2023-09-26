@@ -2,6 +2,6 @@
 /images
 .env
 /testReports
-/test/test.db
-/test/city.db
 .DS_Store
+test/city-1.db
+test/test.db
