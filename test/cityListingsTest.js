@@ -58,7 +58,7 @@ describe('City Listing Endpoints Test', () => {
     });
 
     after(async () => {
-        // await server.close();
+        await server.close();
         await coreDb.close();
         await cityDb.close();
     });

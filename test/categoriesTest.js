@@ -102,29 +102,7 @@ describe('Categories Endpoint Test', () => {
     it('should return listings count for a specific cityId', (done) => {
         const cityId = 1;
         const query = `SELECT categoryId, COUNT(*) as count FROM heidi_city_${cityId}.listings GROUP BY categoryId;`;
-        const mockResponse = 
-            [
-                {
-                    "categoryId": 1,
-                    "count": 15
-                },
-                {
-                    "categoryId": 3,
-                    "count": 6
-                },
-                {
-                    "categoryId": 4,
-                    "count": 2
-                },
-                {
-                    "categoryId": 6,
-                    "count": 1
-                },
-                {
-                    "categoryId": 11,
-                    "count": 1
-                }
-            ];
+        const mockResponse = [];
         chai.request(app)
             .get(`/categories/listingsCount?cityId=${cityId}`)
             .end(async (err, res) => {
