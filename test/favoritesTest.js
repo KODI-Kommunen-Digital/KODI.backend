@@ -26,17 +26,15 @@ const indexFile = rewire('./testServer');
 indexFile.__set__('favoriteRouter', favoritesRouter);
 
 const tokenUtil = require('./../utils/token');
-
-const tables = require("../constants/tableNames");
-const data1 = require("./staticdata/favoritesStaticData1.json")
-
+const tables = require('../constants/tableNames')
+const data = require("./staticdata/favoritesStaticData1.json");
+const MockDb = require("./mockDBServices/mockDb")
 describe('Favorites Endpoint Test', () => {
     let coreDb;
     let cityDb;
     let app;
     let server;
     let token;
-
     before(async () => {
         coreDb = await open({
             filename: coreDbPath,
@@ -53,10 +51,11 @@ describe('Favorites Endpoint Test', () => {
             userId: 7,
             roleId: 1
         }).accessToken;
+ 
     });
 
     after(async () => {
-        // await server.close();
+        await server.close();
         await coreDb.close();
         await cityDb.close();
     });
@@ -87,8 +86,7 @@ describe('Favorites Endpoint Test', () => {
     });
 
     it('get api 2', (done) => {
-        const expectedData = data1;
-
+        const expectedData =data;
         new Promise((resolve) => {
             const response = chai.request(app)
                 .get('/users/7/favorites/listings')
@@ -109,10 +107,7 @@ describe('Favorites Endpoint Test', () => {
             })
     });
 
-    // todo: fix below
-
     it('post api', (done) => {
-
         new Promise((resolve) => {
             const requestBody = {cityId: 1, listingId: 1}
 
@@ -125,42 +120,43 @@ describe('Favorites Endpoint Test', () => {
             .then((res) => {
                 const responseData = JSON.parse(res.text);
                 expect(res).to.have.status(200);
+                // expect(responseData).to.be.not.undefined;
+                // expect(responseData.id).to.be.not.undefined;
                 done();
                 return responseData.id;
             })
             .then((id) =>{
                 console.log(id);
+                const res =  chai.request(app)
+                    .delete(`/users/7/favorites/${id}`)
+                    .set({ "Authorization": `Bearer ${token}` })
+                    .send();
+        
+                expect(res).to.have.status(200);
+                expect(res.body.status).to.equal('success');
                 return coreDb.all(`DELETE FROM ${tables.FAVORITES_TABLE} where id = ${id}`);
             })
     });
 
-    it('delete', (done) => {
-        let expectedData;
+    it('delete', async () => {
+        const newFavorite = {
+            id: 90,
+            userId: 7,
+            cityId: 1,
+            listingId: 1
+        };
+    
+        const mockDb = new MockDb(); 
+        await mockDb.create('FAVORITES', newFavorite);
+        const res = await chai.request(app)
+            .delete(`/users/7/favorites/90`)
+            .set({ "Authorization": `Bearer ${token}` })
+            .send();
 
-        coreDb.all('SELECT id, name, image FROM cities')
-            .then((dbResponse) => {
-                expectedData = dbResponse.map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    image: item.image,
-                }));
+        expect(res).to.have.status(200);
+        expect(res.body.status).to.equal('success');
 
-                return chai.request(app)
-                    .delete('/users/1/favorites/1')
-                    .send();
-            })
-            .then((res) => {
-                const responseData = res.body.data;
-                expect(res).to.have.status(200);
-
-                // Sort both arrays by id for comparison
-                responseData.sort((a, b) => a.id - b.id);
-                expectedData.sort((a, b) => a.id - b.id);
-                expect(res.body.status).to.equal('success');
-                expect(responseData).to.deep.equal(expectedData);
-                done();
-            })
     });
-
-
+    
+    
 });

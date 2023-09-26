@@ -1,0 +1,9 @@
+{
+    "id": 1,
+    "name": "City 1",
+    "connectionString": "server=localhost;user=root;password=root;database=heidi_city_1",
+    "isAdminListings": null,
+    "image": null,
+    "inCityServer": null,
+    "hasForum": 1
+  }

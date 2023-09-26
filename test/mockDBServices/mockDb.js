@@ -1,11 +1,10 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const getConnection = require('./mockConnection')
 
-const dbPath = path.join(__dirname,'..', 'test.db'); // mockdb to be replaces
-const cityPath = path.join(__dirname,'..', 'city-1.db'); // mockdb to be replaces
+const dbPath = path.join(__dirname,'..', 'test.db'); 
+const cityPath = path.join(__dirname,'..', 'city-1.db'); 
 
-let db; // sqlitedb
+let db; 
 
 class MockDb{
     constructor(cityId) {
@@ -83,63 +82,48 @@ class MockDb{
     }
 
     async create(table, data, cityId) {
-        const connection = await getConnection(cityId);
-        if (connection){
-            const keys = Object.keys(data);
-            const values = Object.values(data);
-            const placeholders = keys.map(() => '?').join(',');
-            const query = `INSERT INTO ${table} (${keys.join(',')}) VALUES (${placeholders})`;
-            const response = await query(query, values);
-            return { id: response.lastID };
-        }
+        const keys = Object.keys(data);
+        const values = Object.values(data);
+        const placeholders = keys.map(() => '?').join(',');
+        const q = `INSERT INTO ${table} (${keys.join(',')}) VALUES (${placeholders})`;
+        const response = await this.createQuery(q, values);
+        return  [response];
     }
 
     async update(table, data, conditions, cityId) {
-        const connection = await getConnection(cityId);
-        if (connection){
-            const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
-            const setValues = Object.values(data);
-            const whereClause = Object.keys(conditions).map(key => `${key} = ?`).join(' AND ');
-            const whereValues = Object.values(conditions);
-            const query = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
-            await query(query, [...setValues, ...whereValues]);
-        }
+        const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
+        const setValues = Object.values(data);
+        const whereClause = Object.keys(conditions).map(key => `${key} = ?`).join(' AND ');
+        const whereValues = Object.values(conditions);
+        const query = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
+        await query(query, [...setValues, ...whereValues]);
     }
 
     async deleteData(table, filter, cityId) {
-        const connection = await getConnection(cityId);
-        if (connection){
-            let query = `DELETE FROM ${table} `;
-            const queryParams = [];
-            if (filter) {
-                query += "WHERE ";
-                for (const key in filter) {
-                    query += `${key} = ? AND `;
-                    queryParams.push(filter[key]);
-                }
-                query = query.slice(0, -4);
+        let query = `DELETE FROM ${table} `;
+        const queryParams = [];
+        if (filter) {
+            query += "WHERE ";
+            for (const key in filter) {
+                query += `${key} = ? AND `;
+                queryParams.push(filter[key]);
             }
-            await query(query, queryParams);
+            query = query.slice(0, -4);
         }
+        await query(query, queryParams);
     }
 
     async callStoredProcedure(spName, parameters, cityId) {
-        const connection = await getConnection(cityId);
-        if (connection){
-            let query = `CALL ${spName}`;
-            if (parameters && parameters.length > 0) {
-                query += `(${Array(parameters.length).fill("?")})`;
-            }
-            await query(query, parameters);
+        let query = `CALL ${spName}`;
+        if (parameters && parameters.length > 0) {
+            query += `(${Array(parameters.length).fill("?")})`;
         }
+        await query(query, parameters);
     }
 
     async callQuery(query, params, cityId) {
-        const connection = await getConnection(cityId);
-        if (connection){
-            const rows = await query(query, params);
-            return { rows };
-        }
+        const rows = await query(query, params);
+        return { rows };
     }
 
     release(){

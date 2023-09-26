@@ -46,12 +46,13 @@ describe('Cities Endpoint Test', () => {
     it('should return a list of cities without filters', (done) => {
         let expectedData;
 
-        mockDbSQL.all('SELECT id, name, image FROM cities')
+        mockDbSQL.all('SELECT id, name, image, hasForum FROM cities')
             .then((dbResponse) => {
                 expectedData = dbResponse.map((item) => ({
                     id: item.id,
                     name: item.name,
                     image: item.image,
+                    hasForum: item.hasForum
                 }));
 
                 return chai.request(app)

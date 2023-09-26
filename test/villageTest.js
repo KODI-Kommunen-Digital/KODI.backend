@@ -29,7 +29,7 @@ describe('Village Endpoint Test', () => {
     let server;
     let app;
 
-    
+
     before(async () => {
         mockDbSQL = await open({
             filename: dbPath,
