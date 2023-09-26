@@ -132,7 +132,7 @@ describe('Users Endpoint Test', () => {
 
         const mockDb = new MockDb();
         const userData = await mockDb.get(tables.USER_TABLE, {id: 7});
-        expect(userData[0].description).to.equal('Updated');
+        expect(userData[0].description).to.equal(requestPayload.description);
         await mockDb.update(tables.USER_TABLE, {description: ''},{id: 7});
     });
 

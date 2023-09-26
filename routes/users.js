@@ -493,7 +493,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.socialMedia = JSON.stringify(socialMediaList);
     }
 
-    if (updationData !== {}) {
+    if (!updationData) {
         database
             .update(tables.USER_TABLE, updationData, { id })
             .then((response) => {
