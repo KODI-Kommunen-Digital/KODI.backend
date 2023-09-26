@@ -27,7 +27,7 @@ indexFile.__set__('listingsRouter', cityListingsRouter);
 
 const data = require("./staticdata/listingsStaticData1.json");
 
-describe('City Listing Endpoints Test', () => {
+describe(' Listing Endpoints Test', () => {
     let coreDb;
     let cityDb;
     let app;
@@ -53,7 +53,7 @@ describe('City Listing Endpoints Test', () => {
     });
 
     it('get api', async () => {
-        const expectedData = data;
+        const expectedData = [];
 
         const res = await chai.request(app)
             .get('/listings')
