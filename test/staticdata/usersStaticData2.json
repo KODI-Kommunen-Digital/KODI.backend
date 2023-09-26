@@ -1,0 +1,24 @@
+[
+  {
+    "id": 7,
+    "username": "login",
+    "socialMedia": "{}",
+    "email": "username@gmail.com",
+    "website": null,
+    "image": "user_7/profilePic",
+    "firstname": "s",
+    "lastname": "m",
+    "roleId": 1
+  },
+  {
+    "id": 8,
+    "username": "SoSa-HEIDI",
+    "socialMedia": null,
+    "email": "ss@heidi-app.de",
+    "website": null,
+    "image": null,
+    "firstname": "Spoorthi",
+    "lastname": "Madhavan",
+    "roleId": 3
+  }
+]

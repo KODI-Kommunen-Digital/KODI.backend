@@ -26,10 +26,8 @@ indexFile.__set__('villageRouter', villageRouter);
 
 describe('Village Endpoint Test', () => {
     let mockDbSQL;
-    let server;
     let app;
-
-
+    let server;
     before(async () => {
         mockDbSQL = await open({
             filename: dbPath,

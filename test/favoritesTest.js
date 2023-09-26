@@ -26,9 +26,12 @@ const indexFile = rewire('./testServer');
 indexFile.__set__('favoriteRouter', favoritesRouter);
 
 const tokenUtil = require('./../utils/token');
-const tables = require('../constants/tableNames')
+
 const data = require("./staticdata/favoritesStaticData1.json");
 const MockDb = require("./mockDBServices/mockDb")
+
+const tables = require("../constants/tableNames");
+
 describe('Favorites Endpoint Test', () => {
     let coreDb;
     let cityDb;
@@ -51,7 +54,7 @@ describe('Favorites Endpoint Test', () => {
             userId: 7,
             roleId: 1
         }).accessToken;
- 
+
     });
 
     after(async () => {
@@ -109,7 +112,10 @@ describe('Favorites Endpoint Test', () => {
 
     it('post api', (done) => {
         new Promise((resolve) => {
-            const requestBody = {cityId: 1, listingId: 1}
+            const requestBody = {
+                cityId: 1,
+                listingId: 1
+            }
 
             const response = chai.request(app)
                 .post('/users/7/favorites')
@@ -127,13 +133,6 @@ describe('Favorites Endpoint Test', () => {
             })
             .then((id) =>{
                 console.log(id);
-                const res =  chai.request(app)
-                    .delete(`/users/7/favorites/${id}`)
-                    .set({ "Authorization": `Bearer ${token}` })
-                    .send();
-        
-                expect(res).to.have.status(200);
-                expect(res.body.status).to.equal('success');
                 return coreDb.all(`DELETE FROM ${tables.FAVORITES_TABLE} where id = ${id}`);
             })
     });
@@ -145,9 +144,9 @@ describe('Favorites Endpoint Test', () => {
             cityId: 1,
             listingId: 1
         };
-    
-        const mockDb = new MockDb(); 
-        await mockDb.create('FAVORITES', newFavorite);
+
+        const mockDb = new MockDb();
+        await mockDb.create(tables.FAVORITES_TABLE, newFavorite);
         const res = await chai.request(app)
             .delete(`/users/7/favorites/90`)
             .set({ "Authorization": `Bearer ${token}` })
@@ -155,8 +154,8 @@ describe('Favorites Endpoint Test', () => {
 
         expect(res).to.have.status(200);
         expect(res.body.status).to.equal('success');
-
+    
     });
-    
-    
+
+
 });

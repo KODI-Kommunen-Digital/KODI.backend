@@ -1,28 +1,113 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname,'..', 'test.db'); 
-const cityPath = path.join(__dirname,'..', 'city-1.db'); 
+const corePath = path.join(__dirname,'..', 'test.db'); 
+const cityPath = path.join(__dirname,'..', 'city-1.db');
 
-let db; 
+// sqlitedb
 
 class MockDb{
+    dbPath;
     constructor(cityId) {
-        db = new sqlite3.Database(dbPath);
+        this.dbPath = corePath;
         if (cityId) {
-            db = new sqlite3.Database(cityPath);
+            this.dbPath = cityPath;
         }
     }
 
     async query(sql, params) {
+        sql = sql.replaceAll('heidi_city_1.', '');
+        if(sql.startsWith('INSERT')){
+            const split = sql.split(' ');
+            const table = split[2];
+            const keys = Object.keys(params);
+            const values = Object.values(params);
+            const placeholders = keys.map(() => '?').join(',');
+            sql = `INSERT INTO ${table} (${keys.join(',')}) VALUES (${placeholders})`;
+
+            return new Promise((resolve, reject) => {
+                const db = new sqlite3.Database(this.dbPath);
+                db.run(sql, values, function(err, rows) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        db.close();
+                        this.insertId = this.lastID;
+                        resolve([this]);
+                    }
+                });
+            });
+        }
+        else if(sql.startsWith('UPDATE')){
+            const split = sql.split(' ');
+            const table = split[1];
+
+            sql = `UPDATE ${table} SET `;
+
+            let filter = params[0];
+            const queryParams = [];
+
+            let filterKeys = Object.keys(filter);
+
+            for (let i = 0; i < filterKeys.length; i++) {
+                const key = filterKeys[i];
+                if (Array.isArray(filter[key])) {
+                    sql += `${key} IN (${filter[key].map(() => '?').join(',')})`;
+                    queryParams.push(...filter[key]);
+                } else {
+                    sql += `${key} = ?`;
+                    queryParams.push(filter[key]);
+                }
+
+                if (i < filterKeys.length - 1) {
+                    sql += ', ';
+                }
+            }
+
+            sql += ' WHERE ';
+
+            filter = params[1];
+
+            filterKeys = Object.keys(filter);
+
+            for (let i = 0; i < filterKeys.length; i++) {
+                const key = filterKeys[i];
+                if (Array.isArray(filter[key])) {
+                    sql += `${key} IN (${filter[key].map(() => '?').join(',')})`;
+                    queryParams.push(...filter[key]);
+                } else {
+                    sql += `${key} = ?`;
+                    queryParams.push(filter[key]);
+                }
+
+                if (i < filterKeys.length - 1) {
+                    sql += ', ';
+                }
+            }
+
+            const values = queryParams;
+            return new Promise((resolve, reject) => {
+                const db = new sqlite3.Database(this.dbPath);
+                db.run(sql, values, function(err, rows) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        db.close();
+                        this.insertId = this.lastID;
+                        resolve([this]);
+                    }
+                });
+            });
+
+        }
         return new Promise((resolve, reject) => {
-            const db = new sqlite3.Database(dbPath);
+            const db = new sqlite3.Database(this.dbPath);
             db.all(sql, params, (err, rows) => {
                 if (err) {
                     reject(err);
                 } else {
                     db.close();
-                    resolve({rows, fields: null});
+                    resolve([rows, null]);
                 }
             });
         });
@@ -30,7 +115,7 @@ class MockDb{
 
     async createQuery(sql, params) {
         return new Promise((resolve, reject) => {
-            const db = new sqlite3.Database(dbPath);
+            const db = new sqlite3.Database(this.dbPath);
             db.run(sql, params, function(err, rows) {
                 if (err) {
                     reject(err);
@@ -77,11 +162,11 @@ class MockDb{
             query += ` LIMIT ${(pageNo - 1) * pageSize}, ${pageSize}`;
         }
 
-        const rows = await query(query, queryParams);
-        return { rows };
+        const [rows] = await this.query(query, queryParams);
+        return rows;
     }
 
-    async create(table, data, cityId) {
+    async create(table, data) {
         const keys = Object.keys(data);
         const values = Object.values(data);
         const placeholders = keys.map(() => '?').join(',');
@@ -90,16 +175,14 @@ class MockDb{
         return  [response];
     }
 
-    async update(table, data, conditions, cityId) {
+    async update(table, data, conditions) {
         const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
-        const setValues = Object.values(data);
         const whereClause = Object.keys(conditions).map(key => `${key} = ?`).join(' AND ');
-        const whereValues = Object.values(conditions);
         const query = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
-        await query(query, [...setValues, ...whereValues]);
+        await this.query(query, [data, conditions]);
     }
 
-    async deleteData(table, filter, cityId) {
+    async deleteData(table, filter) {
         let query = `DELETE FROM ${table} `;
         const queryParams = [];
         if (filter) {
@@ -110,7 +193,7 @@ class MockDb{
             }
             query = query.slice(0, -4);
         }
-        await query(query, queryParams);
+        await this.query(query, queryParams);
     }
 
     async callStoredProcedure(spName, parameters, cityId) {
@@ -127,11 +210,11 @@ class MockDb{
     }
 
     release(){
-        db.close();
+        // db.close();
     }
 
     close(){
-        db.close();
+        // db.close();
     }
 }
 

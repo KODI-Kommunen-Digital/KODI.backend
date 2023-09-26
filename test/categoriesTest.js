@@ -23,20 +23,17 @@ categoriesRouter.__set__('database', database);
 
 const indexFile = rewire('./testServer');
 indexFile.__set__('categoriesRouter', categoriesRouter);
-const categoriesStaticData = require('./staticdata/categoriesStaticData.json')
 
 describe('Categories Endpoint Test', () => {
     let mockDbSQL;
     let app;
     let server;
-    let staticData;
 
     before(async () => {
         mockDbSQL = await open({
             filename: dbPath,
             driver: sqlite3.Database,
         });
-        staticData =categoriesStaticData;
         server = new indexFile.Server();
         app = server.init();
     });
@@ -64,8 +61,7 @@ describe('Categories Endpoint Test', () => {
                         }
                         const responseData = res.body.data;
                         expect(res).to.status(200);
-                        expect(expectedData).to.deep.equal(staticData);
-                        expect(responseData).to.deep.equal(staticData);
+                        expect(responseData).to.deep.equal(expectedData);
                         done();
                     });
             })
@@ -74,7 +70,7 @@ describe('Categories Endpoint Test', () => {
                 done(err);
             });
 
-    });
+    }).timeout(3000);
 
     it('should return subcategories for a specific category', (done) => {
         const categoryId = 1;
@@ -101,41 +97,59 @@ describe('Categories Endpoint Test', () => {
                 console.error('Error:', err);
                 done(err);
             });
-    });
+    }).timeout(3000);
 
-    // it('should return listings count for a specific cityId', (done) => {
-    //     const cityId = 1;
-    //     const query = `SELECT categoryId, COUNT(*) as count FROM heidi_city_${cityId}.listings GROUP BY categoryId;`;
-    //     const mockResponse = [
-    //         { categoryId: 10, count: 1 },
-    //     ];
+    it('should return listings count for a specific cityId', (done) => {
+        const cityId = 1;
+        const query = `SELECT categoryId, COUNT(*) as count FROM heidi_city_${cityId}.listings GROUP BY categoryId;`;
+        const mockResponse = 
+            [
+                {
+                    "categoryId": 1,
+                    "count": 15
+                },
+                {
+                    "categoryId": 3,
+                    "count": 6
+                },
+                {
+                    "categoryId": 4,
+                    "count": 2
+                },
+                {
+                    "categoryId": 6,
+                    "count": 1
+                },
+                {
+                    "categoryId": 11,
+                    "count": 1
+                }
+            ];
+        chai.request(app)
+            .get(`/categories/listingsCount?cityId=${cityId}`)
+            .end(async (err, res) => {
+                if (err) {
+                    return done(err);
+                }
+                mockDbSQL.exec = async (sql) => {
+                    if (sql === query) {
+                        return {
+                            all: async () => mockResponse,
+                        };
+                    }
+                };
+                try {
+                    expect(res).to.have.status(200);
+                    expect(res.body.status).to.equal('success');
+                    expect(res.body.data ).to.deep.equal(mockResponse);
+                    done();
+                }
+                catch (err){
+                    done(err);
+                }
+            });
 
-
-    //         chai.request(app)
-    //             .get(`/categories/listingsCount?cityId=${cityId}`)
-    //             .end(async (err, res) => {
-    //                 if (err) {
-    //                     return done(err);
-    //                 }
-    //                 mockDbSQL.exec = async (sql) => {
-    //                     if (sql === query) {
-    //                         return {
-    //                             all: async () => mockResponse,
-    //                         };
-    //                     }
-    //                 };
-    //                 try {
-    //                     expect(res).to.have.status(200);
-    //                     expect(res.body.status).to.equal('success');
-    //                     expect(res.body.data).to.deep.equal(mockResponse);
-    //                     done();
-    //                 }
-    //                 catch (err){
-    //                     done(err);
-    //                 }
-    //             });
-
-    // });//.timeout(3000);
+    }).timeout(3000);
 
     it('should handle an invalid cityId by returning a 404 error', (done) => {
         const invalidCityId = Math.floor(Math.random() * 1000);

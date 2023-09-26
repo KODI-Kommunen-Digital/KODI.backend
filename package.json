@@ -42,7 +42,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint",
-    "test": "mocha --recursive 'test/favoritesTest.js' --no-timeouts --reporter mochawesome --require mochawesome/register --reporter-options reportDir=/Users/spsa-heidi/Documents/HEIDI/Smart-Region-M.Backend/testReports,reportFilename=testResults",
+    "test": "mocha --recursive 'test/usersTest.js' --no-timeouts --reporter mochawesome --require mochawesome/register --reporter-options reportDir=/Users/spsa-heidi/Documents/HEIDI/Smart-Region-M.Backend/testReports,reportFilename=testResults",
     "start": "nodemon index.js",
     "deploy": "pm2 start index.js --name \"API\"",
     "lint:fix": "eslint --fix --ext .js,.jsx .",

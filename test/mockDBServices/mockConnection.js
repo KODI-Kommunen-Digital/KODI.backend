@@ -8,5 +8,4 @@ async function getConnection(cityId) {
 
     return db;
 }
-
 module.exports = { getConnection };
