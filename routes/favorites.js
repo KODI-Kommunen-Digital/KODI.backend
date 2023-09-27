@@ -33,7 +33,13 @@ router.get("/", authentication, async function (req, res, next) {
 // To get all the listings from the favorite table
 router.get("/listings", authentication, async function (req, res, next) {
     const userId = parseInt(req.paramUserId);
+    const params = req.query;
+    const cityId = null;
     let listings = [];
+    const listingFilter = {}
+    let favFilter = {
+        userId
+    }
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         next(new AppError(`Invalid userId ${userId}`, 400));
         return;
@@ -43,10 +49,47 @@ router.get("/listings", authentication, async function (req, res, next) {
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
+
+    if (params.categoryId) {
+        try {
+            let response = await database.get(
+                tables.CATEGORIES_TABLE,
+                { id: params.categoryId },
+                null
+            );
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
+                );
+            }
+            listingFilter.categoryId = params.categoryId;
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    if (params.cityId) {
+        try {
+            const response = await database.get(
+                tables.CITIES_TABLE,
+                { id: params.cityId },
+                null
+            );
+            cities = response.rows;
+            if (cities && cities.length === 0) {
+                return next(
+                    new AppError(`Invalid CityId '${params.cityId}' given`, 400)
+                );
+            }
+            favFilter.cityId = params.cityId;
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
     try {
-        let response = await database.get(tables.FAVORITES_TABLE, {
-            userId,
-        });
+        let response = await database.get(tables.FAVORITES_TABLE, favFilter);
         const favDict = {};
         response.rows.forEach((fav) => {
             const cityId = fav.cityId;
@@ -59,9 +102,10 @@ router.get("/listings", authentication, async function (req, res, next) {
         });
         listings = [];
         for (const cityId in favDict) {
+            listingFilter.id = favDict[cityId];
             response = await database.get(
                 tables.LISTINGS_TABLE,
-                { id: favDict[cityId] },
+                listingFilter,
                 null,
                 cityId
             );

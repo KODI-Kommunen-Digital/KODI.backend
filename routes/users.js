@@ -1218,6 +1218,7 @@ router.get("/", async function (req, res, next) {
         "image",
         "firstname",
         "lastname",
+        "description",
         "roleId",
     ];
     const filter = {}
