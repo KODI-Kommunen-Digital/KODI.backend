@@ -504,9 +504,19 @@ router.post("/", authentication, async function (req, res, next) {
                 .toISOString()
                 .slice(0, 19)
                 .replace("T", " ");
+            insertionData.expiryDate = new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24)
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ");
         } else {
             return next(new AppError(`End date or Time is not present`, 400));
         }
+    }
+    if (parseInt(payload.categoryId) === categories.News) {
+        insertionData.expiryDate = new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15)
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " ");
     }
 
     insertionData.createdAt = new Date()
