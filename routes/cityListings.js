@@ -747,6 +747,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
             .toISOString()
             .slice(0, 19)
             .replace("T", " ");
+        updationData.expiryDate = new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24)
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " ");
     }
 
     database
