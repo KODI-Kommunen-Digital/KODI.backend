@@ -34,10 +34,9 @@ router.get("/", authentication, async function (req, res, next) {
 router.get("/listings", authentication, async function (req, res, next) {
     const userId = parseInt(req.paramUserId);
     const params = req.query;
-    const cityId = null;
     let listings = [];
     const listingFilter = {}
-    let favFilter = {
+    const favFilter = {
         userId
     }
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -52,7 +51,7 @@ router.get("/listings", authentication, async function (req, res, next) {
 
     if (params.categoryId) {
         try {
-            let response = await database.get(
+            const response = await database.get(
                 tables.CATEGORIES_TABLE,
                 { id: params.categoryId },
                 null
@@ -76,7 +75,7 @@ router.get("/listings", authentication, async function (req, res, next) {
                 { id: params.cityId },
                 null
             );
-            cities = response.rows;
+            const cities = response.rows;
             if (cities && cities.length === 0) {
                 return next(
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
