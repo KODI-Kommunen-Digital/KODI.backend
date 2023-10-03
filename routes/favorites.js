@@ -53,7 +53,7 @@ router.get("/listings", authentication, async function (req, res, next) {
         try {
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: params.categoryId },
+                { id: parseInt(params.categoryId)  },
                 null
             );
             const data = response.rows;
@@ -72,7 +72,7 @@ router.get("/listings", authentication, async function (req, res, next) {
         try {
             const response = await database.get(
                 tables.CITIES_TABLE,
-                { id: params.cityId },
+                { id: parseInt(params.cityId) },
                 null
             );
             const cities = response.rows;

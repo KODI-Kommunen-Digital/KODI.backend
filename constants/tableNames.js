@@ -15,5 +15,6 @@ module.exports = {
     VERIFICATION_TOKENS_TABLE: 'verification_tokens',
     EXCEPTIONS_TABLE: 'exceptions',
     FAVORITES_TABLE: 'favorites',
-    CITIZEN_SERVICES_TABLE: 'citizen_services'
+    CITIZEN_SERVICES_TABLE: 'citizen_services',
+    MORE_INFO_TABLE: 'moreinfo'
 }
