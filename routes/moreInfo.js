@@ -15,7 +15,8 @@ router.get("/", async function (req, res, next) {
         .then((response) => {
             const data = response.rows;
             data.forEach(d => {
-                d.title = moreInfoTranslations[language][d.title]
+                d.title = moreInfoTranslations[language][d.title];
+                d.isPdf = d.isPdf === 1;
             })
             res.status(200).json({
                 status: "success",
