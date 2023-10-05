@@ -5,6 +5,20 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 
 router.get("/", async function (req, res, next) {
+    database.get(tables.CITIZEN_SERVICES_TABLE)
+        .then((response) => {
+            const data = response.rows;
+            res.status(200).json({
+                status: "success",
+                data,
+            });
+        })
+        .catch((err) => {
+            return next(new AppError(err));
+        });
+});
+
+router.get("/digitalManagement", async function (req, res, next) {
     const cityId = req.query.cityId || null;
     let promise = null;
     if (cityId) {
@@ -20,9 +34,9 @@ router.get("/", async function (req, res, next) {
                 return next(new AppError(err));
             }
         }
-        promise = database.get(tables.CITIZEN_SERVICES_TABLE, { cityId });
+        promise = database.get(tables.DIGITAL_MANAGEMENT_TABLE, { cityId });
     } else {
-        promise = database.get(tables.CITIZEN_SERVICES_TABLE);
+        promise = database.get(tables.DIGITAL_MANAGEMENT_TABLE);
     }
 
     promise

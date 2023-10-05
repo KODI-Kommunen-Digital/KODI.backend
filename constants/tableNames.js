@@ -16,5 +16,6 @@ module.exports = {
     EXCEPTIONS_TABLE: 'exceptions',
     FAVORITES_TABLE: 'favorites',
     CITIZEN_SERVICES_TABLE: 'citizen_services',
-    MORE_INFO_TABLE: 'moreinfo'
+    MORE_INFO_TABLE: 'moreinfo',
+    DIGITAL_MANAGEMENT_TABLE: 'digital_management'
 }
