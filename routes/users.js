@@ -805,11 +805,18 @@ router.get("/:id/listings", async function (req, res, next) {
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT *, ${
+            const listingImageTableName = `heidi_city_${cityMapping.cityId}${
+                cityMapping.inCityServer ? "_" : "."
+            }listing_images LI_${cityMapping.cityId}`;
+            const cityListAlias = `L_${cityMapping.cityId}`;
+
+            let query = `SELECT  LI_${cityMapping.cityId}.logo,${cityListAlias}.*, ${
                 cityMapping.cityId
             } as cityId FROM heidi_city_${cityMapping.cityId}${
                 cityMapping.inCityServer ? "_" : "."
-            }listings WHERE userId = ${cityMapping.cityUserId}`;
+            }listings ${cityListAlias}
+            INNER JOIN ${listingImageTableName} ON LI_${cityMapping.cityId}.listingId = ${cityListAlias}.id AND LI_${cityMapping.cityId}.imageOrder = 1
+            WHERE userId = ${cityMapping.cityUserId}`;
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
                     query += ` AND categoryId = ${filters.categoryId}`;
@@ -823,10 +830,12 @@ router.get("/:id/listings", async function (req, res, next) {
             }
             individualQueries.push(query);
         }
+
         if (individualQueries && individualQueries.length > 0) {
             const query = `select * from (
 					${individualQueries.join(" union all ")}
 				) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+
             response = await database.callQuery(query);
             return res.status(200).json({
                 status: "success",
