@@ -696,6 +696,22 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.removeImage) {
         updationData.logo = null;
     }
+
+    if (payload.pdf && payload.removePdf) {
+        return next(
+            new AppError(
+                `Invalid Input, pdf and removePdf both fields present`,
+                400
+            )
+        );
+    }
+    if (payload.pdf) {
+        updationData.pdf = payload.pdf;
+    }
+    if (payload.removePdf) {
+        updationData.pdf = null;
+    }
+
     if (payload.statusId !== currentListingData.statusId) {
         if (req.roleId !== roles.Admin)
             return next(
