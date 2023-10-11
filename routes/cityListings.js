@@ -3,6 +3,8 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
+const defaultImageCount = require("../constants/defaultFiles");
+
 const source = require("../constants/source");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
@@ -15,6 +17,8 @@ const pdfUpload = require("../utils/pdfUpload");
 const objectDelete = require("../utils/imageDelete");
 
 // const radiusSearch = require('../services/handler')
+
+const DEFAULTIMAGE = "Defaultimage";
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -264,6 +268,7 @@ router.post("/", authentication, async function (req, res, next) {
     const insertionData = {};
     let user = {};
     let city = {};
+    const hasDefaultImage = payload.logo !== null ? false : true;
     const userId = req.userId;
 
     if (!payload) {
@@ -551,6 +556,17 @@ router.post("/", authentication, async function (req, res, next) {
             userId,
             listingId,
         });
+
+
+        if(hasDefaultImage){
+            const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
+            const query = `select * from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+            const categoryImage = await database.callQuery(query);
+            const moduloValue = categoryImage.rows.length > 0 ? (categoryImage.rows.length % defaultImageCount[categoryName]) + 1 : 1;
+            const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+            addDefaultImage(cityId,listingId,imageName);
+        }
+
         res.status(200).json({
             status: "success",
             id: listingId,
@@ -1186,5 +1202,20 @@ router.delete(
         }
     }
 );
+
+// Add Default image to the list
+async function addDefaultImage(cityId,listingId,imageName){
+    const imageOrder = 1;
+    return await database.create(
+        tables.LISTINGS_IMAGES_TABLE,
+        {
+            listingId,
+            imageOrder,
+            logo: imageName,
+            isDefaultImage:true
+        },
+        cityId
+    );
+}
 
 module.exports = router;
