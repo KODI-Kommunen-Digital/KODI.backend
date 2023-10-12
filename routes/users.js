@@ -36,13 +36,16 @@ router.post("/login", async function (req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     }
+    function isEmailValid(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
 
     try {
         // Check if payload.username is a valid email
         let users;
         let searchField;
-        if (payload.username.includes('@')) {
-            // If payload.username contains '@', consider it an email
+        if (isEmailValid(payload.username)) {
             users = await database.get(tables.USER_TABLE, {
                 email: payload.username,
             });
