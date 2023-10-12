@@ -38,11 +38,25 @@ router.post("/login", async function (req, res, next) {
     }
 
     try {
-        const users = await database.get(tables.USER_TABLE, {
-            username: payload.username,
-        });
+        // Check if payload.username is a valid email
+        let users;
+        let searchField;
+        if (payload.username.includes('@')) {
+            // If payload.username contains '@', consider it an email
+            users = await database.get(tables.USER_TABLE, {
+                email: payload.username,
+            });
+            searchField = "email";
+        } else {
+            // If not, consider it a username
+            users = await database.get(tables.USER_TABLE, {
+                username: payload.username,
+            });
+            searchField = "username";
+        }
+
         if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError(`Invalid username`, 401, errorCodes.INVALID_USERNAME));
+            return next(new AppError(`Invalid ${searchField}`, 401, errorCodes.INVALID_CREDENTIALS));
         }
 
         const userData = users.rows[0];
