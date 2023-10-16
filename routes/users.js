@@ -191,7 +191,7 @@ router.post("/register", async function (req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400));
     } else {
-        const re = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+        const re = !/^\S{8,}$/;
         if(!re.test(payload.password)){
             return next(new AppError(`Invalid Password. `, 400));
         } else {
