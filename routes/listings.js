@@ -101,8 +101,8 @@ router.get("/", async function (req, res, next) {
         filters.categoryId = params.categoryId;
     }
 
-    if (params.cityId) {
-        try {
+    try {
+        if (params.cityId) {
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
@@ -114,12 +114,12 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             }
-        } catch (err) {
-            return next(new AppError(err));
+        } else {
+            const response = await database.get(tables.CITIES_TABLE);
+            cities = response.rows;
         }
-    } else {
-        const response = await database.get(tables.CITIES_TABLE);
-        cities = response.rows;
+    } catch (err) {
+        return next(new AppError(err));
     }
 
     try {
