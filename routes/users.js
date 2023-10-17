@@ -40,9 +40,11 @@ router.post("/login", async function (req, res, next) {
     try {
         const users = await database.get(tables.USER_TABLE, {
             username: payload.username,
-        });
+            email: payload.username
+        }, null, null, null, null, null, null, "OR");
+
         if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError(`Invalid username`, 401, errorCodes.INVALID_USERNAME));
+            return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
         }
 
         const userData = users.rows[0];
@@ -191,7 +193,7 @@ router.post("/register", async function (req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400));
     } else {
-        const re = !/^\S{8,}$/;
+        const re = /^\S{8,}$/;
         if(!re.test(payload.password)){
             return next(new AppError(`Invalid Password. `, 400));
         } else {
@@ -924,7 +926,11 @@ router.post("/forgotPassword", async function (req, res, next) {
     }
 
     try {
-        let response = await database.get(tables.USER_TABLE, { username });
+        let response = await database.get(tables.USER_TABLE, {
+            username: req.body.username,
+            email: req.body.username
+        }, null, null, null, null, null, null, "OR");
+
         const data = response.rows;
         if (data && data.length === 0) {
             return next(

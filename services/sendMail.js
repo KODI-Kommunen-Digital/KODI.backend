@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     path: process.env.EMAIL_PATH,
+    secure: true,
     auth: {
         user: process.env.EMAIL_ID,
         pass: process.env.EMAIL_PASSWORD
