@@ -36,19 +36,15 @@ router.post("/login", async function (req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     }
-    function isEmailValid(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
 
     try {
-        users = await database.get(tables.USER_TABLE, {
+        const users = await database.get(tables.USER_TABLE, {
             username: payload.username,
             email: payload.username
         }, null, null, null, null, null, null, "OR");
 
         if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError(`Invalid ${searchField}`, 401, errorCodes.INVALID_CREDENTIALS));
+            return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
         }
 
         const userData = users.rows[0];
