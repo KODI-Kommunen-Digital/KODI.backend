@@ -42,21 +42,10 @@ router.post("/login", async function (req, res, next) {
     }
 
     try {
-        // Check if payload.username is a valid email
-        let users;
-        let searchField;
-        if (isEmailValid(payload.username)) {
-            users = await database.get(tables.USER_TABLE, {
-                email: payload.username,
-            });
-            searchField = "email";
-        } else {
-            // If not, consider it a username
-            users = await database.get(tables.USER_TABLE, {
-                username: payload.username,
-            });
-            searchField = "username";
-        }
+        users = await database.get(tables.USER_TABLE, {
+            username: payload.username,
+            email: payload.username
+        }, null, null, null, null, null, null, "OR");
 
         if (!users || !users.rows || users.rows.length === 0) {
             return next(new AppError(`Invalid ${searchField}`, 401, errorCodes.INVALID_CREDENTIALS));
