@@ -1,18 +1,23 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-const corePool = mysql.createPool({
-    connectionLimit: process.env.DATABASE_POOL_MAX || 10, // default 10
-    host: process.env.DATABASE_HOST,
-    user: process.env.DATABASE_USER,
-    password: process.env.DATABASE_PASSWORD,
-    database: process.env.DATABASE_NAME,
-    port: process.env.DATABASE_PORT || 3306
-})
-const pool = { 0: corePool };
+function getCorePool() {
+    return mysql.createPool({
+        connectionLimit: process.env.DATABASE_POOL_MAX || 10, // default 10
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASSWORD,
+        database: process.env.DATABASE_NAME,
+        port: process.env.DATABASE_PORT || 3306
+    })
+} 
+const pool = { 0: getCorePool() };
 
 
 async function getConnection(cityId) {
+    if (!cityId && !pool[0]) {
+        pool[0] = getCorePool();
+    }
     if (pool[cityId || 0]) {
         const connection = await pool[cityId || 0].getConnection();
         return connection;
