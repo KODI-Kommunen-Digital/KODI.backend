@@ -926,7 +926,11 @@ router.post("/forgotPassword", async function (req, res, next) {
     }
 
     try {
-        let response = await database.get(tables.USER_TABLE, { username });
+        let response = await database.get(tables.USER_TABLE, {
+            username: req.body.username,
+            email: req.body.username
+        }, null, null, null, null, null, null, "OR");
+
         const data = response.rows;
         if (data && data.length === 0) {
             return next(
