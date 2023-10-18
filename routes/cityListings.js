@@ -351,10 +351,10 @@ router.post("/", authentication, async function (req, res, next) {
 
     if (!payload.description) {
         return next(new AppError(`Description is not present`, 400));
-    } else if (payload.description.length > 10000) {
+    } else if (payload.description.length > 100000) {
         return next(
             new AppError(
-                `Length of Description cannot exceed 10000 characters`,
+                `Length of Description cannot exceed 100000 characters`,
                 400
             )
         );
@@ -638,10 +638,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.place = payload.place;
     }
     if (payload.description) {
-        if (payload.description.length > 10000) {
+        if (payload.description.length > 100000) {
             return next(
                 new AppError(
-                    `Length of Description cannot exceed 10000 characters`,
+                    `Length of Description cannot exceed 100000 characters`,
                     400
                 )
             );

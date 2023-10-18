@@ -216,11 +216,15 @@ router.post("/register", async function (req, res, next) {
         insertionData.website = payload.website;
     }
 
-    if (payload.image) {
-        insertionData.website = payload.website;
-    }
-
     if (payload.description) {
+        if (payload.description.length > 1000) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 1000 characters`,
+                    400
+                )
+            );
+        }
         insertionData.description = payload.description;
     }
 
