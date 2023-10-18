@@ -216,11 +216,15 @@ router.post("/register", async function (req, res, next) {
         insertionData.website = payload.website;
     }
 
-    if (payload.image) {
-        insertionData.website = payload.website;
-    }
-
     if (payload.description) {
+        if (payload.description.length > 255) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 255 characters`,
+                    400
+                )
+            );
+        }
         insertionData.description = payload.description;
     }
 
@@ -448,6 +452,15 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 
     if (payload.description) {
+        if (payload.description.length > 255) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 255 characters`,
+                    400
+                )
+            );
+        }
+            
         updationData.description = payload.description;
     }
 
