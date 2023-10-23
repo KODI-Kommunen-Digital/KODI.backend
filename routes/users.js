@@ -12,7 +12,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
-const imageDelete = require("../utils/imageDelete");
+const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 const errorCodes = require('../constants/errorCodes');
@@ -40,9 +40,11 @@ router.post("/login", async function (req, res, next) {
     try {
         const users = await database.get(tables.USER_TABLE, {
             username: payload.username,
-        });
+            email: payload.username
+        }, null, null, null, null, null, null, "OR");
+
         if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError(`Invalid username`, 401, errorCodes.INVALID_USERNAME));
+            return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
         }
 
         const userData = users.rows[0];
@@ -191,7 +193,7 @@ router.post("/register", async function (req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400));
     } else {
-        const re = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+        const re = /^\S{8,}$/;
         if(!re.test(payload.password)){
             return next(new AppError(`Invalid Password. `, 400));
         } else {
@@ -214,11 +216,15 @@ router.post("/register", async function (req, res, next) {
         insertionData.website = payload.website;
     }
 
-    if (payload.image) {
-        insertionData.website = payload.website;
-    }
-
     if (payload.description) {
+        if (payload.description.length > 255) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 255 characters`,
+                    400
+                )
+            );
+        }
         insertionData.description = payload.description;
     }
 
@@ -446,6 +452,15 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 
     if (payload.description) {
+        if (payload.description.length > 255) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 255 characters`,
+                    400
+                )
+            );
+        }
+            
         updationData.description = payload.description;
     }
 
@@ -493,7 +508,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.socialMedia = JSON.stringify(socialMediaList);
     }
 
-    if (updationData !== {}) {
+    if (Object.keys(updationData).length > 0) {
         database
             .update(tables.USER_TABLE, updationData, { id })
             .then((response) => {
@@ -632,7 +647,7 @@ router.delete(
                     new AppError("Image Delete failed with Error Code: " + err)
                 );
             };
-            await imageDelete(`user_${id}/profilePic`, onSucccess, onFail);
+            await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
         } catch (err) {
             return next(new AppError(err));
         }
@@ -903,7 +918,7 @@ router.post("/:id/refresh", async function (req, res, next) {
     } catch (error) {
         if (error.name === "TokenExpiredError") {
             await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                token: req.body.refreshToken,
+                refreshToken: req.body.refreshToken,
             });
             return next(new AppError(`Unauthorized! Token was expired!`, 401));
         }
@@ -924,7 +939,11 @@ router.post("/forgotPassword", async function (req, res, next) {
     }
 
     try {
-        let response = await database.get(tables.USER_TABLE, { username });
+        let response = await database.get(tables.USER_TABLE, {
+            username: req.body.username,
+            email: req.body.username
+        }, null, null, null, null, null, null, "OR");
+
         const data = response.rows;
         if (data && data.length === 0) {
             return next(
@@ -1217,7 +1236,9 @@ router.get("/", async function (req, res, next) {
         "website",
         "image",
         "firstname",
+        "description",
         "lastname",
+        "description",
         "roleId",
     ];
     const filter = {}
@@ -1260,7 +1281,7 @@ router.post(
         }
         database
             .callQuery(
-                `select id, userId, sourceAddress, browser, device from refreshTokens where userId = ? and refreshToken NOT IN (?); `,
+                `select id, userId, sourceAddress, browser, device from refreshtokens where userId = ? and refreshToken NOT IN (?); `,
                 [userId, refreshToken]
             )
             .then((response) => {
