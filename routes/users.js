@@ -119,14 +119,14 @@ router.post("/register", async function (req, res, next) {
     const payload = req.body;
     const insertionData = {};
     if (!payload) {
-        return next(new AppError(`Empty payload sent`, 400));
+        return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
     }
     const language = payload.language || "de";
     if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
+        return next(new AppError(`Incorrect language given`, 400, errorCodes.INVALID_LANGUAGE));
     }
     if (!payload.username) {
-        return next(new AppError(`Username is not present`, 400));
+        return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     } else {
         try {
             const response = await database.get(tables.USER_TABLE, {
@@ -137,7 +137,8 @@ router.post("/register", async function (req, res, next) {
                 return next(
                     new AppError(
                         `User with username '${payload.username}' already exists`,
-                        400
+                        400,
+                        errorCodes.USER_ALREADY_EXISTS
                     )
                 );
             }
@@ -145,7 +146,8 @@ router.post("/register", async function (req, res, next) {
                 return next(
                     new AppError(
                         `Username '${payload.username}' is not valid`,
-                        400
+                        400,
+                        errorCodes.INVALID_USERNAME
                     )
                 );
             }
@@ -155,7 +157,7 @@ router.post("/register", async function (req, res, next) {
         insertionData.username = payload.username;
     }
     if (!payload.email) {
-        return next(new AppError(`Email is not present`, 400));
+        return next(new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL));
     } else {
         try {
             const response = await database.get(tables.USER_TABLE, {
@@ -166,7 +168,8 @@ router.post("/register", async function (req, res, next) {
                 return next(
                     new AppError(
                         `User with email '${payload.email}' is already registered`,
-                        400
+                        400,
+                        errorCodes.EMAIL_ALREADY_EXISTS
                     )
                 );
             }
@@ -179,23 +182,23 @@ router.post("/register", async function (req, res, next) {
     insertionData.roleId = roles["Content Creator"];
 
     if (!payload.firstname) {
-        return next(new AppError(`Firstname is not present`, 400));
+        return next(new AppError(`Firstname is not present`, 400, errorCodes.MISSING_FIRSTNAME));
     } else {
         insertionData.firstname = payload.firstname;
     }
 
     if (!payload.lastname) {
-        return next(new AppError(`Lastname is not present`, 400));
+        return next(new AppError(`Lastname is not present`, 400, errorCodes.MISSING_LASTNAME));
     } else {
         insertionData.lastname = payload.lastname;
     }
 
     if (!payload.password) {
-        return next(new AppError(`Password is not present`, 400));
+        return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     } else {
         const re = /^\S{8,}$/;
         if(!re.test(payload.password)){
-            return next(new AppError(`Invalid Password. `, 400));
+            return next(new AppError(`Invalid Password. `, 400, errorCodes.INVALID_PASSWORD));
         } else {
             insertionData.password = await bcrypt.hash(
                 payload.password,
