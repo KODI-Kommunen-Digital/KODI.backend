@@ -773,6 +773,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
             .replace("T", " ");
     }
 
+    updationData.updatedAt = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+
     database
         .update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
         .then((response) => {
