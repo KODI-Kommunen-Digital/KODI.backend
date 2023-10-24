@@ -509,7 +509,10 @@ router.post("/", authentication, async function (req, res, next) {
                 .slice(0, 19)
                 .replace("T", " ");
         } else {
-            return next(new AppError(`End date or Time is not present`, 400));
+            insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ");
         }
     }
     if (parseInt(payload.categoryId) === categories.News) {
@@ -758,6 +761,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
             .slice(0, 19)
             .replace("T", " ");
     }
+    
     if (payload.endDate) {
         updationData.endDate = new Date(payload.endDate)
             .toISOString()
