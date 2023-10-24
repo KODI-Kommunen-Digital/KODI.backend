@@ -802,10 +802,8 @@ router.delete("/:id", authentication, async function (req, res, next) {
         { userId: req.userId, cityId },
         "cityUserId"
     );
-    const currentUser = await database.get(tables.USER_TABLE, {
-        id: req.userId,
-    });
-    if (!response.rows || response.rows.length === 0) {
+
+    if ((!response.rows || response.rows.length === 0) && req.roleId !== roles.Admin) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -821,7 +819,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
     if (
         currentListingData.userId !== cityUserId &&
-        currentUser.rows[0].roleId !== roles.Admin
+        req.roleId !== roles.Admin
     ) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
