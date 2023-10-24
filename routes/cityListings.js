@@ -390,11 +390,11 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.categoryId = payload.categoryId;
     }
 
-    if (payload.subCategoryId) {
+    if (payload.subcategoryId) {
         try {
             const response = await database.get(
                 tables.SUBCATEGORIES_TABLE,
-                { id: payload.subCategoryId },
+                { id: payload.subcategoryId },
                 null,
                 cityId
             );
@@ -403,7 +403,7 @@ router.post("/", authentication, async function (req, res, next) {
             if (data && data.length === 0) {
                 return next(
                     new AppError(
-                        `Invalid Sub Category '${payload.subCategoryId}' given`,
+                        `Invalid Sub Category '${payload.subcategoryId}' given`,
                         400
                     )
                 );
@@ -411,7 +411,7 @@ router.post("/", authentication, async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        insertionData.subCategoryId = payload.subCategoryId;
+        insertionData.subcategoryId = payload.subcategoryId;
     }
 
     if (!payload.statusId) {

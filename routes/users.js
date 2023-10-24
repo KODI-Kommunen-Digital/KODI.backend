@@ -783,20 +783,20 @@ router.get("/:id/listings", async function (req, res, next) {
                     )
                 );
             } else {
-                if (req.query.subCategoryId) {
+                if (req.query.subcategoryId) {
                     try {
                         const response = database.get(
                             tables.SUBCATEGORIES_TABLE,
                             {
                                 categoryId: req.query.categoryId,
-                                subCategoryId: req.query.subCategoryId,
+                                id: req.query.subcategoryId,
                             }
                         );
                         const data = response.rows;
                         if (data && data.length === 0) {
                             return next(
                                 new AppError(
-                                    `Invalid subCategory '${req.query.subCategoryId}' given`,
+                                    `Invalid subCategory '${req.query.subcategoryId}' given`,
                                     400
                                 )
                             );
@@ -804,7 +804,7 @@ router.get("/:id/listings", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.subCategoryId = req.query.subCategoryId;
+                    filters.subcategoryId = req.query.subcategoryId;
                 }
             }
         } catch (err) {
@@ -832,8 +832,8 @@ router.get("/:id/listings", async function (req, res, next) {
                 if (filters.categoryId) {
                     query += ` AND categoryId = ${filters.categoryId}`;
                 }
-                if (filters.subCategoryId) {
-                    query += ` AND subCategoryId = ${filters.subCategoryId}`;
+                if (filters.subcategoryId) {
+                    query += ` AND subcategoryId = ${filters.subcategoryId}`;
                 }
                 if (filters.statusId) {
                     query += ` AND statusId = ${filters.statusId}`;
