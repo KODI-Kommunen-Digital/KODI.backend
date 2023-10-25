@@ -13,6 +13,7 @@ const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload")
 const objectDelete = require("../utils/imageDelete");
+const getDateInFormate = require("../utils/getDateInFormate")
 
 // const radiusSearch = require('../services/handler')
 
@@ -271,7 +272,7 @@ router.post("/", authentication, async function (req, res, next) {
     const insertionData = {};
     let user = {};
     let city = {};
-    const userId = req.userId;
+    const userId = req.userId;  
 
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400));
@@ -491,23 +492,14 @@ router.post("/", authentication, async function (req, res, next) {
 
     if (parseInt(payload.categoryId) === categories.Events) {
         if (payload.startDate) {
-            insertionData.startDate = new Date(payload.startDate)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
+            insertionData.startDate = getDateInFormate(new Date(payload.startDate))
         } else {
             return next(new AppError(`Start date or Time is not present`, 400));
         }
 
         if (payload.endDate) {
-            insertionData.endDate = new Date(payload.endDate)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
-            insertionData.expiryDate = new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
+            insertionData.endDate = getDateInFormate(new Date(payload.endDate))
+            insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
         } else {
             insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
                 .toISOString()
@@ -516,16 +508,11 @@ router.post("/", authentication, async function (req, res, next) {
         }
     }
     if (parseInt(payload.categoryId) === categories.News) {
-        insertionData.expiryDate = new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+        insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15))
     }
 
-    insertionData.createdAt = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
+    insertionData.createdAt = getDateInFormate(new Date())
+    
 
     try {
         let response = {};
@@ -756,21 +743,13 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.latitude = payload.latitude;
     }
     if (payload.startDate) {
-        updationData.startDate = new Date(payload.startDate)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+        updationData.startDate = getDateInFormate(new Date(payload.startDate))
     }
     
     if (payload.endDate) {
-        updationData.endDate = new Date(payload.endDate)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
-        updationData.expiryDate = new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+        updationData.endDate = getDateInFormate(new Date(payload.endDate))
+        
+        updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
     }
 
     database
