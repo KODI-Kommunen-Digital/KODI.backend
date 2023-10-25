@@ -16,6 +16,7 @@ const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 const errorCodes = require('../constants/errorCodes');
+const getDateInFormate = require("../utils/getDateInFormate")
 
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
@@ -116,7 +117,7 @@ router.post("/login", async function (req, res, next) {
 });
 
 router.post("/register", async function (req, res, next) {
-    const payload = req.body;
+    const payload = req.body;  
     const insertionData = {};
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
@@ -281,7 +282,7 @@ router.post("/register", async function (req, res, next) {
         const tokenData = {
             userId,
             token,
-            expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
+            expiresAt: getDateInFormate(now),
         };
         await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
@@ -966,7 +967,7 @@ router.post("/forgotPassword", async function (req, res, next) {
         const tokenData = {
             userId: user.id,
             token,
-            expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
+            expiresAt: getDateInFormate(now),
         };
         response = await database.create(
             tables.FORGOT_PASSWORD_TOKENS_TABLE,
@@ -1039,7 +1040,7 @@ router.post("/resetPassword", async function (req, res, next) {
             userId,
             token,
         });
-        if (tokenData.expiresAt < new Date().toISOString()) {
+        if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(new AppError(`Token Expired`, 400));
         }
 
@@ -1100,7 +1101,7 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
         const tokenData = {
             userId: user.id,
             token,
-            expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
+            expiresAt: getDateInFormate(now),
         };
         await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
@@ -1164,7 +1165,7 @@ router.post("/verifyEmail", async function (req, res, next) {
             userId,
             token,
         });
-        if (tokenData.expiresAt < new Date().toISOString()) {
+        if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(
                 new AppError(`Token Expired, send verification mail again`, 400)
             );
