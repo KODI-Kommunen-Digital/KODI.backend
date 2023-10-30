@@ -75,7 +75,7 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid Category '${params.categoryId}' given`, 400)
                 );
             } else {
-                if (params.subCategoryId) {
+                if (params.subcategoryId) {
                     try {
                         response = database.get(tables.SUBCATEGORIES_TABLE, {
                             categoryId: params.categoryId,
@@ -84,7 +84,7 @@ router.get("/", async function (req, res, next) {
                         if (data && data.length === 0) {
                             return next(
                                 new AppError(
-                                    `Invalid subCategory '${params.subCategoryId}' given`,
+                                    `Invalid subCategory '${params.subcategoryId}' given`,
                                     400
                                 )
                             );
@@ -92,7 +92,7 @@ router.get("/", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.subCategoryId = params.subCategoryId;
+                    filters.subcategoryId = params.subcategoryId;
                 }
             }
         } catch (err) {
@@ -101,8 +101,8 @@ router.get("/", async function (req, res, next) {
         filters.categoryId = params.categoryId;
     }
 
-    if (params.cityId) {
-        try {
+    try {
+        if (params.cityId) {
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
@@ -114,12 +114,12 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             }
-        } catch (err) {
-            return next(new AppError(err));
+        } else {
+            const response = await database.get(tables.CITIES_TABLE);
+            cities = response.rows;
         }
-    } else {
-        const response = await database.get(tables.CITIES_TABLE);
-        cities = response.rows;
+    } catch (err) {
+        return next(new AppError(err));
     }
 
     try {
@@ -127,15 +127,24 @@ router.get("/", async function (req, res, next) {
         for (const city of cities) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            const listingImageTableName = `heidi_city_${city.id}${
-                city.inCityServer ? "_" : "."
-            }listing_images LI`;
-            let query = `SELECT L.*, LI.logo, U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
-                city.id
-            } as cityId FROM heidi_city_${city.id}${
-                city.inCityServer ? "_" : "."
-            }listings L 
-            INNER JOIN ${listingImageTableName} ON LI.listingId = L.id AND LI.imageOrder = 1
+            let query = `SELECT L.*, 
+            IFNULL(sub.logo, '') as logo,
+            IFNULL(sub.liCount, 0) as liCount,
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
+    city.id
+} as cityId FROM heidi_city_${city.id}${
+    city.inCityServer ? "_" : "."
+}listings L 
+            LEFT JOIN 
+            (
+                SELECT 
+                    listingId,
+                    SUM(CASE WHEN imageOrder = 1 THEN 1 ELSE 0 END) as hasImageOrder1,
+                    MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
+                    COUNT(listingId) as liCount
+                FROM heidi_city_${city.id}.listing_images
+                GROUP BY listingId
+            ) sub ON L.id = sub.listingId AND sub.hasImageOrder1 > 0
 			inner join
             user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
 			inner join users U on U.id = UM.userId `;
@@ -144,13 +153,14 @@ router.get("/", async function (req, res, next) {
                 if (filters.categoryId) {
                     query += `L.categoryId = ${params.categoryId} AND `;
                 }
-                if (filters.subCategoryId) {
-                    query += `L.subCategoryId = ${params.subCategoryId} AND `;
+                if (filters.subcategoryId) {
+                    query += `L.subcategoryId = ${params.subcategoryId} AND `;
                 }
                 if (filters.statusId) {
                     query += `L.statusId = ${params.statusId} AND `;
                 }
                 query = query.slice(0, -4);
+                query += `GROUP BY L.id,sub.logo, sub.liCount,U.username, U.firstname, U.lastname, U.image`;
             }
             individualQueries.push(query);
         }
