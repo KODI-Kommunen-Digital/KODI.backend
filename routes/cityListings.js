@@ -13,6 +13,9 @@ const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload");
 const objectDelete = require("../utils/imageDelete");
+const axios = require("axios");
+const parser = require("xml-js");
+const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 
 // const radiusSearch = require('../services/handler')
 
@@ -665,11 +668,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 
     if (payload.removeImage) {
-        await database.deleteData(
-            tables.LISTINGS_IMAGES_TABLE,
-            { listingId: id },
-            cityId
-        );
+    // await database.deleteData(
+    //     tables.LISTINGS_IMAGES_TABLE,
+    //     { listingId: id },
+    //     cityId
+    // );
     // updationData.logo = null;
     }
     if (payload.statusId !== currentListingData.statusId) {
@@ -775,6 +778,15 @@ router.delete("/:id", authentication, async function (req, res, next) {
     }
     const currentListingData = response.rows[0];
 
+    let imageList = await axios.get(
+        "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
+    );
+    imageList = JSON.parse(
+        parser.xml2json(imageList.data, { compact: true, spaces: 4 })
+    );
+    const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
+        obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
+    );
     if (
         currentListingData.userId !== cityUserId &&
     currentUser.rows[0].roleId !== roles.Admin
@@ -797,7 +809,11 @@ router.delete("/:id", authentication, async function (req, res, next) {
     const onFail = (err) => {
         return next(new AppError("Image Delete failed with Error Code: " + err));
     };
-    await objectDelete(currentListingData.logo, onSucccess, onFail);
+    await imageDeleteMultiple(
+        userImageList.map((image) => ({ Key: image.Key._text })),
+        onSucccess,
+        onFail
+    );
 });
 
 router.post(
@@ -1061,6 +1077,7 @@ router.delete(
           : null;
 
         response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
+
         if (!response.rows || response.rows.length === 0) {
             return next(new AppError(`Listing with id ${id} does not exist`, 404));
         }
@@ -1074,15 +1091,21 @@ router.delete(
                 new AppError(`You are not allowed to access this resource`, 403)
             );
         }
+
+        let imageList = await axios.get(
+            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
+        );
+        imageList = JSON.parse(
+            parser.xml2json(imageList.data, { compact: true, spaces: 4 })
+        );
+        const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
+            obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
+        );
         try {
             const onSucccess = async () => {
-                const updationData = {};
-                updationData.logo = "";
-
-                await database.update(
-                    tables.LISTINGS_TABLE,
-                    updationData,
-                    { id },
+                await database.deleteData(
+                    tables.LISTINGS_IMAGES_TABLE,
+                    { listingId: id },
                     cityId
                 );
                 return res.status(200).json({
@@ -1094,8 +1117,8 @@ router.delete(
                     new AppError("Image Delete failed with Error Code: " + err)
                 );
             };
-            await objectDelete(
-                `user_${req.userId}/city_${cityId}_listing_${id}`,
+            await imageDeleteMultiple(
+                userImageList.map((image) => ({ Key: image.Key._text })),
                 onSucccess,
                 onFail
             );

@@ -810,22 +810,29 @@ router.get("/:id/listings", async function (req, res, next) {
             }listing_images LI_${cityMapping.cityId}`;
             const cityListAlias = `L_${cityMapping.cityId}`;
 
-            let query = `SELECT  LI_${cityMapping.cityId}.logo,${cityListAlias}.*, ${
-                cityMapping.cityId
-            } as cityId FROM heidi_city_${cityMapping.cityId}${
-                cityMapping.inCityServer ? "_" : "."
-            }listings ${cityListAlias}
-            INNER JOIN ${listingImageTableName} ON LI_${cityMapping.cityId}.listingId = ${cityListAlias}.id AND LI_${cityMapping.cityId}.imageOrder = 1
-            WHERE userId = ${cityMapping.cityUserId}`;
+            let query = `SELECT  
+            sub.logo,
+            sub.liCount,
+            ${cityListAlias}.*, ${cityMapping.cityId} as cityId FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings ${cityListAlias}
+            LEFT JOIN (
+                SELECT 
+                    listingId,
+                    MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,  -- First logo where imageOrder is 1
+                    COUNT(*) as liCount  -- Count of logos for the listing
+                FROM ${listingImageTableName}
+                WHERE imageOrder = 1
+                GROUP BY listingId
+            ) sub ON ${cityListAlias}.id = sub.listingId
+            WHERE ${cityListAlias}.userId = ${cityMapping.cityUserId}`;
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
-                    query += ` AND categoryId = ${filters.categoryId}`;
+                    query += ` AND ${cityListAlias}.categoryId = ${filters.categoryId}`;
                 }
                 if (filters.subCategoryId) {
-                    query += ` AND subCategoryId = ${filters.subCategoryId}`;
+                    query += ` AND ${cityListAlias}.subCategoryId = ${filters.subCategoryId}`;
                 }
                 if (filters.statusId) {
-                    query += ` AND statusId = ${filters.statusId}`;
+                    query += ` AND ${cityListAlias}.statusId = ${filters.statusId}`;
                 }
             }
             individualQueries.push(query);
