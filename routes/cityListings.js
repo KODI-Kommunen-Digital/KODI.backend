@@ -552,9 +552,10 @@ router.post("/", authentication, async function (req, res, next) {
 
         if(hasDefaultImage){
             const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
-            const query = `select * from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+            const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
             const categoryImage = await database.callQuery(query);
-            const moduloValue = categoryImage.rows.length > 0 ? (categoryImage.rows.length % defaultImageCount[categoryName]) + 1 : 1;
+            const categoryCount = categoryImage.rows[0].LICount;
+            const moduloValue = categoryCount > 0 ? (categoryCount % defaultImageCount[categoryName]) + 1 : 1;
             const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
             addDefaultImage(cityId,listingId,imageName);
         }
@@ -741,6 +742,18 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.endDate = getDateInFormate(new Date(payload.endDate))
         
         updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
+    }
+
+    const hasDefaultImage = payload.logo === null || payload.logo.length > 0 ? true : false;
+
+    if(hasDefaultImage){
+        const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
+        const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+        const categoryImage = await database.callQuery(query);
+        const categoryCount = categoryImage.rows[0].LICount;
+        const moduloValue = categoryCount > 0 ? (categoryCount % defaultImageCount[categoryName]) + 1 : 1;
+        const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+        addDefaultImage(cityId,id,imageName);
     }
 
     database
@@ -1233,7 +1246,6 @@ async function addDefaultImage(cityId,listingId,imageName){
             listingId,
             imageOrder,
             logo: imageName,
-            isDefaultImage:true
         },
         cityId
     );
