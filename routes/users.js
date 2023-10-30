@@ -549,6 +549,22 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
         const onSucccess = async () => {
             for (const cityUser of cityUsers) {
+                database.get(tables.LISTINGS_TABLE, { id }, null, cityUser.cityUserId)
+                    .then(async (response) => {
+                        const data = response.rows;
+                        if (!data || data.length === 0) {
+                            return next(new AppError(`Listings with id ${id} does not exist`, 404));
+                        }
+                        await database.deleteData(
+                            tables.LISTINGS_IMAGES_TABLE,
+                            { listingId: id },
+                            null,
+                            cityUser.cityId
+                        );
+                    })
+                    .catch((err) => {
+                        return next(new AppError(err));
+                    });
                 await database.deleteData(
                     tables.LISTINGS_TABLE,
                     { userId: cityUser.cityUserId },
