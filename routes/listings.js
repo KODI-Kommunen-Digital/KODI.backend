@@ -75,7 +75,7 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid Category '${params.categoryId}' given`, 400)
                 );
             } else {
-                if (params.subCategoryId) {
+                if (params.subcategoryId) {
                     try {
                         response = database.get(tables.SUBCATEGORIES_TABLE, {
                             categoryId: params.categoryId,
@@ -84,7 +84,7 @@ router.get("/", async function (req, res, next) {
                         if (data && data.length === 0) {
                             return next(
                                 new AppError(
-                                    `Invalid subCategory '${params.subCategoryId}' given`,
+                                    `Invalid subCategory '${params.subcategoryId}' given`,
                                     400
                                 )
                             );
@@ -92,7 +92,7 @@ router.get("/", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.subCategoryId = params.subCategoryId;
+                    filters.subcategoryId = params.subcategoryId;
                 }
             }
         } catch (err) {
@@ -101,8 +101,8 @@ router.get("/", async function (req, res, next) {
         filters.categoryId = params.categoryId;
     }
 
-    if (params.cityId) {
-        try {
+    try {
+        if (params.cityId) {
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
@@ -114,12 +114,12 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             }
-        } catch (err) {
-            return next(new AppError(err));
+        } else {
+            const response = await database.get(tables.CITIES_TABLE);
+            cities = response.rows;
         }
-    } else {
-        const response = await database.get(tables.CITIES_TABLE);
-        cities = response.rows;
+    } catch (err) {
+        return next(new AppError(err));
     }
 
     try {
@@ -153,8 +153,8 @@ router.get("/", async function (req, res, next) {
                 if (filters.categoryId) {
                     query += `L.categoryId = ${params.categoryId} AND `;
                 }
-                if (filters.subCategoryId) {
-                    query += `L.subCategoryId = ${params.subCategoryId} AND `;
+                if (filters.subcategoryId) {
+                    query += `L.subcategoryId = ${params.subcategoryId} AND `;
                 }
                 if (filters.statusId) {
                     query += `L.statusId = ${params.statusId} AND `;

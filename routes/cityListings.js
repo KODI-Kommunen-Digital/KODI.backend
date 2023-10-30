@@ -13,6 +13,7 @@ const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload");
 const objectDelete = require("../utils/imageDelete");
+const getDateInFormate = require("../utils/getDateInFormate")
 const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
@@ -267,7 +268,7 @@ router.post("/", authentication, async function (req, res, next) {
     const insertionData = {};
     let user = {};
     let city = {};
-    const userId = req.userId;
+    const userId = req.userId;  
 
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400));
@@ -342,9 +343,12 @@ router.post("/", authentication, async function (req, res, next) {
 
     if (!payload.description) {
         return next(new AppError(`Description is not present`, 400));
-    } else if (payload.description.length > 10000) {
+    } else if (payload.description.length > 65535) {
         return next(
-            new AppError(`Length of Description cannot exceed 10000 characters`, 400)
+            new AppError(
+                `Length of Description cannot exceed 65535 characters`,
+                400
+            )
         );
     } else {
         insertionData.description = payload.description;
@@ -375,11 +379,11 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.categoryId = payload.categoryId;
     }
 
-    if (payload.subCategoryId) {
+    if (payload.subcategoryId) {
         try {
             const response = await database.get(
                 tables.SUBCATEGORIES_TABLE,
-                { id: payload.subCategoryId },
+                { id: payload.subcategoryId },
                 null,
                 cityId
             );
@@ -388,7 +392,7 @@ router.post("/", authentication, async function (req, res, next) {
             if (data && data.length === 0) {
                 return next(
                     new AppError(
-                        `Invalid Sub Category '${payload.subCategoryId}' given`,
+                        `Invalid Sub Category '${payload.subcategoryId}' given`,
                         400
                     )
                 );
@@ -396,7 +400,7 @@ router.post("/", authentication, async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        insertionData.subCategoryId = payload.subCategoryId;
+        insertionData.subcategoryId = payload.subcategoryId;
     }
 
     if (!payload.statusId) {
@@ -473,42 +477,27 @@ router.post("/", authentication, async function (req, res, next) {
 
     if (parseInt(payload.categoryId) === categories.Events) {
         if (payload.startDate) {
-            insertionData.startDate = new Date(payload.startDate)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
+            insertionData.startDate = getDateInFormate(new Date(payload.startDate))
         } else {
             return next(new AppError(`Start date or Time is not present`, 400));
         }
 
         if (payload.endDate) {
-            insertionData.endDate = new Date(payload.endDate)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
-            insertionData.expiryDate = new Date(
-                new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24
-            )
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
+            insertionData.endDate = getDateInFormate(new Date(payload.endDate))
+            insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
         } else {
-            return next(new AppError(`End date or Time is not present`, 400));
+            insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ");
         }
     }
     if (parseInt(payload.categoryId) === categories.News) {
-        insertionData.expiryDate = new Date(
-            new Date().getTime() + 1000 * 60 * 60 * 24 * 15
-        )
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+        insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15))
     }
 
-    insertionData.createdAt = new Date()
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
+    insertionData.createdAt = getDateInFormate(new Date())
+    
 
     try {
         let response = {};
@@ -614,10 +603,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.place = payload.place;
     }
     if (payload.description) {
-        if (payload.description.length > 10000) {
+        if (payload.description.length > 65535) {
             return next(
                 new AppError(
-                    `Length of Description cannot exceed 10000 characters`,
+                    `Length of Description cannot exceed 65535 characters`,
                     400
                 )
             );
@@ -675,6 +664,22 @@ router.patch("/:id", authentication, async function (req, res, next) {
     // );
     // updationData.logo = null;
     }
+
+    if (payload.pdf && payload.removePdf) {
+        return next(
+            new AppError(
+                `Invalid Input, pdf and removePdf both fields present`,
+                400
+            )
+        );
+    }
+    if (payload.pdf) {
+        updationData.pdf = payload.pdf;
+    }
+    if (payload.removePdf) {
+        updationData.pdf = null;
+    }
+
     if (payload.statusId !== currentListingData.statusId) {
         if (req.roleId !== roles.Admin)
             return next(
@@ -713,22 +718,13 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.latitude = payload.latitude;
     }
     if (payload.startDate) {
-        updationData.startDate = new Date(payload.startDate)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+        updationData.startDate = getDateInFormate(new Date(payload.startDate))
     }
+    
     if (payload.endDate) {
-        updationData.endDate = new Date(payload.endDate)
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
-        updationData.expiryDate = new Date(
-            new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24
-        )
-            .toISOString()
-            .slice(0, 19)
-            .replace("T", " ");
+        updationData.endDate = getDateInFormate(new Date(payload.endDate))
+        
+        updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
     }
 
     database
@@ -755,27 +751,25 @@ router.delete("/:id", authentication, async function (req, res, next) {
         next(new AppError(`Invalid entry ${id}`, 404));
         return;
     }
-
-    let response = await database.get(
-        tables.USER_CITYUSER_MAPPING_TABLE,
-        { userId: req.userId, cityId },
-        "cityUserId"
-    );
-    const currentUser = await database.get(tables.USER_TABLE, {
-        id: req.userId,
-    });
-    if (!response.rows || response.rows.length === 0) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
+    
+    try {
+        const response = await database.get(tables.CITIES_TABLE, {
+            id: cityId,
+        });
+        if (response.rows && response.rows.length === 0) {
+            return next(
+                new AppError(`Invalid City '${cityId}' given`, 404)
+            );
+        }
+    } catch (err) {
+        return next(new AppError(err));
     }
 
-    const cityUserId = response.rows[0].cityUserId;
-
-    response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
+    let response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
     if (!response.rows || response.rows.length === 0) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
+
     const currentListingData = response.rows[0];
 
     let imageList = await axios.get(
@@ -787,14 +781,18 @@ router.delete("/:id", authentication, async function (req, res, next) {
     const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
         obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
     );
-    if (
-        currentListingData.userId !== cityUserId &&
-    currentUser.rows[0].roleId !== roles.Admin
-    ) {
+    response = await database.get(
+        tables.USER_CITYUSER_MAPPING_TABLE,
+        { userId: req.userId, cityId },
+        "cityUserId"
+    );
+
+    if (req.roleId !== roles.Admin && (!response.rows || response.rows.length === 0 || response.rows[0].cityUserId !== currentListingData.userId)) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
+    
     const onSucccess = async () => {
         await database.deleteData(
             tables.LISTINGS_IMAGES_TABLE,

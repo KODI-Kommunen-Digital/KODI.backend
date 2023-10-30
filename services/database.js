@@ -1,7 +1,7 @@
 const { getConnection } = require("./mysql");
 
 // In all these functions, if cityId is given, we connect to that city's database. Else, we connect to the core database
-async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, descending) {
+async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, descending, joinFilterBy="AND") {
     const connection = await getConnection(cityId);
     let query = `SELECT ${columns ? columns : "*"} FROM ${table} `;
     const queryParams = [];
@@ -9,10 +9,10 @@ async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, de
         query += "WHERE ";
         for (const key in filter) {
             if (Array.isArray(filter[key])) {
-                query += `${key} IN (${filter[key].map(() => "?").join(",")}) AND `;
+                query += `${key} IN (${filter[key].map(() => "?").join(",")}) ${joinFilterBy} `;
                 queryParams.push(...filter[key]);
             } else {
-                query += `${key} = ? AND `;
+                query += `${key} = ? ${joinFilterBy} `;
                 queryParams.push(filter[key]);
             }
         }

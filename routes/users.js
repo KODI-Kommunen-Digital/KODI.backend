@@ -16,6 +16,7 @@ const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 const errorCodes = require('../constants/errorCodes');
+const getDateInFormate = require("../utils/getDateInFormate")
 
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
@@ -40,9 +41,11 @@ router.post("/login", async function (req, res, next) {
     try {
         const users = await database.get(tables.USER_TABLE, {
             username: payload.username,
-        });
+            email: payload.username
+        }, null, null, null, null, null, null, "OR");
+
         if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError(`Invalid username`, 401, errorCodes.INVALID_USERNAME));
+            return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
         }
 
         const userData = users.rows[0];
@@ -114,17 +117,17 @@ router.post("/login", async function (req, res, next) {
 });
 
 router.post("/register", async function (req, res, next) {
-    const payload = req.body;
+    const payload = req.body;  
     const insertionData = {};
     if (!payload) {
-        return next(new AppError(`Empty payload sent`, 400));
+        return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
     }
     const language = payload.language || "de";
     if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
+        return next(new AppError(`Incorrect language given`, 400, errorCodes.INVALID_LANGUAGE));
     }
     if (!payload.username) {
-        return next(new AppError(`Username is not present`, 400));
+        return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     } else {
         try {
             const response = await database.get(tables.USER_TABLE, {
@@ -135,7 +138,8 @@ router.post("/register", async function (req, res, next) {
                 return next(
                     new AppError(
                         `User with username '${payload.username}' already exists`,
-                        400
+                        400,
+                        errorCodes.USER_ALREADY_EXISTS
                     )
                 );
             }
@@ -143,7 +147,8 @@ router.post("/register", async function (req, res, next) {
                 return next(
                     new AppError(
                         `Username '${payload.username}' is not valid`,
-                        400
+                        400,
+                        errorCodes.INVALID_USERNAME
                     )
                 );
             }
@@ -153,7 +158,7 @@ router.post("/register", async function (req, res, next) {
         insertionData.username = payload.username;
     }
     if (!payload.email) {
-        return next(new AppError(`Email is not present`, 400));
+        return next(new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL));
     } else {
         try {
             const response = await database.get(tables.USER_TABLE, {
@@ -164,7 +169,8 @@ router.post("/register", async function (req, res, next) {
                 return next(
                     new AppError(
                         `User with email '${payload.email}' is already registered`,
-                        400
+                        400,
+                        errorCodes.EMAIL_ALREADY_EXISTS
                     )
                 );
             }
@@ -177,23 +183,23 @@ router.post("/register", async function (req, res, next) {
     insertionData.roleId = roles["Content Creator"];
 
     if (!payload.firstname) {
-        return next(new AppError(`Firstname is not present`, 400));
+        return next(new AppError(`Firstname is not present`, 400, errorCodes.MISSING_FIRSTNAME));
     } else {
         insertionData.firstname = payload.firstname;
     }
 
     if (!payload.lastname) {
-        return next(new AppError(`Lastname is not present`, 400));
+        return next(new AppError(`Lastname is not present`, 400, errorCodes.MISSING_LASTNAME));
     } else {
         insertionData.lastname = payload.lastname;
     }
 
     if (!payload.password) {
-        return next(new AppError(`Password is not present`, 400));
+        return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     } else {
-        const re = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+        const re = /^\S{8,}$/;
         if(!re.test(payload.password)){
-            return next(new AppError(`Invalid Password. `, 400));
+            return next(new AppError(`Invalid Password. `, 400, errorCodes.INVALID_PASSWORD));
         } else {
             insertionData.password = await bcrypt.hash(
                 payload.password,
@@ -214,11 +220,15 @@ router.post("/register", async function (req, res, next) {
         insertionData.website = payload.website;
     }
 
-    if (payload.image) {
-        insertionData.website = payload.website;
-    }
-
     if (payload.description) {
+        if (payload.description.length > 255) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 255 characters`,
+                    400
+                )
+            );
+        }
         insertionData.description = payload.description;
     }
 
@@ -272,7 +282,7 @@ router.post("/register", async function (req, res, next) {
         const tokenData = {
             userId,
             token,
-            expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
+            expiresAt: getDateInFormate(now),
         };
         await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
@@ -446,6 +456,15 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 
     if (payload.description) {
+        if (payload.description.length > 255) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 255 characters`,
+                    400
+                )
+            );
+        }
+            
         updationData.description = payload.description;
     }
 
@@ -781,20 +800,20 @@ router.get("/:id/listings", async function (req, res, next) {
                     )
                 );
             } else {
-                if (req.query.subCategoryId) {
+                if (req.query.subcategoryId) {
                     try {
                         const response = database.get(
                             tables.SUBCATEGORIES_TABLE,
                             {
                                 categoryId: req.query.categoryId,
-                                subCategoryId: req.query.subCategoryId,
+                                id: req.query.subcategoryId,
                             }
                         );
                         const data = response.rows;
                         if (data && data.length === 0) {
                             return next(
                                 new AppError(
-                                    `Invalid subCategory '${req.query.subCategoryId}' given`,
+                                    `Invalid subCategory '${req.query.subcategoryId}' given`,
                                     400
                                 )
                             );
@@ -802,7 +821,7 @@ router.get("/:id/listings", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.subCategoryId = req.query.subCategoryId;
+                    filters.subcategoryId = req.query.subcategoryId;
                 }
             }
         } catch (err) {
@@ -956,7 +975,11 @@ router.post("/forgotPassword", async function (req, res, next) {
     }
 
     try {
-        let response = await database.get(tables.USER_TABLE, { username });
+        let response = await database.get(tables.USER_TABLE, {
+            username: req.body.username,
+            email: req.body.username
+        }, null, null, null, null, null, null, "OR");
+
         const data = response.rows;
         if (data && data.length === 0) {
             return next(
@@ -976,7 +999,7 @@ router.post("/forgotPassword", async function (req, res, next) {
         const tokenData = {
             userId: user.id,
             token,
-            expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
+            expiresAt: getDateInFormate(now),
         };
         response = await database.create(
             tables.FORGOT_PASSWORD_TOKENS_TABLE,
@@ -1049,7 +1072,7 @@ router.post("/resetPassword", async function (req, res, next) {
             userId,
             token,
         });
-        if (tokenData.expiresAt < new Date().toISOString()) {
+        if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(new AppError(`Token Expired`, 400));
         }
 
@@ -1110,7 +1133,7 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
         const tokenData = {
             userId: user.id,
             token,
-            expiresAt: now.toISOString().slice(0, 19).replace("T", " "),
+            expiresAt: getDateInFormate(now),
         };
         await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
@@ -1174,7 +1197,7 @@ router.post("/verifyEmail", async function (req, res, next) {
             userId,
             token,
         });
-        if (tokenData.expiresAt < new Date().toISOString()) {
+        if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(
                 new AppError(`Token Expired, send verification mail again`, 400)
             );
