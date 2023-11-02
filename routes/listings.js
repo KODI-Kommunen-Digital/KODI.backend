@@ -129,7 +129,7 @@ router.get("/", async function (req, res, next) {
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
             let query = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
-            IFNULL(sub.liCount, 0) as liCount,
+            IFNULL(sub.logoCount, 0) as logoCount,
             U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
     city.id
 } as cityId FROM heidi_city_${city.id}${
@@ -139,12 +139,11 @@ router.get("/", async function (req, res, next) {
             (
                 SELECT 
                     listingId,
-                    SUM(CASE WHEN imageOrder = 1 THEN 1 ELSE 0 END) as hasImageOrder1,
                     MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
-                    COUNT(listingId) as liCount
+                    COUNT(listingId) as logoCount
                 FROM heidi_city_${city.id}.listing_images
                 GROUP BY listingId
-            ) sub ON L.id = sub.listingId AND sub.hasImageOrder1 > 0
+            ) sub ON L.id = sub.listingId 
 			inner join
             user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
 			inner join users U on U.id = UM.userId `;
@@ -160,7 +159,7 @@ router.get("/", async function (req, res, next) {
                     query += `L.statusId = ${params.statusId} AND `;
                 }
                 query = query.slice(0, -4);
-                query += `GROUP BY L.id,sub.logo, sub.liCount,U.username, U.firstname, U.lastname, U.image`;
+                query += `GROUP BY L.id,sub.logo, sub.logoCount,U.username, U.firstname, U.lastname, U.image`;
             }
             individualQueries.push(query);
         }

@@ -847,13 +847,13 @@ router.get("/:id/listings", async function (req, res, next) {
 
             let query = `SELECT  
             sub.logo,
-            sub.liCount,
+            sub.logoCount,
             ${cityListAlias}.*, ${cityMapping.cityId} as cityId FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings ${cityListAlias}
             LEFT JOIN (
                 SELECT 
                     listingId,
-                    MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,  -- First logo where imageOrder is 1
-                    COUNT(*) as liCount  -- Count of logos for the listing
+                    MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
+                    COUNT(*) as logoCount 
                 FROM ${listingImageTableName}
                 WHERE imageOrder = 1
                 GROUP BY listingId
