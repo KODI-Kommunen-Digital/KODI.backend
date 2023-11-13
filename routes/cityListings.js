@@ -14,6 +14,7 @@ const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload")
 const objectDelete = require("../utils/imageDelete");
 const getDateInFormate = require("../utils/getDateInFormate")
+const getPdfImage = require("../utils/getPdfImage");
 
 // const radiusSearch = require('../services/handler')
 
@@ -1022,14 +1023,31 @@ router.post(
 
         try {
             const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
-
             const { uploadStatus, objectKey } = await pdfUpload(
                 pdf,
                 filePath
             );
-            const updationData = { pdf: objectKey };
+            const pdfUploadStatus = uploadStatus;
+            const pdfObjectKey = objectKey;
 
-            if (uploadStatus === "Success") {
+            const updationData = { pdf: pdfObjectKey };
+            const pdfBucketPath = "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST;
+
+            if (pdfUploadStatus === "Success") {
+                // create image
+                const pdfFilePath = `${pdfBucketPath}/${filePath}`;
+                const imagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
+                const pdfImageBuffer = await getPdfImage(pdfFilePath);
+                const { uploadStatus, objectKey } = await imageUpload(
+                    pdfImageBuffer,
+                    imagePath
+                );
+    
+                if (uploadStatus === "Success") {
+                    // update logo
+                    updationData.logo = objectKey;
+                }  
+
                 await database.update(
                     tables.LISTINGS_TABLE,
                     updationData,
