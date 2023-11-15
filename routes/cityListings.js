@@ -17,6 +17,7 @@ const getDateInFormate = require("../utils/getDateInFormate")
 const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
+const getPdfImage = require("../utils/getPdfImage");
 
 // const radiusSearch = require('../services/handler')
 
@@ -474,8 +475,11 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.latitude) {
         insertionData.latitude = payload.latitude;
     }
-
     if (parseInt(payload.categoryId) === categories.Events) {
+
+        if (!payload.startDate || !payload.endDate) {
+            return next(new AppError(`Start date or Time is not present`, 400));
+        }
         if (payload.startDate) {
             insertionData.startDate = getDateInFormate(new Date(payload.startDate))
         } else {
@@ -495,7 +499,6 @@ router.post("/", authentication, async function (req, res, next) {
     if (parseInt(payload.categoryId) === categories.News) {
         insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15))
     }
-
     insertionData.createdAt = getDateInFormate(new Date())
     
 
@@ -723,7 +726,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
     
     if (payload.endDate) {
         updationData.endDate = getDateInFormate(new Date(payload.endDate))
-        
         updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
     }
 
@@ -1012,11 +1014,31 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
 
     try {
         const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
+        const { uploadStatus, objectKey } = await pdfUpload(
+            pdf,
+            filePath
+        );
+        const pdfUploadStatus = uploadStatus;
+        const pdfObjectKey = objectKey;
 
-        const { uploadStatus, objectKey } = await pdfUpload(pdf, filePath);
-        const updationData = { pdf: objectKey };
+        const updationData = { pdf: pdfObjectKey };
+        const pdfBucketPath = "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST;
 
-        if (uploadStatus === "Success") {
+        if (pdfUploadStatus === "Success") {
+            // create image
+            const pdfFilePath = `${pdfBucketPath}/${filePath}`;
+            const imagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
+            const pdfImageBuffer = await getPdfImage(pdfFilePath);
+            const { uploadStatus, objectKey } = await imageUpload(
+                pdfImageBuffer,
+                imagePath
+            );
+    
+            if (uploadStatus === "Success") {
+                // update logo
+                updationData.logo = objectKey;
+            }  
+
             await database.update(
                 tables.LISTINGS_TABLE,
                 updationData,
