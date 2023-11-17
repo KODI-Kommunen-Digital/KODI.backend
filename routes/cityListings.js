@@ -496,13 +496,10 @@ router.post("/", authentication, async function (req, res, next) {
     }
     if (parseInt(payload.categoryId) === categories.Events) {
 
-        if (!payload.startDate || !payload.endDate) {
-            return next(new AppError(`Start date or Time is not present`, 400));
-        }
         if (payload.startDate) {
             insertionData.startDate = getDateInFormate(new Date(payload.startDate))
         } else {
-            return next(new AppError(`Start date or Time is not present`, 400));
+            return next(new AppError(`Start date is not present`, 400));
         }
 
         if (payload.endDate) {
