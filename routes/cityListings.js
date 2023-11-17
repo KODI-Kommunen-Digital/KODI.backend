@@ -679,6 +679,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.discountPrice) {
         updationData.discountPrice = payload.discountPrice;
     }
+    if(payload.zipcode){
+        updationData.zipcode = payload.zipcode;
+    }
     if (payload.logo && payload.removeImage) {
         return next(
             new AppError(
