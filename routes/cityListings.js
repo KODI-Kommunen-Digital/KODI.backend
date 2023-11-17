@@ -490,6 +490,10 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.latitude) {
         insertionData.latitude = payload.latitude;
     }
+
+    if (payload.zipcode){
+        insertionData.zipcode = payload.zipcode;
+    }
     if (parseInt(payload.categoryId) === categories.Events) {
 
         if (!payload.startDate || !payload.endDate) {
@@ -674,6 +678,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
     if (payload.discountPrice) {
         updationData.discountPrice = payload.discountPrice;
+    }
+    if(payload.zipcode){
+        updationData.zipcode = payload.zipcode;
     }
     if (payload.logo && payload.removeImage) {
         return next(
