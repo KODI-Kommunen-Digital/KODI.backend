@@ -8,13 +8,13 @@ if(process.env.APPLICATION === "WALDI") {
         OfferOrSearch: 6,
         // NewCitizenInfo: 7,
         DefectReport: 8,
-        LostAndFound: 10,
-        // CompanyPortraits: 11,
-        CoronaInfo: 12,
-        CarpoolingOrPublicTransport: 13,
-        Surveys: 14,
-        Weather: 15,
-        Offers: 16
+        // LostAndFound: 10,
+        CompanyPortraits: 10,
+        CarpoolingOrPublicTransport: 11,
+        eatOrDrink: 13,
+        rathaus:14,
+        newsletter:15,
+        officialnotification:16
     }
 } else {
     module.exports = {
@@ -26,13 +26,14 @@ if(process.env.APPLICATION === "WALDI") {
         OfferOrSearch: 6,
         NewCitizenInfo: 7,
         DefectReport: 8,
-        LostAndFound: 10,
-        CompanyPortraits: 11,
-        CoronaInfo: 12,
-        CarpoolingOrPublicTransport: 13,
-        Surveys: 14,
-        Weather: 15,
-        Offers: 16
+        LostAndFound:9,
+        CompanyPortraits: 10,
+        CarpoolingOrPublicTransport: 11,
+        Offers: 12,
+        eatOrDrink: 13,
+        rathaus:14,
+        newsletter:15,
+        officialnotification:16
     }
 }
 
