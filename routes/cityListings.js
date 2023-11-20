@@ -255,7 +255,7 @@ router.get("/:id", async function (req, res, next) {
 
             res.status(200).json({
                 status: "success",
-                data: { ...data[0], logo: listingImagesList.rows[0], otherlogos: listingImagesList.rows },
+                data: { ...data[0], logo: listingImagesList.rows[0].logo, otherlogos: listingImagesList.rows },
             });
         })
         .catch((err) => {
