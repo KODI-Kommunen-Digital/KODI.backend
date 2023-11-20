@@ -1,4 +1,4 @@
-if(process.env.APPLICATION === "WALDI") {
+if (process.env.APPLICATION === "WALDI") {
     module.exports = {
         News: 1,
         RoadWorksOrTraffic: 2,
@@ -14,8 +14,8 @@ if(process.env.APPLICATION === "WALDI") {
         CarpoolingOrPublicTransport: 13,
         Surveys: 14,
         Weather: 15,
-        Offers: 16
-    }
+        Offers: 16,
+    };
 } else {
     module.exports = {
         News: 1,
@@ -32,7 +32,6 @@ if(process.env.APPLICATION === "WALDI") {
         CarpoolingOrPublicTransport: 13,
         Surveys: 14,
         Weather: 15,
-        Offers: 16
-    }
+        Offers: 16,
+    };
 }
-
