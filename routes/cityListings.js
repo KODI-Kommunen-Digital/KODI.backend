@@ -3,6 +3,7 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
+const subcategories = require("../constants/subcategories");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
@@ -504,6 +505,9 @@ router.post("/", authentication, async function (req, res, next) {
             }
 
             if (payload.endDate) {
+                if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
+                    return next(new AppError(`Timeless News should not have an end date.`, 400));
+                }
                 insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                 insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
             } else {
@@ -759,6 +763,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
         }
         
         if (payload.endDate) {
+            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
+                return next(new AppError(`Timeless News should not have an end date.`, 400));
+            }
             updationData.endDate = getDateInFormate(new Date(payload.endDate));
             updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
         }
