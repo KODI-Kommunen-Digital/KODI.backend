@@ -494,29 +494,32 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.zipcode){
         insertionData.zipcode = payload.zipcode;
     }
-    if (parseInt(payload.categoryId) === categories.Events) {
+    try {
+        if (parseInt(payload.categoryId) === categories.Events) {
 
-        if (payload.startDate) {
-            insertionData.startDate = getDateInFormate(new Date(payload.startDate))
-        } else {
-            return next(new AppError(`Start date is not present`, 400));
-        }
+            if (payload.startDate) {
+                insertionData.startDate = getDateInFormate(new Date(payload.startDate));
+            } else {
+                return next(new AppError(`Start date is not present`, 400));
+            }
 
-        if (payload.endDate) {
-            insertionData.endDate = getDateInFormate(new Date(payload.endDate))
-            insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
-        } else {
-            insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
+            if (payload.endDate) {
+                insertionData.endDate = getDateInFormate(new Date(payload.endDate));
+                insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+            } else {
+                insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
+                    .toISOString()
+                    .slice(0, 19)
+                    .replace("T", " ");
+            }
         }
+        if (parseInt(payload.categoryId) === categories.News) {
+            insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
+        }
+        insertionData.createdAt = getDateInFormate(new Date());
+    } catch (error) {
+        return next(new AppError(`Invalid time format ${error}`, 400));
     }
-    if (parseInt(payload.categoryId) === categories.News) {
-        insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15))
-    }
-    insertionData.createdAt = getDateInFormate(new Date())
-    
 
     try {
         let response = {};
@@ -749,13 +752,18 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.latitude) {
         updationData.latitude = payload.latitude;
     }
-    if (payload.startDate) {
-        updationData.startDate = getDateInFormate(new Date(payload.startDate))
-    }
-    
-    if (payload.endDate) {
-        updationData.endDate = getDateInFormate(new Date(payload.endDate))
-        updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
+
+    try {
+        if (payload.startDate) {
+            updationData.startDate = getDateInFormate(new Date(payload.startDate));
+        }
+        
+        if (payload.endDate) {
+            updationData.endDate = getDateInFormate(new Date(payload.endDate));
+            updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+        }
+    } catch (error) {
+        return next(new AppError(`Invalid time format ${error}`, 400));
     }
 
     database
