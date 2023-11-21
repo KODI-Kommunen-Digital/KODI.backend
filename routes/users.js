@@ -861,11 +861,12 @@ router.get("/:id/listings", async function (req, res, next) {
             LEFT JOIN (
                 SELECT
                     listingId,
-                    JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder)) as otherLogos
+                    JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder,'id',id,'listingId', listingId )) as otherLogos
                 FROM ${listingImageTableName}
                 GROUP BY listingId
-            ) other ON L_1.id = other.listingId
+            ) other ON ${cityListAlias}.id = other.listingId
             WHERE ${cityListAlias}.userId = ${cityMapping.cityUserId}`;
+            console.log(query);
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
                     query += ` AND ${cityListAlias}.categoryId = ${filters.categoryId}`;
