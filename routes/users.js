@@ -848,16 +848,23 @@ router.get("/:id/listings", async function (req, res, next) {
             let query = `SELECT  
             sub.logo,
             sub.logoCount,
-            ${cityListAlias}.*, ${cityMapping.cityId} as cityId FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings ${cityListAlias}
+            ${cityListAlias}.*, ${cityMapping.cityId} as cityId,
+            otherLogos FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings ${cityListAlias}
             LEFT JOIN (
                 SELECT 
                     listingId,
                     MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
-                    COUNT(*) as logoCount 
+                    COUNT(*) as logoCount
                 FROM ${listingImageTableName}
-                WHERE imageOrder = 1
                 GROUP BY listingId
             ) sub ON ${cityListAlias}.id = sub.listingId
+            LEFT JOIN (
+                SELECT
+                    listingId,
+                    JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder)) as otherLogos
+                FROM ${listingImageTableName}
+                GROUP BY listingId
+            ) other ON L_1.id = other.listingId
             WHERE ${cityListAlias}.userId = ${cityMapping.cityUserId}`;
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
