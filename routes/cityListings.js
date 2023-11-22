@@ -577,7 +577,7 @@ router.post("/", authentication, async function (req, res, next) {
 });
 
 router.patch("/:id", authentication, async function (req, res, next) {
-    const id = req.params.id;
+    const id = +req.params.id;
     const cityId = req.cityId;
     const payload = req.body;
     const updationData = {};
