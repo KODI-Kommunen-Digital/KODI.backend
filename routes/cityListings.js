@@ -256,10 +256,10 @@ router.get("/:id", async function (req, res, next) {
                 null,
                 cityId
             );
-
+            const logo = listingImagesList.rows.length > 0 ? listingImagesList.rows[0].logo : null;
             res.status(200).json({
                 status: "success",
-                data: { ...data[0], logo: listingImagesList.rows[0].logo, otherlogos: listingImagesList.rows },
+                data: { ...data[0], logo: logo, otherlogos: listingImagesList.rows },
             });
         })
         .catch((err) => {
@@ -738,7 +738,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
     }
 
-    const hasDefaultImage = payload.logo === null || payload.logo.length === 0 ? true : false;
+    const hasDefaultImage = payload.logo === null || payload.otherlogos.length === 0 ? true : false;
 
     if(hasDefaultImage){
         const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
