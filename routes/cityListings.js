@@ -259,7 +259,7 @@ router.get("/:id", async function (req, res, next) {
             const logo = listingImagesList.rows.length > 0 ? listingImagesList.rows[0].logo : null;
             res.status(200).json({
                 status: "success",
-                data: { ...data[0], logo: logo, otherlogos: listingImagesList.rows },
+                data: { ...data[0], logo, otherlogos: listingImagesList.rows },
             });
         })
         .catch((err) => {
