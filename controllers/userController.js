@@ -1,13 +1,13 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const database = require("../services/database");
-const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
+const { getUserWithUsername, createUser, addVerificationToken, getUserWithEmail } = require("../services/users");
 
 const register = async function (req, res, next) {
     const payload = req.body;
@@ -24,12 +24,9 @@ const register = async function (req, res, next) {
         return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     } else {
         try {
-            const response = await database.get(tables.USER_TABLE, {
-                username: payload.username,
-            });
-
-            const data = response.rows;
-            if (data && data.length > 0) {
+            
+            const user = await getUserWithUsername(payload.username);
+            if (user) {
                 return next(
                     new AppError(
                         `User with username '${payload.username}' already exists`,
@@ -58,11 +55,8 @@ const register = async function (req, res, next) {
         return next(new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL));
     } else {
         try {
-            const response = await database.get(tables.USER_TABLE, {
-                email: payload.email,
-            });
-            const data = response.rows;
-            if (data && data.length > 0) {
+            const user = await getUserWithEmail(payload.email);
+            if (user) {
                 return next(
                     new AppError(
                         `User with email '${payload.email}' is already registered`,
@@ -169,11 +163,9 @@ const register = async function (req, res, next) {
         }
     }
 
+    const connection = await database.createTransaction();
     try {
-        const response = await database.create(
-            tables.USER_TABLE,
-            insertionData
-        );
+        const response = await createUser(insertionData, connection);
 
         const userId = response.id;
         const now = new Date();
@@ -184,7 +176,7 @@ const register = async function (req, res, next) {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
+        await addVerificationToken(tokenData, connection);
 
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         const { subject, body } = verifyEmail(
@@ -196,11 +188,14 @@ const register = async function (req, res, next) {
         );
         await sendMail(insertionData.email, subject, null, body);
 
+        database.commitTransaction(connection);
+
         return res.status(200).json({
             status: "success",
             id: userId,
         });
     } catch (err) {
+        database.rollbackTransaction(connection);
         return next(new AppError(err));
     }
 }
