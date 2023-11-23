@@ -295,14 +295,7 @@ router.post("/register", async function (req, res, next) {
         );
         await sendMail(insertionData.email, subject, null, body);
 
-        return res.status(200).json({
-            status: "success",
-            id: userId,
-        });
-    } catch (err) {
-        return next(new AppError(err));
-    }
-});
+router.post("/register", register);
 
 router.get("/:id", async function (req, res, next) {
     let userId = req.params.id;
