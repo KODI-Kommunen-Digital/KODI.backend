@@ -273,7 +273,7 @@ router.post("/", authentication, async function (req, res, next) {
     const insertionData = {};
     let user = {};
     let city = {};
-    const hasDefaultImage = payload.logo !== null ? false : true;
+    const hasDefaultImage = payload.logo !== null || payload.hasAttachment ? false : true;
     const userId = req.userId;  
 
     if (!payload) {
@@ -738,8 +738,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
     }
 
-    const hasDefaultImage = payload.logo === null || payload.otherlogos.length === 0 ? true : false;
-
+    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
     if(hasDefaultImage){
         const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
         const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
