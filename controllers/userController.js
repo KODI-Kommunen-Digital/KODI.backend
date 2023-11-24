@@ -7,9 +7,8 @@ const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const { getUserWithUsername, createUser, addVerificationToken, getUserWithEmail } = require("../services/users");
+const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getRefreshToken, deleteRefreshToken, insertRefreshTokenData } = require("../services/users");
 
-const tables = require("../constants/tableNames");
 const tokenUtil = require("../utils/token");
 
 const register = async function (req, res, next) {
@@ -27,7 +26,7 @@ const register = async function (req, res, next) {
         return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     } else {
         try {
-            
+
             const user = await getUserWithUsername(payload.username);
             if (user) {
                 return next(
@@ -224,16 +223,12 @@ const login = async function (req, res, next) {
     }
 
     try {
-        const users = await database.get(tables.USER_TABLE, {
-            username: payload.username,
-            email: payload.username
-        }, null, null, null, null, null, null, "OR");
 
-        if (!users || !users.rows || users.rows.length === 0) {
+        const userData = await getUserByUsernameOrEmail(payload.username, payload.username);
+        if (!userData) {
             return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
         }
 
-        const userData = users.rows[0];
         if (!userData.emailVerified) {
             return next(
                 new AppError(
@@ -252,30 +247,22 @@ const login = async function (req, res, next) {
             return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
         }
 
-        const userMappings = await database.get(
-            tables.USER_CITYUSER_MAPPING_TABLE,
-            { userId: userData.id },
-            "cityId, cityUserId"
-        );
+        const userMappings = await getuserCityMappings(userData.id);
+
         const tokens = tokenUtil.generator({
             userId: userData.id,
             roleId: userData.roleId,
             rememberMe: payload.rememberMe,
         });
 
-        let refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, {
-            userId: userData.id,
-        });
-        if (refreshData.rows.length > 0) {
-            refreshData = refreshData.rows[0];
+        const refreshData = await getRefreshToken(userData.id);
+        if (refreshData) {
             if (
                 refreshData.sourceAddress === sourceAddress &&
                 refreshData.browser === head.browsername &&
                 refreshData.device === head.devicetype
             ) {
-                await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                    userId: userData.id,
-                });
+                await deleteRefreshToken(userData.id);
             }
         }
         const insertionData = {
@@ -286,7 +273,7 @@ const login = async function (req, res, next) {
             device: head.devicetype,
         };
 
-        await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
+        await insertRefreshTokenData(insertionData);
         return res.status(200).json({
             status: "success",
             data: {

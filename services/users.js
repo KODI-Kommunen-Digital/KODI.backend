@@ -41,9 +41,54 @@ const addVerificationToken = async function (payload, connection) {
     return response;
 }
 
+const getUserByUsernameOrEmail = async function (username, email) {
+    const users = await database.get(tables.USER_TABLE, {
+        username: username,
+        email: email,
+    }, null, null, null, null, null, null, "OR");
+    if (!users || !users.rows || users.rows.length === 0) {
+        return null;
+    }
+    return users.rows[0];
+}
+
+const getuserCityMappings = async function (userId) {
+    return await database.get(
+        tables.USER_CITYUSER_MAPPING_TABLE,
+        { userId: userId },
+        "cityId, cityUserId"
+    );
+}
+
+const getRefreshToken = async function (userId) {
+    const refreshToken = await database.get(tables.REFRESH_TOKENS_TABLE, {
+        userId: userId,
+    });
+    if (!refreshToken || !refreshToken.rows || refreshToken.rows.length === 0) {
+        return null;
+    }
+    return refreshToken.rows[0];
+}
+
+const deleteRefreshToken = async function (userId) {
+    await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
+        userId: userId,
+    });
+}
+const insertRefreshTokenData = async function (payload) {
+    const response = await database.create(tables.REFRESH_TOKENS_TABLE, payload);
+    return response;
+}
+
 module.exports = {
     getUserWithUsername,
     getUserWithEmail,
     createUser,
     addVerificationToken,
+    getUserByUsernameOrEmail,
+    getuserCityMappings,
+    getRefreshToken,
+    deleteRefreshToken,
+    insertRefreshTokenData
+    
 }
