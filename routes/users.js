@@ -97,9 +97,21 @@ const { register, login } = require("../controllers/userController");
  *                  type: string
  *                  example: Invalid username or email
  *                  description: The error message
+ *      500:
+ *        description: Internal server error
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                status:
+ *                  type: string
+ *                  example: error
+ *                message:
+ *                  type: string
+ *                  example: ReferenceError getUser is not defined
+ *                  description: The error message
  */
-
-
 router.post("/login", login);
 
 /**
