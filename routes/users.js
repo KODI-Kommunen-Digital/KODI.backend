@@ -16,105 +16,10 @@ const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const errorCodes = require('../constants/errorCodes');
 const getDateInFormate = require("../utils/getDateInFormate");
-const { register } = require("../controllers/userController");
+const { register, login } = require("../controllers/userController");
 
-router.post("/login", async function (req, res, next) {
-    const payload = req.body;
-    const head = req.headers;
-    let sourceAddress = req.headers["x-forwarded-for"]
-        ? req.headers["x-forwarded-for"].split(",").shift()
-        : req.socket.remoteAddress;
-    sourceAddress = sourceAddress.toString().replace("::ffff:", "");
 
-    if (!payload.username && !payload.password) {
-        return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
-    }
-
-    if (!payload.username) {
-        return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
-    }
-
-    if (!payload.password) {
-        return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
-    }
-
-    try {
-        const users = await database.get(tables.USER_TABLE, {
-            username: payload.username,
-            email: payload.username
-        }, null, null, null, null, null, null, "OR");
-
-        if (!users || !users.rows || users.rows.length === 0) {
-            return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
-        }
-
-        const userData = users.rows[0];
-        if (!userData.emailVerified) {
-            return next(
-                new AppError(
-                    `Verification email sent to your email id. Please verify first before trying to login.`,
-                    401,
-                    errorCodes.EMAIL_NOT_VERIFIED
-                )
-            );
-        }
-
-        const correctPassword = await bcrypt.compare(
-            payload.password,
-            userData.password
-        );
-        if (!correctPassword) {
-            return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
-        }
-
-        const userMappings = await database.get(
-            tables.USER_CITYUSER_MAPPING_TABLE,
-            { userId: userData.id },
-            "cityId, cityUserId"
-        );
-        const tokens = tokenUtil.generator({
-            userId: userData.id,
-            roleId: userData.roleId,
-            rememberMe: payload.rememberMe,
-        });
-
-        let refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, {
-            userId: userData.id,
-        });
-        if (refreshData.rows.length > 0) {
-            refreshData = refreshData.rows[0];
-            if (
-                refreshData.sourceAddress === sourceAddress &&
-                refreshData.browser === head.browsername &&
-                refreshData.device === head.devicetype
-            ) {
-                await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                    userId: userData.id,
-                });
-            }
-        }
-        const insertionData = {
-            userId: userData.id,
-            sourceAddress,
-            refreshToken: tokens.refreshToken,
-            browser: head.browsername,
-            device: head.devicetype,
-        };
-
-        await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
-        return res.status(200).json({
-            status: "success",
-            data: {
-                cityUsers: userMappings.rows,
-                userId: userData.id,
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-            },
-        });
-    } catch (err) {
-        return next(new AppError(err, 500));
-    }
-});
+router.post("/login", login);
 
 /**
  * @swagger
