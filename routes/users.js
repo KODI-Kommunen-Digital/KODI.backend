@@ -16,7 +16,7 @@ const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const errorCodes = require('../constants/errorCodes');
 const getDateInFormate = require("../utils/getDateInFormate");
-const { register, login } = require("../controllers/userController");
+const { register, login, getUserById } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -178,79 +178,7 @@ router.post("/login", login);
 
 router.post("/register", register);
 
-router.get("/:id", async function (req, res, next) {
-    let userId = req.params.id;
-    const cityUser = req.query.cityUser || false;
-    const cityId = req.query.cityId;
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 404));
-        return;
-    }
-
-    if (cityUser) {
-        if (!cityId) {
-            return next(new AppError(`City id not given`, 400));
-        }
-        try {
-            const { rows } = await database.get(tables.CITIES_TABLE, {
-                id: cityId,
-            });
-            if (!rows || rows.length === 0) {
-                return next(
-                    new AppError(`City with id ${cityId} does not exist`, 400)
-                );
-            }
-
-            const cityUsers = await database.get(
-                tables.USER_CITYUSER_MAPPING_TABLE,
-                {
-                    cityId,
-                    cityUserId: userId,
-                }
-            );
-            if (!cityUsers.rows || cityUsers.rows.length === 0) {
-                return next(
-                    new AppError(
-                        `User ${userId} is not found in city ${cityId}`,
-                        404
-                    )
-                );
-            }
-            userId = cityUsers.rows[0].userId;
-        } catch (err) {
-            return next(new AppError(err));
-        }
-    }
-
-    database
-        .get(tables.USER_TABLE, { id: userId }, [
-            "id",
-            "username",
-            "socialMedia",
-            "email",
-            "website",
-            "description",
-            "image",
-            "firstname",
-            "lastname",
-            "roleId",
-        ])
-        .then((response) => {
-            const data = response.rows;
-            if (!data || data.length === 0) {
-                return next(
-                    new AppError(`User with id ${userId} does not exist`, 404)
-                );
-            }
-            res.status(200).json({
-                status: "success",
-                data: data[0],
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
-        });
-});
+router.get("/:id", getUserById);
 
 router.patch("/:id", authentication, async function (req, res, next) {
     const id = Number(req.params.id);

@@ -75,9 +75,44 @@ const deleteRefreshToken = async function (userId) {
         userId: userId,
     });
 }
+
 const insertRefreshTokenData = async function (payload) {
     const response = await database.create(tables.REFRESH_TOKENS_TABLE, payload);
     return response;
+}
+
+const getUserWithId = async function (userId) {
+    const response = await database.get(tables.USER_TABLE, { id: userId }, [
+        "id",
+        "username",
+        "socialMedia",
+        "email",
+        "website",
+        "description",
+        "image",
+        "firstname",
+        "lastname",
+        "roleId",
+    ]);
+    const data = response.rows;
+    if(!data || !data.length){
+        return null;
+    }
+    return data[0];
+}
+
+const getCityUser = async function (cityId,cityUserId) {
+    const cityUsers = await database.get(
+        tables.USER_CITYUSER_MAPPING_TABLE,
+        {
+            cityId,
+            cityUserId: cityUserId,
+        }
+    );
+    if (!cityUsers.rows || cityUsers.rows.length === 0) {
+        return null;
+    }
+    return cityUsers.rows[0];
 }
 
 module.exports = {
@@ -89,6 +124,7 @@ module.exports = {
     getuserCityMappings,
     getRefreshToken,
     deleteRefreshToken,
-    insertRefreshTokenData
-    
+    insertRefreshTokenData,
+    getUserWithId,
+    getCityUser,
 }

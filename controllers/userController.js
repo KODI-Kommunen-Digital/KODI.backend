@@ -7,7 +7,8 @@ const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getRefreshToken, deleteRefreshToken, insertRefreshTokenData } = require("../services/users");
+const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getUserWithId, getCityUser } = require("../services/users");
+const { getCityWithId } = require("../services/cities");
 
 const tokenUtil = require("../utils/token");
 
@@ -288,7 +289,59 @@ const login = async function (req, res, next) {
     }
 }
 
+const getUserById = async function (req, res, next) {
+    let userId = req.params.id;
+    const cityUser = req.query.cityUser || false;
+    const cityId = req.query.cityId;
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid UserId ${userId}`, 404));
+        return;
+    }
+
+    if (cityUser) {
+        if (!cityId) {
+            return next(new AppError(`City id not given`, 400));
+        }
+        try {
+            const city = await getCityWithId(cityId);
+            if (!city) {
+                return next(
+                    new AppError(`City with id ${cityId} does not exist`, 400)
+                );
+            }
+
+            const cityUser = await getCityUser(cityId, userId);
+            if (!cityUser) {
+                return next(
+                    new AppError(
+                        `User ${userId} is not found in city ${cityId}`,
+                        404
+                    )
+                );
+            }
+            userId = cityUser.userId;
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+    
+    try {
+        const data = await getUserWithId(userId);
+        if (!data) {
+            return next(
+                new AppError(`User with id ${userId} does not exist`, 404)
+            );
+        }
+        return res.status(200).json({
+            status: "success",
+            data: data,
+        });
+    }catch(err){
+        return next(new AppError(err));
+    }
+}
 module.exports = {
     register,
-    login
+    login,
+    getUserById,
 };
