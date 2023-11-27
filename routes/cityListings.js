@@ -273,7 +273,7 @@ router.post("/", authentication, async function (req, res, next) {
     const insertionData = {};
     let user = {};
     let city = {};
-    const hasDefaultImage = payload.logo !== null || payload.hasAttachment ? false : true;
+    const hasDefaultImage =  (payload.logo !== undefined &&  payload.logo !== null) || payload.hasAttachment ? false : true;
     const userId = req.userId;  
 
     if (!payload) {
