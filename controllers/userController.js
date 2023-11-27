@@ -7,9 +7,8 @@ const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getUserWithId, getCityUser } = require("../services/users");
+const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getUserWithId, getCityUser, getUserDataById, updateUserById } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
-const tables = require("../constants/tableNames");
 
 const tokenUtil = require("../utils/token");
 
@@ -325,7 +324,7 @@ const getUserById = async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-    
+
     try {
         const data = await getUserWithId(userId);
         if (!data) {
@@ -337,7 +336,7 @@ const getUserById = async function (req, res, next) {
             status: "success",
             data: data,
         });
-    }catch(err){
+    } catch (err) {
         return next(new AppError(err));
     }
 }
@@ -358,12 +357,11 @@ const updateUser = async function (req, res, next) {
         );
     }
 
-    const response = await database.get(tables.USER_TABLE, { id });
-    if (!response.rows || response.rows.length === 0) {
+    const currentUserData = await getUserDataById(id);
+    if (!currentUserData) {
         return next(new AppError(`User with id ${id} does not exist`, 404));
     }
 
-    const currentUserData = response.rows[0];
     if (payload.username && payload.username !== currentUserData.username) {
         return next(new AppError(`Username cannot be edited`, 400));
     }
@@ -391,7 +389,7 @@ const updateUser = async function (req, res, next) {
             );
         }
         if (
-            !bcrypt.compare(payload.currentPassword, currentUserData.password)
+            !(await bcrypt.compare(payload.currentPassword, currentUserData.password))
         ) {
             return next(new AppError(`Incorrect current password given`, 401));
         }
@@ -399,7 +397,7 @@ const updateUser = async function (req, res, next) {
             payload.newPassword,
             currentUserData.password
         );
-        if(passwordCheck){
+        if (passwordCheck) {
             return next(new AppError(`New password should not be same as the old password`, 400));
         }
         updationData.password = await bcrypt.hash(
@@ -428,7 +426,7 @@ const updateUser = async function (req, res, next) {
                 )
             );
         }
-            
+
         updationData.description = payload.description;
     }
 
@@ -477,16 +475,14 @@ const updateUser = async function (req, res, next) {
     }
 
     if (Object.keys(updationData).length > 0) {
-        database
-            .update(tables.USER_TABLE, updationData, { id })
-            .then((response) => {
-                res.status(200).json({
-                    status: "success",
-                });
-            })
-            .catch((err) => {
-                return next(new AppError(err));
+        try {
+            await updateUserById(id, updationData);
+            res.status(200).json({
+                status: "success",
             });
+        } catch (err) {
+            return next(new AppError(err));
+        }
     } else {
         return res.status(200).json({
             status: "success",

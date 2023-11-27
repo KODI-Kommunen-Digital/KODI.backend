@@ -95,13 +95,13 @@ const getUserWithId = async function (userId) {
         "roleId",
     ]);
     const data = response.rows;
-    if(!data || !data.length){
+    if (!data || !data.length) {
         return null;
     }
     return data[0];
 }
 
-const getCityUser = async function (cityId,cityUserId) {
+const getCityUser = async function (cityId, cityUserId) {
     const cityUsers = await database.get(
         tables.USER_CITYUSER_MAPPING_TABLE,
         {
@@ -113,6 +113,19 @@ const getCityUser = async function (cityId,cityUserId) {
         return null;
     }
     return cityUsers.rows[0];
+}
+
+const getUserDataById = async function (userId) {
+    const response = await database.get(tables.USER_TABLE, { id: userId });
+    if (!response.rows || response.rows.length === 0) {
+        return null;
+    }
+    return response.rows[0];
+}
+
+const updateUserById = async function (userId, payload) {
+    await database.update(tables.USER_TABLE, { id: userId }, payload);
+    
 }
 
 module.exports = {
@@ -127,4 +140,6 @@ module.exports = {
     insertRefreshTokenData,
     getUserWithId,
     getCityUser,
+    getUserDataById,
+    updateUserById,
 }
