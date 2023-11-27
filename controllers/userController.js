@@ -9,6 +9,7 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getUserWithId, getCityUser } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
+const tables = require("../constants/tableNames");
 
 const tokenUtil = require("../utils/token");
 
@@ -340,8 +341,162 @@ const getUserById = async function (req, res, next) {
         return next(new AppError(err));
     }
 }
+
+const updateUser = async function (req, res, next) {
+    const id = Number(req.params.id);
+    const payload = req.body;
+    const updationData = {};
+
+    if (isNaN(id) || id <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+
+    if (id !== parseInt(req.userId)) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+
+    const response = await database.get(tables.USER_TABLE, { id });
+    if (!response.rows || response.rows.length === 0) {
+        return next(new AppError(`User with id ${id} does not exist`, 404));
+    }
+
+    const currentUserData = response.rows[0];
+    if (payload.username && payload.username !== currentUserData.username) {
+        return next(new AppError(`Username cannot be edited`, 400));
+    }
+
+    if (payload.email && payload.email !== currentUserData.email) {
+        const re =
+            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        if (!re.test(payload.email)) {
+            return next(new AppError(`Invalid email given`, 400));
+        }
+        updationData.email = payload.email;
+    }
+
+    if (payload.firstname) {
+        updationData.firstname = payload.firstname;
+    }
+
+    if (payload.newPassword) {
+        if (!payload.currentPassword) {
+            return next(
+                new AppError(
+                    `Current password not given to update password`,
+                    400
+                )
+            );
+        }
+        if (
+            !bcrypt.compare(payload.currentPassword, currentUserData.password)
+        ) {
+            return next(new AppError(`Incorrect current password given`, 401));
+        }
+        const passwordCheck = await bcrypt.compare(
+            payload.newPassword,
+            currentUserData.password
+        );
+        if(passwordCheck){
+            return next(new AppError(`New password should not be same as the old password`, 400));
+        }
+        updationData.password = await bcrypt.hash(
+            payload.newPassword,
+            Number(process.env.SALT)
+        );
+    }
+
+    if (payload.lastname) {
+        updationData.lastname = payload.lastname;
+    }
+
+    if (payload.phoneNumber) {
+        const re = /^\+49\d{11}$/;
+        if (!re.test(payload.phoneNumber))
+            return next(new AppError("Phone number is not valid", 400));
+        updationData.phoneNumber = payload.phoneNumber;
+    }
+
+    if (payload.description) {
+        if (payload.description.length > 255) {
+            return next(
+                new AppError(
+                    `Length of Description cannot exceed 255 characters`,
+                    400
+                )
+            );
+        }
+            
+        updationData.description = payload.description;
+    }
+
+    if (payload.website) {
+        updationData.website = payload.website;
+    }
+
+    if (payload.image || payload.image === "") {
+        updationData.image = payload.image;
+    }
+
+    if (payload.description) {
+        updationData.description = payload.description;
+    }
+
+    if (payload.website) {
+        updationData.website = payload.website;
+    }
+    if (payload.socialMedia) {
+        const socialMediaList = JSON.parse(payload.socialMedia);
+        socialMediaList.forEach((socialMedia) => {
+            if (!supportedSocialMedia.includes(Object.keys(socialMedia)[0])) {
+                return next(
+                    new AppError(
+                        `Unsupported social media '${socialMedia}'`,
+                        400
+                    )
+                );
+            }
+
+            if (
+                typeof socialMedia[Object.keys(socialMedia)[0]] !== "string" ||
+                !socialMedia[Object.keys(socialMedia)[0]].includes(
+                    Object.values(socialMedia)[0].toLowerCase()
+                )
+            ) {
+                return next(
+                    new AppError(
+                        `Invalid input given for social '${socialMedia}' `,
+                        400
+                    )
+                );
+            }
+        });
+        updationData.socialMedia = JSON.stringify(socialMediaList);
+    }
+
+    if (Object.keys(updationData).length > 0) {
+        database
+            .update(tables.USER_TABLE, updationData, { id })
+            .then((response) => {
+                res.status(200).json({
+                    status: "success",
+                });
+            })
+            .catch((err) => {
+                return next(new AppError(err));
+            });
+    } else {
+        return res.status(200).json({
+            status: "success",
+        });
+    }
+}
+
 module.exports = {
     register,
     login,
     getUserById,
+    updateUser,
 };
