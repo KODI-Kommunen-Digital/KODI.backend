@@ -7,7 +7,7 @@ const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById } = require("../services/users");
+const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById, deleteForgotTokenForUserWithConnection, addForgotPasswordTokenWithConnection } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
 const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken } = require("../services/authService");
 
@@ -555,10 +555,66 @@ const refreshAuthToken = async function (req, res, next) {
     }
 }
 
+const forgotPassword = async function (req, res, next) {
+    const username = req.body.username;
+    const language = req.body.language || "de";
+
+    if (!username) {
+        return next(new AppError(`Username not present`, 400));
+    }
+
+    if (language !== "en" && language !== "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    }
+
+    const transaction = await database.createTransaction();
+    try {
+
+        const user = await getUserByUsernameOrEmail(username, username);
+        if (!user) {
+            return next(
+                new AppError(`Username ${username} does not exist`, 404)
+            );
+        }
+
+        await deleteForgotTokenForUserWithConnection(user.id, transaction);
+
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 30);
+        const token = crypto.randomBytes(32).toString("hex");
+        const tokenData = {
+            userId: user.id,
+            token,
+            expiresAt: getDateInFormate(now),
+        };
+
+        await addForgotPasswordTokenWithConnection(tokenData, transaction);
+
+        const resetPasswordEmail = require(`../emailTemplates/${language}/resetPasswordEmail`);
+        const { subject, body } = resetPasswordEmail(
+            user.firstname,
+            user.lastname,
+            token,
+            user.id
+        );
+        await sendMail(user.email, subject, null, body);
+
+        await database.commitTransaction(transaction);
+
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        await database.rollbackTransaction(transaction);
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     register,
     login,
     getUserById,
     updateUser,
     refreshAuthToken,
+    forgotPassword
 };

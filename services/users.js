@@ -107,6 +107,21 @@ const updateUserById = async function (userId, payload) {
 
 }
 
+const deleteForgotTokenForUserWithConnection = async function (userId, connection) {
+    await database.deleteDataWithTransaction(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
+        userId,
+    }, connection);
+}
+
+const addForgotPasswordTokenWithConnection = async function (payload, connection) {
+    const response = await database.createWithTransaction(
+        tables.FORGOT_PASSWORD_TOKENS_TABLE,
+        payload,
+        connection
+    );
+    return response;
+}
+
 module.exports = {
     getUserWithUsername,
     getUserWithEmail,
@@ -118,4 +133,6 @@ module.exports = {
     getCityUser,
     getUserDataById,
     updateUserById,
+    deleteForgotTokenForUserWithConnection,
+    addForgotPasswordTokenWithConnection
 }

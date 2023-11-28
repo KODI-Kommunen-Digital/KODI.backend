@@ -14,7 +14,7 @@ const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const errorCodes = require('../constants/errorCodes');
 const getDateInFormate = require("../utils/getDateInFormate");
-const { register, login, getUserById, updateUser, refreshAuthToken } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -765,65 +765,7 @@ router.post("/:id/refresh", refreshAuthToken);
  *                    type: string
  *                    example: error name
  */
-router.post("/forgotPassword", async function (req, res, next) {
-    const username = req.body.username;
-    const language = req.body.language || "de";
-
-    if (!username) {
-        return next(new AppError(`Username not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
-    }
-
-    try {
-        let response = await database.get(tables.USER_TABLE, {
-            username: req.body.username,
-            email: req.body.username
-        }, null, null, null, null, null, null, "OR");
-
-        const data = response.rows;
-        if (data && data.length === 0) {
-            return next(
-                new AppError(`Username ${username} does not exist`, 404)
-            );
-        }
-        const user = data[0];
-
-        response = await database.deleteData(
-            tables.FORGOT_PASSWORD_TOKENS_TABLE,
-            { userId: user.id }
-        );
-
-        const now = new Date();
-        now.setMinutes(now.getMinutes() + 30);
-        const token = crypto.randomBytes(32).toString("hex");
-        const tokenData = {
-            userId: user.id,
-            token,
-            expiresAt: getDateInFormate(now),
-        };
-        response = await database.create(
-            tables.FORGOT_PASSWORD_TOKENS_TABLE,
-            tokenData
-        );
-
-        const resetPasswordEmail = require(`../emailTemplates/${language}/resetPasswordEmail`);
-        const { subject, body } = resetPasswordEmail(
-            user.firstname,
-            user.lastname,
-            token,
-            user.id
-        );
-        await sendMail(user.email, subject, null, body);
-        return res.status(200).json({
-            status: "success",
-        });
-    } catch (err) {
-        return next(new AppError(err));
-    }
-});
+router.post("/forgotPassword", forgotPassword);
 
 router.post("/resetPassword", async function (req, res, next) {
     const userId = req.body.userId;
