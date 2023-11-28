@@ -124,7 +124,7 @@ const getUserDataById = async function (userId) {
 }
 
 const updateUserById = async function (userId, payload) {
-    await database.update(tables.USER_TABLE, { id: userId }, payload);
+    await database.update(tables.USER_TABLE,  payload,{ id: userId });
     
 }
 
