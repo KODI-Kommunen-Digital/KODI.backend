@@ -701,6 +701,70 @@ router.get("/:id/listings", async function (req, res, next) {
  */
 router.post("/:id/refresh", refreshAuthToken);
 
+/**
+ * @swagger
+ * paths:
+ *  /users/forgotPassword:
+ *    post:
+ *      summary: API to send forgot password email
+ *      description: Send forgot password email to the user
+ *      tags: [forgot-password]
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                username:
+ *                  type: string
+ *                  required: true
+ *                  description: The username or email of the user
+ *                  example: johndoe
+ *                language:
+ *                  type: string
+ *                  required: true
+ *                  description: The language of the email
+ *                  example: en
+ *                  enum: [en, de]
+ *      responses:
+ *        '200':
+ *          description: The forgot password email was successfully sent
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: success
+ *        '400':
+ *          description: Invalid input given
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: Username _ does not exist
+ *        '500':
+ *          description: Server error
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: error name
+ */
 router.post("/forgotPassword", async function (req, res, next) {
     const username = req.body.username;
     const language = req.body.language || "de";
