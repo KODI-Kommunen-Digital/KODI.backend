@@ -334,7 +334,7 @@ const getUserById = async function (req, res, next) {
         }
         return res.status(200).json({
             status: "success",
-            data: data,
+            data,
         });
     } catch (err) {
         return next(new AppError(err));

@@ -3,7 +3,7 @@ const tables = require("../constants/tableNames");
 
 const getUserWithUsername = async function (username) {
     const response = await database.get(tables.USER_TABLE, {
-        username: username,
+        username
     });
     const data = response.rows;
     if (data && data.length > 0) {
@@ -14,7 +14,7 @@ const getUserWithUsername = async function (username) {
 
 const getUserWithEmail = async function (email) {
     const response = await database.get(tables.USER_TABLE, {
-        email: email,
+        email,
     });
     const data = response.rows;
     if (data && data.length > 0) {
@@ -43,8 +43,8 @@ const addVerificationToken = async function (payload, connection) {
 
 const getUserByUsernameOrEmail = async function (username, email) {
     const users = await database.get(tables.USER_TABLE, {
-        username: username,
-        email: email,
+        username,
+        email,
     }, null, null, null, null, null, null, "OR");
     if (!users || !users.rows || users.rows.length === 0) {
         return null;
@@ -55,14 +55,14 @@ const getUserByUsernameOrEmail = async function (username, email) {
 const getuserCityMappings = async function (userId) {
     return await database.get(
         tables.USER_CITYUSER_MAPPING_TABLE,
-        { userId: userId },
+        { userId },
         "cityId, cityUserId"
     );
 }
 
 const getRefreshToken = async function (userId) {
     const refreshToken = await database.get(tables.REFRESH_TOKENS_TABLE, {
-        userId: userId,
+        userId,
     });
     if (!refreshToken || !refreshToken.rows || refreshToken.rows.length === 0) {
         return null;
@@ -72,7 +72,7 @@ const getRefreshToken = async function (userId) {
 
 const deleteRefreshToken = async function (userId) {
     await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-        userId: userId,
+        userId,
     });
 }
 
@@ -106,7 +106,7 @@ const getCityUser = async function (cityId, cityUserId) {
         tables.USER_CITYUSER_MAPPING_TABLE,
         {
             cityId,
-            cityUserId: cityUserId,
+            cityUserId,
         }
     );
     if (!cityUsers.rows || cityUsers.rows.length === 0) {
@@ -124,8 +124,8 @@ const getUserDataById = async function (userId) {
 }
 
 const updateUserById = async function (userId, payload) {
-    await database.update(tables.USER_TABLE,  payload,{ id: userId });
-    
+    await database.update(tables.USER_TABLE, payload, { id: userId });
+
 }
 
 module.exports = {
