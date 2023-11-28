@@ -7,8 +7,9 @@ const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getUserWithId, getCityUser, getUserDataById, updateUserById } = require("../services/users");
+const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
+const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData } = require("../services/authService");
 
 const tokenUtil = require("../utils/token");
 
