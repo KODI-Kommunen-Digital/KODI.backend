@@ -246,6 +246,55 @@ router.post("/register", register);
  */
 router.get("/:id", getUserById);
 
+
+/**
+ * @swagger
+ * paths:
+ *  /users/{id}:
+ *    patch:
+ *      summary: Update a user by ID
+ *      description: Update a user's password, email, firstname, lastname, phoneNumber, descritption, website and socialmedia. It won't update the username
+ *      tags: [user-update]
+ *      security:
+ *        - bearerAuth: []
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          description: The ID of the user
+ *          type: integer
+ *        
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/UpdateUser'
+ *      responses:
+ *        '200':
+ *          description: The user was successfully updated
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: success
+ *        '401':
+ *          description: Unauthorized! Token was expired! or invalid passwords given
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: Incorrect current password given
+ */
 router.patch("/:id", authentication, updateUser);
 
 router.delete("/:id", authentication, async function (req, res, next) {
@@ -412,15 +461,15 @@ router.post(
                 updationData.image = `user_${id}/profilePic`;
                 database
                     .update(tables.USER_TABLE, updationData, { id })
-                    .then((response) => {})
+                    .then((response) => { })
                     .catch((err) => {
                         return next(new AppError(err));
                     });
 
                 return res.status(200).json({
                     status: "success",
-                    data:{
-                        image:updationData.image
+                    data: {
+                        image: updationData.image
                     }
                 });
             } else {
@@ -542,10 +591,8 @@ router.get("/:id/listings", async function (req, res, next) {
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT *, ${
-                cityMapping.cityId
-            } as cityId FROM heidi_city_${cityMapping.cityId}${
-                cityMapping.inCityServer ? "_" : "."
+            let query = `SELECT *, ${cityMapping.cityId
+            } as cityId FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."
             }listings WHERE userId = ${cityMapping.cityUserId}`;
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
@@ -742,7 +789,7 @@ router.post("/resetPassword", async function (req, res, next) {
             password,
             user.password
         );
-        if(passwordCheck){
+        if (passwordCheck) {
             return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
         }
         response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
