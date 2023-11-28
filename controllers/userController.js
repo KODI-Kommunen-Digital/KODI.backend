@@ -9,7 +9,7 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
-const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData } = require("../services/authService");
+const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken } = require("../services/authService");
 
 const tokenUtil = require("../utils/token");
 
@@ -491,9 +491,74 @@ const updateUser = async function (req, res, next) {
     }
 }
 
+const refreshAuthToken = async function (req, res, next) {
+    const userId = req.params.id;
+    const sourceAddress = req.headers["x-forwarded-for"]
+        ? req.headers["x-forwarded-for"].split(",").shift()
+        : req.socket.remoteAddress;
+
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid UserId ${userId}`, 404));
+        return;
+    }
+
+    try {
+        const refreshToken = req.body.refreshToken;
+        if (!refreshToken) {
+            return next(new AppError(`Refresh token not present`, 400));
+        }
+
+        const decodedToken = tokenUtil.verify(
+            refreshToken,
+            process.env.REFRESH_PUBLIC,
+            next
+        );
+        if (decodedToken.userId !== parseInt(userId)) {
+            return next(new AppError(`Invalid refresh token`, 403));
+        }
+
+        const refreshTokenData = await getRefreshTokenByRefreshToken(refreshToken);
+        if (!refreshTokenData) {
+            return next(new AppError(`Invalid refresh token`, 400));
+        }
+
+        if (refreshTokenData.userId !== parseInt(userId)) {
+            return next(new AppError(`Invalid refresh token`, 400));
+        }
+        const newTokens = tokenUtil.generator({
+            userId: decodedToken.userId,
+            roleId: decodedToken.roleId,
+        });
+        const insertionData = {
+            userId,
+            sourceAddress,
+            refreshToken: newTokens.refreshToken,
+        };
+
+        await deleteRefreshTokenByTokenUid(refreshTokenData.id)
+
+        await insertRefreshTokenData(insertionData);
+
+        return res.status(200).json({
+            status: "success",
+            data: {
+                accessToken: newTokens.accessToken,
+                refreshToken: newTokens.refreshToken,
+            },
+        });
+    } catch (error) {
+        if (error.name === "TokenExpiredError") {
+            await deleteRefreshTokenByRefreshToken(req.body.refreshToken);
+            return next(new AppError(`Unauthorized! Token was expired!`, 401));
+        }
+        return next(new AppError(error));
+    }
+}
+
 module.exports = {
     register,
     login,
     getUserById,
     updateUser,
+    refreshAuthToken,
 };

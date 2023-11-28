@@ -4,7 +4,6 @@ const database = require("../services/database");
 const sendMail = require("../services/sendMail");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
-const tokenUtil = require("../utils/token");
 const authentication = require("../middlewares/authentication");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
@@ -15,7 +14,7 @@ const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const errorCodes = require('../constants/errorCodes');
 const getDateInFormate = require("../utils/getDateInFormate");
-const { register, login, getUserById, updateUser } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -626,74 +625,7 @@ router.get("/:id/listings", async function (req, res, next) {
     }
 });
 
-router.post("/:id/refresh", async function (req, res, next) {
-    const userId = req.params.id;
-    const sourceAddress = req.headers["x-forwarded-for"]
-        ? req.headers["x-forwarded-for"].split(",").shift()
-        : req.socket.remoteAddress;
-
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 404));
-        return;
-    }
-
-    try {
-        const refreshToken = req.body.refreshToken;
-        if (!refreshToken) {
-            return next(new AppError(`Refresh token not present`, 400));
-        }
-
-        const decodedToken = tokenUtil.verify(
-            refreshToken,
-            process.env.REFRESH_PUBLIC,
-            next
-        );
-        if (decodedToken.userId !== parseInt(userId)) {
-            return next(new AppError(`Invalid refresh token`, 403));
-        }
-
-        const response = await database.get(tables.REFRESH_TOKENS_TABLE, {
-            refreshToken,
-        });
-        const data = response.rows;
-        if (data && data.length === 0) {
-            return next(new AppError(`Invalid refresh token`, 400));
-        }
-
-        if (data[0].userId !== parseInt(userId)) {
-            return next(new AppError(`Invalid refresh token`, 400));
-        }
-        const newTokens = tokenUtil.generator({
-            userId: decodedToken.userId,
-            roleId: decodedToken.roleId,
-        });
-        const insertionData = {
-            userId,
-            sourceAddress,
-            refreshToken: newTokens.refreshToken,
-        };
-        await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-            id: data[0].id,
-        });
-        await database.create(tables.REFRESH_TOKENS_TABLE, insertionData);
-
-        return res.status(200).json({
-            status: "success",
-            data: {
-                accessToken: newTokens.accessToken,
-                refreshToken: newTokens.refreshToken,
-            },
-        });
-    } catch (error) {
-        if (error.name === "TokenExpiredError") {
-            await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                refreshToken: req.body.refreshToken,
-            });
-            return next(new AppError(`Unauthorized! Token was expired!`, 401));
-        }
-        return next(new AppError(error));
-    }
-});
+router.post("/:id/refresh", refreshAuthToken);
 
 router.post("/forgotPassword", async function (req, res, next) {
     const username = req.body.username;
