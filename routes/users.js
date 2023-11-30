@@ -5,16 +5,14 @@ const sendMail = require("../services/sendMail");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
-const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const errorCodes = require('../constants/errorCodes');
 const getDateInFormate = require("../utils/getDateInFormate");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -842,83 +840,7 @@ router.post("/forgotPassword", forgotPassword);
  *                    type: string
  *                    example: error name              
  */ 
-router.post("/resetPassword", async function (req, res, next) {
-    const userId = req.body.userId;
-    const language = req.body.language || "de";
-    const token = req.body.token;
-    const password = req.body.password;
-
-    if (!userId) {
-        return next(new AppError(`Username not present`, 400));
-    }
-
-    if (!token) {
-        return next(new AppError(`Token not present`, 400));
-    }
-
-    if (!password) {
-        return next(new AppError(`Password not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
-    }
-
-    try {
-        let response = await database.get(tables.USER_TABLE, { id: userId });
-        let data = response.rows;
-        if (data && data.length === 0) {
-            return next(new AppError(`UserId ${userId} does not exist`, 400));
-        }
-        const user = data[0];
-
-        const passwordCheck = await bcrypt.compare(
-            password,
-            user.password
-        );
-        if (passwordCheck) {
-            return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
-        }
-        response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
-            userId,
-            token,
-        });
-        data = response.rows;
-        if (data && data.length === 0) {
-            return next(new AppError(`Invalid data sent`, 400));
-        }
-        const tokenData = data[0];
-        await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
-            userId,
-            token,
-        });
-        if (tokenData.expiresAt < new Date().toLocaleString()) {
-            return next(new AppError(`Token Expired`, 400));
-        }
-
-        const hashedPassword = await bcrypt.hash(
-            password,
-            Number(process.env.SALT)
-        );
-        await database.update(
-            tables.USER_TABLE,
-            { password: hashedPassword },
-            { id: userId }
-        );
-
-        const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
-        const { subject, body } = passwordResetDone(
-            user.firstname,
-            user.lastname
-        );
-        await sendMail(user.email, subject, null, body);
-        return res.status(200).json({
-            status: "success",
-        });
-    } catch (err) {
-        return next(new AppError(err));
-    }
-});
+router.post("/resetPassword", resetPassword);
 
 router.post("/sendVerificationEmail", async function (req, res, next) {
     const email = req.body.email;

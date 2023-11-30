@@ -11,6 +11,24 @@ const getRefreshToken = async function (userId) {
     return refreshToken.rows[0];
 }
 
+const getForgotPasswordToken = async function (userId, token) {
+    const forgotPasswordToken = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
+        userId,
+        token,
+    });
+    if (!forgotPasswordToken || !forgotPasswordToken.rows || forgotPasswordToken.rows.length === 0) {
+        return null;
+    }
+    return forgotPasswordToken.rows[0];
+}
+
+const deleteForgotPasswordToken = async function (userId, token) {  
+    await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
+        userId,
+        token,
+    });
+}
+
 const getRefreshTokenByRefreshToken = async function (refreshToken) {
     const token = await database.get(tables.REFRESH_TOKENS_TABLE, {
         refreshToken,
@@ -51,4 +69,6 @@ module.exports = {
     getRefreshTokenByRefreshToken,
     deleteRefreshTokenByTokenUid,
     deleteRefreshTokenByRefreshToken,
+    getForgotPasswordToken,
+    deleteForgotPasswordToken,
 }
