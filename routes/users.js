@@ -9,7 +9,7 @@ const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -978,43 +978,102 @@ router.post("/sendVerificationEmail", sendVerificationEmail);
  */
 router.post("/verifyEmail", verifyEmail);
 
-router.post("/:id/logout", authentication, async function (req, res, next) {
-    const userId = parseInt(req.params.id);
 
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
-    if (!req.body.refreshToken) {
-        return next(new AppError(`Refresh Token not sent`, 403));
-    }
-    database
-        .get(tables.REFRESH_TOKENS_TABLE, {
-            refreshToken: req.body.refreshToken,
-        })
-        .then(async (response) => {
-            const data = response.rows;
-            if (!data || data.length === 0) {
-                return next(
-                    new AppError(
-                        `User with id ${req.body.refreshToken} does not exist`,
-                        404
-                    )
-                );
-            }
-            await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                userId,
-                refreshToken: req.body.refreshToken,
-            });
-            res.status(200).json({
-                status: "success",
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
-        });
-});
+
+/**
+ * @swagger
+ * paths:
+ *  /users/{id}/logout:
+ *    post:
+ *      summary: API to logout a user
+ *      description: Logout a user
+ *      tags: [logout]
+ *      security:
+ *        - bearerAuth: []
+ *      parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          description: The ID of the user
+ *          type: integer
+ *        
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                refreshToken:
+ *                  type: string
+ *                  required: true
+ *                  description: The refresh token of the user
+ *                
+ *      responses:
+ *        '200':
+ *          description: The user was successfully logged out
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: success
+ *        '401':
+ *          description: Unauthorized! Invalid access token
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: Authorization token not present
+ *        '403':
+ *          description: Unauthorized! Invalid refresh token
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: Refresh Token not sent
+ *        '404':
+ *          description: Refresh token not found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: User with id 1 does not exist
+ *        '500':
+ *          description: Server error
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: error name
+ */
+router.post("/:id/logout", authentication, logout);
 
 router.get("/", async function (req, res, next) {
     const params = req.query;

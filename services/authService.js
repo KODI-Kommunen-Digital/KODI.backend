@@ -57,6 +57,10 @@ const deleteRefreshToken = async function (userId) {
     });
 }
 
+const deleteRefreshTokenFor = async function (payload) {
+    await database.deleteData(tables.REFRESH_TOKENS_TABLE, payload);
+}
+
 const insertRefreshTokenData = async function (payload) {
     const response = await database.create(tables.REFRESH_TOKENS_TABLE, payload);
     return response;
@@ -92,5 +96,6 @@ module.exports = {
     insertVerificationTokenData,
     getEmailVerificationToken,
     deleteVerificationToken,
+    deleteRefreshTokenFor
 
 }

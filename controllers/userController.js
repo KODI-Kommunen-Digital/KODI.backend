@@ -9,7 +9,7 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById, deleteForgotTokenForUserWithConnection, addForgotPasswordTokenWithConnection } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
-const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, getEmailVerificationToken, deleteVerificationToken } = require("../services/authService");
+const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, getEmailVerificationToken, deleteVerificationToken, deleteRefreshTokenFor } = require("../services/authService");
 
 const tokenUtil = require("../utils/token");
 
@@ -785,6 +785,34 @@ const verifyEmail = async function (req, res, next) {
     }
 }
 
+const logout = async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+
+    if (userId !== parseInt(req.userId)) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+    if (!req.body.refreshToken) {
+        return next(new AppError(`Refresh Token not sent`, 403));
+    }
+
+    try {
+        const token = await getRefreshTokenByRefreshToken(req.body.refreshToken);
+        if (!token) {
+            return next(new AppError(`User with id ${req.body.refreshToken} does not exist`, 404));
+        }
+
+        await deleteRefreshTokenFor({refreshToken:req.body.refreshToken, userId});
+        return res.status(200).json({
+            status: "success",
+        });
+        
+    } catch (error) {
+        return next(new AppError(error));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -795,4 +823,5 @@ module.exports = {
     resetPassword,
     sendVerificationEmail,
     verifyEmail,
+    logout,
 };
