@@ -7,7 +7,7 @@ const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById, deleteForgotTokenForUserWithConnection, addForgotPasswordTokenWithConnection, getAllUsers } = require("../services/users");
+const userService = require("../services/users");
 const { getCityWithId } = require("../services/cities");
 const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, getEmailVerificationToken, deleteVerificationToken, deleteRefreshTokenFor } = require("../services/authService");
 
@@ -29,7 +29,7 @@ const register = async function (req, res, next) {
     } else {
         try {
 
-            const user = await getUserWithUsername(payload.username);
+            const user = await userService.getUserWithUsername(payload.username);
             if (user) {
                 return next(
                     new AppError(
@@ -59,7 +59,7 @@ const register = async function (req, res, next) {
         return next(new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL));
     } else {
         try {
-            const user = await getUserWithEmail(payload.email);
+            const user = await userService.getUserWithEmail(payload.email);
             if (user) {
                 return next(
                     new AppError(
@@ -169,7 +169,7 @@ const register = async function (req, res, next) {
 
     const connection = await database.createTransaction();
     try {
-        const response = await createUser(insertionData, connection);
+        const response = await userService.createUser(insertionData, connection);
 
         const userId = response.id;
         const now = new Date();
@@ -180,7 +180,7 @@ const register = async function (req, res, next) {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await addVerificationToken(tokenData, connection);
+        await userService.addVerificationToken(tokenData, connection);
 
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         const { subject, body } = verifyEmail(
@@ -226,7 +226,7 @@ const login = async function (req, res, next) {
 
     try {
 
-        const userData = await getUserByUsernameOrEmail(payload.username, payload.username);
+        const userData = await userService.getUserByUsernameOrEmail(payload.username, payload.username);
         if (!userData) {
             return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
         }
@@ -249,7 +249,7 @@ const login = async function (req, res, next) {
             return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
         }
 
-        const userMappings = await getuserCityMappings(userData.id);
+        const userMappings = await userService.getuserCityMappings(userData.id);
 
         const tokens = tokenUtil.generator({
             userId: userData.id,
@@ -311,7 +311,7 @@ const getUserById = async function (req, res, next) {
                 );
             }
 
-            const cityUser = await getCityUser(cityId, userId);
+            const cityUser = await userService.getCityUser(cityId, userId);
             if (!cityUser) {
                 return next(
                     new AppError(
@@ -327,7 +327,7 @@ const getUserById = async function (req, res, next) {
     }
 
     try {
-        const data = await getUserWithId(userId);
+        const data = await userService.getUserWithId(userId);
         if (!data) {
             return next(
                 new AppError(`User with id ${userId} does not exist`, 404)
@@ -358,7 +358,7 @@ const updateUser = async function (req, res, next) {
         );
     }
 
-    const currentUserData = await getUserDataById(id);
+    const currentUserData = await userService.getUserDataById(id);
     if (!currentUserData) {
         return next(new AppError(`User with id ${id} does not exist`, 404));
     }
@@ -477,7 +477,7 @@ const updateUser = async function (req, res, next) {
 
     if (Object.keys(updationData).length > 0) {
         try {
-            await updateUserById(id, updationData);
+            await userService.updateUserById(id, updationData);
             res.status(200).json({
                 status: "success",
             });
@@ -570,14 +570,14 @@ const forgotPassword = async function (req, res, next) {
     const transaction = await database.createTransaction();
     try {
 
-        const user = await getUserByUsernameOrEmail(username, username);
+        const user = await userService.getUserByUsernameOrEmail(username, username);
         if (!user) {
             return next(
                 new AppError(`Username ${username} does not exist`, 404)
             );
         }
 
-        await deleteForgotTokenForUserWithConnection(user.id, transaction);
+        await userService.deleteForgotTokenForUserWithConnection(user.id, transaction);
 
         const now = new Date();
         now.setMinutes(now.getMinutes() + 30);
@@ -588,7 +588,7 @@ const forgotPassword = async function (req, res, next) {
             expiresAt: getDateInFormate(now),
         };
 
-        await addForgotPasswordTokenWithConnection(tokenData, transaction);
+        await userService.addForgotPasswordTokenWithConnection(tokenData, transaction);
 
         const resetPasswordEmail = require(`../emailTemplates/${language}/resetPasswordEmail`);
         const { subject, body } = resetPasswordEmail(
@@ -633,7 +633,7 @@ const resetPassword = async function (req, res, next) {
     }
 
     try {
-        const user = await getUserDataById(userId);
+        const user = await userService.getUserDataById(userId);
         if (!user) {
             return next(new AppError(`UserId ${userId} does not exist`, 400));
         }
@@ -660,7 +660,7 @@ const resetPassword = async function (req, res, next) {
             Number(process.env.SALT)
         );
 
-        await updateUserById(userId, { password: hashedPassword });
+        await userService.updateUserById(userId, { password: hashedPassword });
 
         const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
         const { subject, body } = passwordResetDone(
@@ -689,7 +689,7 @@ const sendVerificationEmail = async function (req, res, next) {
     }
 
     try {
-        const user = await getUserWithEmail(email);
+        const user = await userService.getUserWithEmail(email);
         if (!user) {
             return next(new AppError(`Email ${email} does not exist`, 400));
         }
@@ -744,7 +744,7 @@ const verifyEmail = async function (req, res, next) {
     }
 
     try {
-        const user = await getUserDataById(userId);
+        const user = await userService.getUserDataById(userId);
         if (!user) {
             return next(new AppError(`UserId ${userId} does not exist`, 400));
         }
@@ -768,7 +768,7 @@ const verifyEmail = async function (req, res, next) {
             );
         }
 
-        await updateUserById(userId, { emailVerified: true });
+        await userService.updateUserById(userId, { emailVerified: true });
 
         const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
         const { subject, body } = verificationDone(
@@ -842,7 +842,7 @@ const getUsers = async function (req, res, next) {
         throw new new AppError("You need to send some params to filter")
     }
     try {
-        const users = await getAllUsers(filter, columsToQuery);
+        const users = await userService.getAllUsers(filter, columsToQuery);
         res.status(200).json({
             status: "success",
             data: users,
