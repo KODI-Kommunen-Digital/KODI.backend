@@ -9,7 +9,7 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const userService = require("../services/users");
 const { getCityWithId } = require("../services/cities");
-const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, getEmailVerificationToken, deleteVerificationToken, deleteRefreshTokenFor } = require("../services/authService");
+const tokenService = require("../services/authService");
 
 const tokenUtil = require("../utils/token");
 
@@ -257,14 +257,14 @@ const login = async function (req, res, next) {
             rememberMe: payload.rememberMe,
         });
 
-        const refreshData = await getRefreshToken(userData.id);
+        const refreshData = await tokenService.getRefreshToken(userData.id);
         if (refreshData) {
             if (
                 refreshData.sourceAddress === sourceAddress &&
                 refreshData.browser === head.browsername &&
                 refreshData.device === head.devicetype
             ) {
-                await deleteRefreshToken(userData.id);
+                await tokenService.deleteRefreshToken(userData.id);
             }
         }
         const insertionData = {
@@ -275,7 +275,7 @@ const login = async function (req, res, next) {
             device: head.devicetype,
         };
 
-        await insertRefreshTokenData(insertionData);
+        await tokenService.insertRefreshTokenData(insertionData);
         return res.status(200).json({
             status: "success",
             data: {
@@ -517,7 +517,7 @@ const refreshAuthToken = async function (req, res, next) {
             return next(new AppError(`Invalid refresh token`, 403));
         }
 
-        const refreshTokenData = await getRefreshTokenByRefreshToken(refreshToken);
+        const refreshTokenData = await tokenService.getRefreshTokenByRefreshToken(refreshToken);
         if (!refreshTokenData) {
             return next(new AppError(`Invalid refresh token`, 400));
         }
@@ -535,9 +535,9 @@ const refreshAuthToken = async function (req, res, next) {
             refreshToken: newTokens.refreshToken,
         };
 
-        await deleteRefreshTokenByTokenUid(refreshTokenData.id)
+        await tokenService.deleteRefreshTokenByTokenUid(refreshTokenData.id)
 
-        await insertRefreshTokenData(insertionData);
+        await tokenService.insertRefreshTokenData(insertionData);
 
         return res.status(200).json({
             status: "success",
@@ -548,7 +548,7 @@ const refreshAuthToken = async function (req, res, next) {
         });
     } catch (error) {
         if (error.name === "TokenExpiredError") {
-            await deleteRefreshTokenByRefreshToken(req.body.refreshToken);
+            await tokenService.deleteRefreshTokenByRefreshToken(req.body.refreshToken);
             return next(new AppError(`Unauthorized! Token was expired!`, 401));
         }
         return next(new AppError(error));
@@ -645,11 +645,11 @@ const resetPassword = async function (req, res, next) {
         if (passwordCheck) {
             return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
         }
-        const tokenData = await getForgotPasswordToken(userId, token);
+        const tokenData = await tokenService.getForgotPasswordToken(userId, token);
         if (!tokenData) {
             return next(new AppError(`Invalid data sent`, 400));
         }
-        await deleteForgotPasswordToken(userId, token);
+        await tokenService.deleteForgotPasswordToken(userId, token);
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(new AppError(`Token Expired`, 400));
@@ -697,7 +697,7 @@ const sendVerificationEmail = async function (req, res, next) {
             return next(new AppError(`Email already verified`, 400));
         }
 
-        await deleteVerificationToken({ userId: user.id });
+        await tokenService.deleteVerificationToken({ userId: user.id });
 
         const now = new Date();
         now.setHours(now.getHours() + 24);
@@ -707,7 +707,7 @@ const sendVerificationEmail = async function (req, res, next) {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await insertVerificationTokenData(tokenData);
+        await tokenService.insertVerificationTokenData(tokenData);
 
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         const { subject, body } = verifyEmail(
@@ -755,12 +755,12 @@ const verifyEmail = async function (req, res, next) {
             });
         }
 
-        const tokenData = await getEmailVerificationToken(userId, token);
+        const tokenData = await tokenService.getEmailVerificationToken(userId, token);
         if (!tokenData) {
             return next(new AppError(`Invalid data sent`, 400));
         }
 
-        await deleteVerificationToken({ userId, token });
+        await tokenService.deleteVerificationToken({ userId, token });
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(
@@ -798,12 +798,12 @@ const logout = async function (req, res, next) {
     }
 
     try {
-        const token = await getRefreshTokenByRefreshToken(req.body.refreshToken);
+        const token = await tokenService.getRefreshTokenByRefreshToken(req.body.refreshToken);
         if (!token) {
             return next(new AppError(`User with id ${req.body.refreshToken} does not exist`, 404));
         }
 
-        await deleteRefreshTokenFor({ refreshToken: req.body.refreshToken, userId });
+        await tokenService.deleteRefreshTokenFor({ refreshToken: req.body.refreshToken, userId });
         return res.status(200).json({
             status: "success",
         });
