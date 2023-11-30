@@ -5,14 +5,12 @@ const sendMail = require("../services/sendMail");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
-const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const getDateInFormate = require("../utils/getDateInFormate");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -907,58 +905,7 @@ router.post("/resetPassword", resetPassword);
  *                    type: string
  *                    example: error name              
  */
-router.post("/sendVerificationEmail", async function (req, res, next) {
-    const email = req.body.email;
-    const language = req.body.language || "de";
-
-    if (!email) {
-        return next(new AppError(`Email not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
-    }
-
-    try {
-        const response = await database.get(tables.USER_TABLE, { email });
-        const data = response.rows;
-        if (data && data.length === 0) {
-            return next(new AppError(`Email ${email} does not exist`, 400));
-        }
-        const user = data[0];
-        if (user.emailVerified) {
-            return next(new AppError(`Email already verified`, 400));
-        }
-
-        await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
-            userId: user.id,
-        });
-
-        const now = new Date();
-        now.setHours(now.getHours() + 24);
-        const token = crypto.randomBytes(32).toString("hex");
-        const tokenData = {
-            userId: user.id,
-            token,
-            expiresAt: getDateInFormate(now),
-        };
-        await database.create(tables.VERIFICATION_TOKENS_TABLE, tokenData);
-        const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
-        const { subject, body } = verifyEmail(
-            user.firstname,
-            user.lastname,
-            token,
-            user.id,
-            language
-        );
-        await sendMail(user.email, subject, null, body);
-        return res.status(200).json({
-            status: "success",
-        });
-    } catch (err) {
-        return next(new AppError(err));
-    }
-});
+router.post("/sendVerificationEmail", sendVerificationEmail);
 
 router.post("/verifyEmail", async function (req, res, next) {
     const userId = req.body.userId;

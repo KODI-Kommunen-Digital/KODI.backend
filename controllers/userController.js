@@ -9,7 +9,7 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById, deleteForgotTokenForUserWithConnection, addForgotPasswordTokenWithConnection } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
-const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken } = require("../services/authService");
+const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, deleteverificationToken } = require("../services/authService");
 
 const tokenUtil = require("../utils/token");
 
@@ -676,6 +676,56 @@ const resetPassword = async function (req, res, next) {
     }
 }
 
+const sendVerificationEmail = async function (req, res, next) {
+    const email = req.body.email;
+    const language = req.body.language || "de";
+
+    if (!email) {
+        return next(new AppError(`Email not present`, 400));
+    }
+
+    if (language !== "en" && language !== "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    }
+
+    try {
+        const user = await getUserWithEmail(email);
+        if (!user) {
+            return next(new AppError(`Email ${email} does not exist`, 400));
+        }
+        if (user.emailVerified) {
+            return next(new AppError(`Email already verified`, 400));
+        }
+
+        await deleteverificationToken(user.id);
+
+        const now = new Date();
+        now.setHours(now.getHours() + 24);
+        const token = crypto.randomBytes(32).toString("hex");
+        const tokenData = {
+            userId: user.id,
+            token,
+            expiresAt: getDateInFormate(now),
+        };
+        await insertVerificationTokenData(tokenData);
+
+        const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
+        const { subject, body } = verifyEmail(
+            user.firstname,
+            user.lastname,
+            token,
+            user.id,
+            language
+        );
+        await sendMail(user.email, subject, null, body);
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -684,4 +734,5 @@ module.exports = {
     refreshAuthToken,
     forgotPassword,
     resetPassword,
+    sendVerificationEmail,
 };
