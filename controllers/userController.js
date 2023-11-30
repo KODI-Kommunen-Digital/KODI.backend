@@ -9,7 +9,7 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById, deleteForgotTokenForUserWithConnection, addForgotPasswordTokenWithConnection } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
-const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, deleteverificationToken } = require("../services/authService");
+const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, getEmailVerificationToken, deleteVerificationToken } = require("../services/authService");
 
 const tokenUtil = require("../utils/token");
 
@@ -697,7 +697,7 @@ const sendVerificationEmail = async function (req, res, next) {
             return next(new AppError(`Email already verified`, 400));
         }
 
-        await deleteverificationToken(user.id);
+        await deleteVerificationToken({ userId: user.id });
 
         const now = new Date();
         now.setHours(now.getHours() + 24);
@@ -726,6 +726,65 @@ const sendVerificationEmail = async function (req, res, next) {
     }
 }
 
+const verifyEmail = async function (req, res, next) {
+    const userId = req.body.userId;
+    const language = req.body.language || "de";
+    const token = req.body.token;
+
+    if (!userId) {
+        return next(new AppError(`Username not present`, 400));
+    }
+
+    if (!token) {
+        return next(new AppError(`Token not present`, 400));
+    }
+
+    if (language !== "en" && language !== "de") {
+        return next(new AppError(`Incorrect language given`, 400));
+    }
+
+    try {
+        const user = await getUserDataById(userId);
+        if (!user) {
+            return next(new AppError(`UserId ${userId} does not exist`, 400));
+        }
+        if (user.emailVerified) {
+            return res.status(200).json({
+                status: "success",
+                message: "Email has already been vefified!!",
+            });
+        }
+
+        const tokenData = await getEmailVerificationToken(userId, token);
+        if (!tokenData) {
+            return next(new AppError(`Invalid data sent`, 400));
+        }
+
+        await deleteVerificationToken({ userId, token });
+
+        if (tokenData.expiresAt < new Date().toLocaleString()) {
+            return next(
+                new AppError(`Token Expired, send verification mail again`, 400)
+            );
+        }
+
+        await updateUserById(userId, { emailVerified: true });  
+
+        const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
+        const { subject, body } = verificationDone(
+            user.firstname,
+            user.lastname
+        );
+        await sendMail(user.email, subject, null, body);
+        return res.status(200).json({
+            status: "success",
+            message: "The Email Verification was successfull!",
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -735,4 +794,5 @@ module.exports = {
     forgotPassword,
     resetPassword,
     sendVerificationEmail,
+    verifyEmail,
 };

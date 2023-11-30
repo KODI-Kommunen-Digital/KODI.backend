@@ -22,7 +22,7 @@ const getForgotPasswordToken = async function (userId, token) {
     return forgotPasswordToken.rows[0];
 }
 
-const deleteForgotPasswordToken = async function (userId, token) {  
+const deleteForgotPasswordToken = async function (userId, token) {
     await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
         userId,
         token,
@@ -57,12 +57,6 @@ const deleteRefreshToken = async function (userId) {
     });
 }
 
-const deleteverificationToken = async function (userId) {
-    await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
-        userId,
-    });
-}
-
 const insertRefreshTokenData = async function (payload) {
     const response = await database.create(tables.REFRESH_TOKENS_TABLE, payload);
     return response;
@@ -71,6 +65,20 @@ const insertVerificationTokenData = async function (payload) {
     const response = await database.create(tables.VERIFICATION_TOKENS_TABLE, payload);
     return response;
 }
+const getEmailVerificationToken = async function (userId, token) {
+    const emailVerificationToken = await database.get(tables.VERIFICATION_TOKENS_TABLE, {
+        userId,
+        token,
+    });
+    if (!emailVerificationToken || !emailVerificationToken.rows || emailVerificationToken.rows.length === 0) {
+        return null;
+    }
+    return emailVerificationToken.rows[0];
+}
+const deleteVerificationToken = async function (payload) {
+    await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, payload);
+}
+
 
 module.exports = {
     getRefreshToken,
@@ -82,5 +90,7 @@ module.exports = {
     getForgotPasswordToken,
     deleteForgotPasswordToken,
     insertVerificationTokenData,
-    deleteverificationToken,
+    getEmailVerificationToken,
+    deleteVerificationToken,
+
 }
