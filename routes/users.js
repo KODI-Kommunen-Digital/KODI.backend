@@ -6,10 +6,9 @@ const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 const axios = require("axios");
 const parser = require("xml-js");
-const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices, uploadUserProfileImage } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -488,63 +487,7 @@ router.delete(
  *                status: error
  *                message: Failed!! Please try again
  */
-router.post(
-    "/:id/imageUpload",
-    authentication,
-    async function (req, res, next) {
-        const id = parseInt(req.params.id);
-
-        if (isNaN(Number(id)) || Number(id) <= 0) {
-            next(new AppError(`Invalid UserId ${id}`, 404));
-            return;
-        }
-        const { image } = req.files;
-
-        if (!image) {
-            next(new AppError(`Image not uploaded`, 400));
-            return;
-        }
-
-        try {
-            if (id !== parseInt(req.userId)) {
-                return next(
-                    new AppError(
-                        `You are not allowed to access this resource`,
-                        403
-                    )
-                );
-            }
-
-            const { uploadStatus } = await imageUpload(
-                image,
-                `user_${id}/profilePic`
-            );
-            if (uploadStatus === "Success") {
-                const updationData = {};
-                updationData.image = `user_${id}/profilePic`;
-                database
-                    .update(tables.USER_TABLE, updationData, { id })
-                    .then((response) => { })
-                    .catch((err) => {
-                        return next(new AppError(err));
-                    });
-
-                return res.status(200).json({
-                    status: "success",
-                    data: {
-                        image: updationData.image
-                    }
-                });
-            } else {
-                return res.status(500).json({
-                    status: "Failed!! Please try again",
-                });
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-    }
-);
+router.post("/:id/imageUpload", authentication, uploadUserProfileImage);
 
 router.get("/:id/listings", async function (req, res, next) {
     const userId = req.params.id;

@@ -10,6 +10,7 @@ const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const userService = require("../services/users");
 const { getCityWithId } = require("../services/cities");
 const tokenService = require("../services/authService");
+const imageUpload = require("../utils/imageUpload");
 
 const tokenUtil = require("../utils/token");
 
@@ -889,6 +890,54 @@ const deleteLoginDevices = async function (req, res, next) {
     }
 }
 
+const uploadUserProfileImage = async function (req, res, next) {
+    const id = parseInt(req.params.id);
+
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+    const { image } = req.files;
+
+    if (!image) {
+        next(new AppError(`Image not uploaded`, 400));
+        return;
+    }
+
+    try {
+        if (id !== parseInt(req.userId)) {
+            return next(
+                new AppError(
+                    `You are not allowed to access this resource`,
+                    403
+                )
+            );
+        }
+
+        const { uploadStatus } = await imageUpload(
+            image,
+            `user_${id}/profilePic`
+        );
+        if (uploadStatus === "Success") {
+
+            const updationData = {};
+            updationData.image = `user_${id}/profilePic`;
+            await userService.updateUserById(id, updationData);
+
+            return res.status(200).json({
+                status: "success",
+                data: updationData
+            });
+        } else {
+            return res.status(500).json({
+                status: "Failed!! Please try again",
+            });
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -903,4 +952,5 @@ module.exports = {
     getUsers,
     listLoginDevices,
     deleteLoginDevices,
+    uploadUserProfileImage,
 };
