@@ -122,6 +122,14 @@ const addForgotPasswordTokenWithConnection = async function (payload, connection
     return response;
 }
 
+const getAllUsers = async function (filter, columns) {
+    const response = await database.get(tables.USER_TABLE, filter, columns)
+    if (!response) {
+        return [];
+    }
+    return response.rows;
+}
+
 module.exports = {
     getUserWithUsername,
     getUserWithEmail,
@@ -134,5 +142,6 @@ module.exports = {
     getUserDataById,
     updateUserById,
     deleteForgotTokenForUserWithConnection,
-    addForgotPasswordTokenWithConnection
+    addForgotPasswordTokenWithConnection,
+    getAllUsers
 }

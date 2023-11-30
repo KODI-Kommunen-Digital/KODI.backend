@@ -9,7 +9,7 @@ const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -1075,46 +1075,70 @@ router.post("/verifyEmail", verifyEmail);
  */
 router.post("/:id/logout", authentication, logout);
 
-router.get("/", async function (req, res, next) {
-    const params = req.query;
-    const columsToQuery = [
-        "id",
-        "username",
-        "socialMedia",
-        "email",
-        "website",
-        "image",
-        "firstname",
-        "lastname",
-        "description",
-        "roleId",
-    ];
-    const filter = {}
-    if (params.ids) {
-        const ids = params.ids.split(",").map((id) => parseInt(id))
-        if (ids && ids.length > 10) {
-            throw new AppError("You can only fetch upto 10 users");
-        }
-        filter.id = ids;
-    }
-    if (params.username) {
-        filter.username = params.username;
-    }
-    if (!filter) {
-        throw new new AppError("You need to send some params to filter")
-    }
-    database
-        .get(tables.USER_TABLE, filter, columsToQuery)
-        .then((response) => {
-            res.status(200).json({
-                status: "success",
-                data: response.rows,
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
-        });
-});
+/**
+ * @swagger
+ * paths:
+ *  /users:
+ *    get:
+ *      summary: API to get users
+ *      description: Get all the users or a list of users based on the query params. Can be used to get a list of users based on their ids or username. 
+ *                  If you want to get a list of users based on their ids, send the ids as a comma separated string in the query param 'ids'.<br>
+ *                  If you want to get the users based on their username, send the username as a string in the query param 'username'.
+ *      tags: [get-users]
+ *      parameters:
+ *        - in: query
+ *          name: ids
+ *          schema:
+ *            type: string
+ *            example: 1,2,3
+ *        - in: query
+ *          name: username
+ *          schema:
+ *            type: string
+ *            example: johndoe
+ *      responses:
+ *        '200':
+ *          description: The users were successfully fetched
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: success
+ *                  data:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/UserResponse'
+ *        '400':
+ *          description: Invalid input given
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: You can only fetch upto 10 users
+ *        '500':
+ *          description: Server error
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  status:
+ *                    type: string
+ *                    example: error
+ *                  message:
+ *                    type: string
+ *                    example: Unknown column 'NaN' in 'where clause'
+ */
+router.get("/", getUsers);
 
 router.post(
     "/:id/loginDevices",

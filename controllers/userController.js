@@ -7,7 +7,7 @@ const roles = require("../constants/roles");
 const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById, deleteForgotTokenForUserWithConnection, addForgotPasswordTokenWithConnection } = require("../services/users");
+const { getUserWithUsername, getUserByUsernameOrEmail, createUser, addVerificationToken, getUserWithEmail, getuserCityMappings, getUserWithId, getCityUser, getUserDataById, updateUserById, deleteForgotTokenForUserWithConnection, addForgotPasswordTokenWithConnection, getAllUsers } = require("../services/users");
 const { getCityWithId } = require("../services/cities");
 const { getRefreshToken, deleteRefreshToken, insertRefreshTokenData, getRefreshTokenByRefreshToken, deleteRefreshTokenByTokenUid, deleteRefreshTokenByRefreshToken, getForgotPasswordToken, deleteForgotPasswordToken, insertVerificationTokenData, getEmailVerificationToken, deleteVerificationToken, deleteRefreshTokenFor } = require("../services/authService");
 
@@ -768,7 +768,7 @@ const verifyEmail = async function (req, res, next) {
             );
         }
 
-        await updateUserById(userId, { emailVerified: true });  
+        await updateUserById(userId, { emailVerified: true });
 
         const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
         const { subject, body } = verificationDone(
@@ -803,11 +803,50 @@ const logout = async function (req, res, next) {
             return next(new AppError(`User with id ${req.body.refreshToken} does not exist`, 404));
         }
 
-        await deleteRefreshTokenFor({refreshToken:req.body.refreshToken, userId});
+        await deleteRefreshTokenFor({ refreshToken: req.body.refreshToken, userId });
         return res.status(200).json({
             status: "success",
         });
-        
+
+    } catch (error) {
+        return next(new AppError(error));
+    }
+}
+
+const getUsers = async function (req, res, next) {
+    const params = req.query;
+    const columsToQuery = [
+        "id",
+        "username",
+        "socialMedia",
+        "email",
+        "website",
+        "image",
+        "firstname",
+        "lastname",
+        "description",
+        "roleId",
+    ];
+    const filter = {}
+    if (params.ids) {
+        const ids = params.ids.split(",").map((id) => parseInt(id))
+        if (ids && ids.length > 10) {
+            next(new AppError("You can only fetch upto 10 users", 400));
+        }
+        filter.id = ids;
+    }
+    if (params.username) {
+        filter.username = params.username;
+    }
+    if (!filter) {
+        throw new new AppError("You need to send some params to filter")
+    }
+    try {
+        const users = await getAllUsers(filter, columsToQuery);
+        res.status(200).json({
+            status: "success",
+            data: users,
+        });
     } catch (error) {
         return next(new AppError(error));
     }
@@ -824,4 +863,5 @@ module.exports = {
     sendVerificationEmail,
     verifyEmail,
     logout,
+    getUsers,
 };

@@ -115,6 +115,42 @@
  *             type: string
  *       anyOf:
  *         - required: [newPassword, currentPassword]
+  *     UserResponse:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           default: 3
+ *         username:
+ *          type: string
+ *          example: 'johndoe'
+ *         email:
+ *           type: string
+ *           example: 'email@example.com'
+ *         image:
+ *           type: string
+ *           example: 'https://www.user-image.com'
+ *         firstname:
+ *           type: string
+ *           example: 'John'
+ *         lastname:
+ *           type: string
+ *           example: 'Doe'
+ *         description:
+ *           type: string
+ *           example: 'I am a content creator'
+ *         website:
+ *           type: string
+ *           example: 'https://www.user-website.com'
+ *         socialMedia:
+ *           type: object
+ *           example:
+ *             'Facebook': 'facebook'
+ *           additionalProperties:
+ *             type: string
+ *         roleId:
+ *          type: integer
+ *          default: 3
  */
 
 const User = {
