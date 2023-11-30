@@ -6,9 +6,8 @@ const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 const axios = require("axios");
 const parser = require("xml-js");
-const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices, uploadUserProfileImage } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices, uploadUserProfileImage, deleteUserProfileImage } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -448,46 +447,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
  *                    type: string
  *                    example: Failed!! Please try again
  */
-router.delete(
-    "/:id/imageDelete",
-    authentication,
-    async function (req, res, next) {
-        const id = req.params.id;
-
-        if (isNaN(Number(id)) || Number(id) <= 0) {
-            next(new AppError(`Invalid UserId ${id}`, 404));
-            return;
-        }
-
-        try {
-            if (parseInt(id) !== parseInt(req.userId)) {
-                return next(
-                    new AppError(
-                        `You are not allowed to access this resource`,
-                        403
-                    )
-                );
-            }
-            const onSucccess = async () => {
-                const updationData = {};
-                updationData.image = "";
-
-                await database.update(tables.USER_TABLE, updationData, { id });
-                return res.status(200).json({
-                    status: "success",
-                });
-            };
-            const onFail = (err) => {
-                return next(
-                    new AppError("Image Delete failed with Error Code: " + err)
-                );
-            };
-            await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
-        } catch (err) {
-            return next(new AppError(err));
-        }
-    }
-);
+router.delete("/:id/imageDelete", authentication, deleteUserProfileImage);
 
 /**
  * @swagger

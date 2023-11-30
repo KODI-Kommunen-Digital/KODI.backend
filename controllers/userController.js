@@ -11,6 +11,7 @@ const userService = require("../services/users");
 const { getCityWithId } = require("../services/cities");
 const tokenService = require("../services/authService");
 const imageUpload = require("../utils/imageUpload");
+const objectDelete = require("../utils/imageDelete");
 
 const tokenUtil = require("../utils/token");
 
@@ -938,6 +939,43 @@ const uploadUserProfileImage = async function (req, res, next) {
     }
 }
 
+const deleteUserProfileImage = async function (req, res, next) {
+    const id = req.params.id;
+
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+
+    try {
+        if (parseInt(id) !== parseInt(req.userId)) {
+            return next(
+                new AppError(
+                    `You are not allowed to access this resource`,
+                    403
+                )
+            );
+        }
+        const onSucccess = async () => {
+            const updationData = {};
+            updationData.image = "";
+
+            await userService.updateUserById(id, updationData);
+            return res.status(200).json({
+                status: "success",
+            });
+        };
+        const onFail = (err) => {
+            return next(
+                new AppError("Image Delete failed with Error Code: " + err)
+            );
+        };
+        await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -953,4 +991,5 @@ module.exports = {
     listLoginDevices,
     deleteLoginDevices,
     uploadUserProfileImage,
+    deleteUserProfileImage,
 };
