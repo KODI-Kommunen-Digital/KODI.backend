@@ -9,7 +9,7 @@ const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -1227,34 +1227,7 @@ router.get("/", getUsers);
  *                    example: JsonWebTokenError invalid signature
  *      
  */
-router.post(
-    "/:id/loginDevices",
-    authentication,
-    async function (req, res, next) {
-        const userId = parseInt(req.params.id);
-        const refreshToken = req.body.refreshToken;
-        if (userId !== req.userId) {
-            return next(
-                new AppError("You are not allowed to access this resource")
-            );
-        }
-        database
-            .callQuery(
-                `select id, userId, sourceAddress, browser, device from refreshtokens where userId = ? and refreshToken NOT IN (?); `,
-                [userId, refreshToken]
-            )
-            .then((response) => {
-                const data = response.rows;
-                res.status(200).json({
-                    status: "success",
-                    data,
-                });
-            })
-            .catch((err) => {
-                return next(new AppError(err));
-            });
-    }
-);
+router.post("/:id/loginDevices", authentication, listLoginDevices);
 
 router.delete(
     "/:id/loginDevices",

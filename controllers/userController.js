@@ -852,6 +852,27 @@ const getUsers = async function (req, res, next) {
     }
 }
 
+const listLoginDevices = async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    const refreshToken = req.body.refreshToken;
+    if (userId !== req.userId) {
+        return next(
+            new AppError("You are not allowed to access this resource")
+        );
+    }
+
+    try {
+        const tokens = await tokenService.fetchRefreshTokensOtherThan(userId, refreshToken);
+        res.status(200).json({
+            status: "success",
+            data: tokens,
+        });
+        
+    } catch (error) {
+        return next(new AppError(error));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -864,4 +885,5 @@ module.exports = {
     verifyEmail,
     logout,
     getUsers,
+    listLoginDevices,
 };

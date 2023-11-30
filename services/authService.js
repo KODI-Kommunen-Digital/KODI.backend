@@ -83,6 +83,17 @@ const deleteVerificationToken = async function (payload) {
     await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, payload);
 }
 
+const fetchRefreshTokensOtherThan = async function (userId, refreshToken) {
+    const tokens = await database.callQuery(
+        `select id, userId, sourceAddress, browser, device from refreshtokens where userId = ? and refreshToken NOT IN (?); `,
+        [userId, refreshToken]
+    );
+    if(!tokens){
+        return [];
+    }
+    return tokens.rows;
+}
+
 
 module.exports = {
     getRefreshToken,
@@ -96,6 +107,6 @@ module.exports = {
     insertVerificationTokenData,
     getEmailVerificationToken,
     deleteVerificationToken,
-    deleteRefreshTokenFor
-
+    deleteRefreshTokenFor,
+    fetchRefreshTokensOtherThan,
 }
