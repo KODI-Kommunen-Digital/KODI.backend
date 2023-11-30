@@ -5,6 +5,7 @@ const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 
+const subcategories = require("../constants/subcategories");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
@@ -13,7 +14,7 @@ const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
-const pdfUpload = require("../utils/pdfUpload");
+const pdfUpload = require("../utils/pdfUpload");;
 const objectDelete = require("../utils/imageDelete");
 const getDateInFormate = require("../utils/getDateInFormate")
 const axios = require("axios");
@@ -259,7 +260,7 @@ router.get("/:id", async function (req, res, next) {
             const logo = listingImagesList.rows.length > 0 ? listingImagesList.rows[0].logo : null;
             res.status(200).json({
                 status: "success",
-                data: { ...data[0], logo, otherlogos: listingImagesList.rows },
+                data: { ...data[0], logo: listingImagesList.rows[0].logo, otherlogos: listingImagesList.rows },
             });
         })
         .catch((err) => {
@@ -480,32 +481,39 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.latitude) {
         insertionData.latitude = payload.latitude;
     }
-    if (parseInt(payload.categoryId) === categories.Events) {
 
-        if (!payload.startDate || !payload.endDate) {
-            return next(new AppError(`Start date or Time is not present`, 400));
-        }
-        if (payload.startDate) {
-            insertionData.startDate = getDateInFormate(new Date(payload.startDate))
-        } else {
-            return next(new AppError(`Start date or Time is not present`, 400));
-        }
+    if (payload.zipcode){
+        insertionData.zipcode = payload.zipcode;
+    }
+    try {
+        if (parseInt(payload.categoryId) === categories.Events) {
 
-        if (payload.endDate) {
-            insertionData.endDate = getDateInFormate(new Date(payload.endDate))
-            insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
-        } else {
-            insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
+            if (payload.startDate) {
+                insertionData.startDate = getDateInFormate(new Date(payload.startDate));
+            } else {
+                return next(new AppError(`Start date is not present`, 400));
+            }
+
+            if (payload.endDate) {
+                if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
+                    return next(new AppError(`Timeless News should not have an end date.`, 400));
+                }
+                insertionData.endDate = getDateInFormate(new Date(payload.endDate));
+                insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+            } else {
+                insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
+                    .toISOString()
+                    .slice(0, 19)
+                    .replace("T", " ");
+            }
         }
+        if (parseInt(payload.categoryId) === categories.News) {
+            insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
+        }
+        insertionData.createdAt = getDateInFormate(new Date());
+    } catch (error) {
+        return next(new AppError(`Invalid time format ${error}`, 400));
     }
-    if (parseInt(payload.categoryId) === categories.News) {
-        insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15))
-    }
-    insertionData.createdAt = getDateInFormate(new Date())
-    
 
     try {
         let response = {};
@@ -667,6 +675,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.discountPrice) {
         updationData.discountPrice = payload.discountPrice;
     }
+    if(payload.zipcode){
+        updationData.zipcode = payload.zipcode;
+    }
     if (payload.logo && payload.removeImage) {
         return next(
             new AppError(
@@ -676,6 +687,14 @@ router.patch("/:id", authentication, async function (req, res, next) {
         );
     }
 
+    if (payload.removeImage) {
+    // await database.deleteData(
+    //     tables.LISTINGS_IMAGES_TABLE,
+    //     { listingId: id },
+    //     cityId
+    // );
+    // updationData.logo = null;
+    }
 
     if (payload.pdf && payload.removePdf) {
         return next(
@@ -729,13 +748,21 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.latitude) {
         updationData.latitude = payload.latitude;
     }
-    if (payload.startDate) {
-        updationData.startDate = getDateInFormate(new Date(payload.startDate))
-    }
-    
-    if (payload.endDate) {
-        updationData.endDate = getDateInFormate(new Date(payload.endDate))
-        updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24))
+
+    try {
+        if (payload.startDate) {
+            updationData.startDate = getDateInFormate(new Date(payload.startDate));
+        }
+        
+        if (payload.endDate) {
+            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
+                return next(new AppError(`Timeless News should not have an end date.`, 400));
+            }
+            updationData.endDate = getDateInFormate(new Date(payload.endDate));
+            updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+        }
+    } catch (error) {
+        return next(new AppError(`Invalid time format ${error}`, 400));
     }
 
     const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
