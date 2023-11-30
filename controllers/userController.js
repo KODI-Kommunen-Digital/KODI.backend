@@ -867,7 +867,23 @@ const listLoginDevices = async function (req, res, next) {
             status: "success",
             data: tokens,
         });
-        
+    } catch (error) {
+        return next(new AppError(error));
+    }
+}
+
+const deleteLoginDevices = async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    const id = req.query.id;
+    try {
+        if (!id) {
+            await tokenService.deleteRefreshToken(userId);
+        } else {
+            await tokenService.deleteRefreshTokenFor({ userId, id });
+        }
+        res.status(200).json({
+            status: "success",
+        });
     } catch (error) {
         return next(new AppError(error));
     }
@@ -886,4 +902,5 @@ module.exports = {
     logout,
     getUsers,
     listLoginDevices,
+    deleteLoginDevices,
 };

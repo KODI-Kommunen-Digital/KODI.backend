@@ -9,7 +9,7 @@ const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices } = require("../controllers/userController");
 
 /**
  * @swagger
@@ -1290,36 +1290,6 @@ router.post("/:id/loginDevices", authentication, listLoginDevices);
  *                    example: JsonWebTokenError invalid signature
  *          
  */
-router.delete(
-    "/:id/loginDevices",
-    authentication,
-    async function (req, res, next) {
-        const userId = parseInt(req.params.id);
-        const id = req.query.id;
-        if (!id) {
-            database
-                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
-                .then(() => {
-                    res.status(200).json({
-                        status: "success",
-                    });
-                })
-                .catch((err) => {
-                    return next(new AppError(err));
-                });
-        } else {
-            database
-                .deleteData(tables.REFRESH_TOKENS_TABLE, { userId, id })
-                .then(() => {
-                    res.status(200).json({
-                        status: "success",
-                    });
-                })
-                .catch((err) => {
-                    return next(new AppError(err));
-                });
-        }
-    }
-);
+router.delete("/:id/loginDevices", authentication, deleteLoginDevices);
 
 module.exports = router;
