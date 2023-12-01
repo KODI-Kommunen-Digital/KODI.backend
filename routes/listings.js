@@ -127,23 +127,11 @@ router.get("/", async function (req, res, next) {
         for (const city of cities) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT L.*, 
-            IFNULL(sub.logo, '') as logo,
-            IFNULL(sub.logoCount, 0) as logoCount,
-            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
-    city.id
-} as cityId FROM heidi_city_${city.id}${
-    city.inCityServer ? "_" : "."
-}listings L 
-            LEFT JOIN 
-            (
-                SELECT 
-                    listingId,
-                    MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
-                    COUNT(listingId) as logoCount
-                FROM heidi_city_${city.id}.listing_images
-                GROUP BY listingId
-            ) sub ON L.id = sub.listingId 
+            let query = `SELECT L.*, U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
+                city.id
+            } as cityId FROM heidi_city_${city.id}${
+                city.inCityServer ? "_" : "."
+            }listings L 
 			inner join
             user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
 			inner join users U on U.id = UM.userId `;
@@ -159,7 +147,6 @@ router.get("/", async function (req, res, next) {
                     query += `L.statusId = ${params.statusId} AND `;
                 }
                 query = query.slice(0, -4);
-                query += `GROUP BY L.id,sub.logo, sub.logoCount,U.username, U.firstname, U.lastname, U.image`;
             }
             individualQueries.push(query);
         }
@@ -168,9 +155,9 @@ router.get("/", async function (req, res, next) {
                 ${individualQueries.join(" union all ")}
             ) a order by ${sortByStartDate ?  "startDate, createdAt" : "createdAt desc"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
         const response = await database.callQuery(query); 
+
         const listings = response.rows;
         const noOfListings = listings.length;
-
         if (
             noOfListings > 0 &&
       params.translate &&
