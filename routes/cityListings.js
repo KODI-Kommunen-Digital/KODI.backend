@@ -490,22 +490,19 @@ router.post("/", authentication, async function (req, res, next) {
             }
 
             if (payload.endDate) {
-                if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
-                    return next(new AppError(`Timeless News should not have an end date.`, 400));
-                }
                 insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                 insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
             } else {
-                if (parseInt(payload.subcategoryId) !== subcategories.timelessNews){
-                    insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace("T", " ");
-                }
+                insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
+                    .toISOString()
+                    .slice(0, 19)
+                    .replace("T", " ");
             }
         }
         if (parseInt(payload.categoryId) === categories.News) {
-            insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
+            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
+                insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
+            }
         }
         insertionData.createdAt = getDateInFormate(new Date());
     } catch (error) {
