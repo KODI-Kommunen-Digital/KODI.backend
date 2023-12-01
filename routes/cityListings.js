@@ -498,9 +498,9 @@ router.post("/", authentication, async function (req, res, next) {
             } else {
                 if (parseInt(payload.subcategoryId) !== subcategories.timelessNews){
                     insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                    .toISOString()
-                    .slice(0, 19)
-                    .replace("T", " ");
+                        .toISOString()
+                        .slice(0, 19)
+                        .replace("T", " ");
                 }
             }
         }
