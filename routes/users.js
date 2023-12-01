@@ -963,7 +963,7 @@ router.post("/:id/refresh", async function (req, res, next) {
             await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
                 refreshToken: req.body.refreshToken,
             });
-            return next(new AppError(`Unauthorized! Token was expired!`, 401));
+            return next(new AppError(`Unauthorized! Refresh Token was expired!`, 401));
         }
         return next(new AppError(error));
     }
