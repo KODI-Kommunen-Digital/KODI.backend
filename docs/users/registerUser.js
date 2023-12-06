@@ -1,44 +1,20 @@
-const { UserResponseSchema } = require("../models/userModels");
+const { UserSchema } = require("../models/userModels");
 
-const getUserByIdDoc = {
-    summary: "Get a user by ID",
-    description: "Retrieve a user based on their ID",
-    'tags': ["Users"],
-    parameters: [
-        {
-            in: "path",
-            name: "id",
-            schema: {
-                type: "integer",
+const registerUserSwagger = {
+    summary: "Create a user registration",
+    description: "Register a new user",
+    tags: ["Users"],
+    requestBody: {
+        required: true,
+        content: {
+            "application/json": {
+                schema: UserSchema,
             },
-            required: true,
-            description: "The ID of the user",
-            title: "get used by Id",
         },
-        {
-            in: "query",
-            name: "cityUser",
-            schema: {
-                type: "boolean",
-            },
-            required: false,
-            description:
-                "If true, the user will be checked against cityId and returned with cityUser mappings",
-        },
-        {
-            in: "query",
-            name: "cityId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description:
-                "The ID of the city; if given, will return the user with cityUser mapping for the specified city",
-        },
-    ],
+    },
     responses: {
-        "200": {
-            description: "The user was successfully fetched",
+        200: {
+            description: "The user was successfully registered",
             content: {
                 "application/json": {
                     schema: {
@@ -47,15 +23,18 @@ const getUserByIdDoc = {
                             status: {
                                 type: "string",
                                 example: "success",
-                                description: "The status of the response",
                             },
-                            data: UserResponseSchema,
+                            id: {
+                                type: "integer",
+                                example: 1,
+                                description: "The id of the newly registered user",
+                            },
                         },
                     },
                 },
             },
         },
-        "400": {
+        400: {
             description: "Invalid input given",
             content: {
                 "application/json": {
@@ -68,14 +47,20 @@ const getUserByIdDoc = {
                             },
                             message: {
                                 type: "string",
-                                example: "User with id 20 does not exist",
+                                example: "User with username 'johndoe' already exists",
+                                description: "The error message",
+                            },
+                            errorCode: {
+                                type: "integer",
+                                example: 2005,
+                                description: "The error code",
                             },
                         },
                     },
                 },
             },
         },
-        "500": {
+        500: {
             description: "Internal server error",
             content: {
                 "application/json": {
@@ -88,7 +73,6 @@ const getUserByIdDoc = {
                             },
                             message: {
                                 type: "string",
-                                example: "ReferenceError data is not defined",
                             },
                         },
                     },
@@ -96,7 +80,6 @@ const getUserByIdDoc = {
             },
         },
     },
-
 };
 
-module.exports = getUserByIdDoc;
+module.exports = registerUserSwagger;

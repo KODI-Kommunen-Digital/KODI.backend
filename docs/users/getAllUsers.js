@@ -1,44 +1,29 @@
-const { UserResponseSchema } = require("../models/userModels");
-
-const getUserByIdDoc = {
-    summary: "Get a user by ID",
-    description: "Retrieve a user based on their ID",
-    'tags': ["Users"],
+const getAllUsersSwagger = {
+    summary: "Get all users",
+    description:
+        "Get all the users or a list of users based on the query params. Can be used to get a list of users based on their ids or username. If you want to get a list of users based on their ids, send the ids as a comma separated string in the query param 'ids'. If you want to get the users based on their username, send the username as a string in the query param 'username'.",
+    tags: ["Users"],
     parameters: [
         {
-            in: "path",
-            name: "id",
+            in: "query",
+            name: "ids",
             schema: {
-                type: "integer",
+                type: "string",
+                example: "1,2,3",
             },
-            required: true,
-            description: "The ID of the user",
-            title: "get used by Id",
         },
         {
             in: "query",
-            name: "cityUser",
+            name: "username",
             schema: {
-                type: "boolean",
+                type: "string",
+                example: "johndoe",
             },
-            required: false,
-            description:
-                "If true, the user will be checked against cityId and returned with cityUser mappings",
-        },
-        {
-            in: "query",
-            name: "cityId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description:
-                "The ID of the city; if given, will return the user with cityUser mapping for the specified city",
         },
     ],
     responses: {
         "200": {
-            description: "The user was successfully fetched",
+            description: "The users were successfully fetched",
             content: {
                 "application/json": {
                     schema: {
@@ -47,9 +32,13 @@ const getUserByIdDoc = {
                             status: {
                                 type: "string",
                                 example: "success",
-                                description: "The status of the response",
                             },
-                            data: UserResponseSchema,
+                            data: {
+                                type: "array",
+                                items: {
+                                    $ref: "#/components/schemas/UserResponse",
+                                },
+                            },
                         },
                     },
                 },
@@ -68,7 +57,7 @@ const getUserByIdDoc = {
                             },
                             message: {
                                 type: "string",
-                                example: "User with id 20 does not exist",
+                                example: "You can only fetch upto 10 users",
                             },
                         },
                     },
@@ -76,7 +65,7 @@ const getUserByIdDoc = {
             },
         },
         "500": {
-            description: "Internal server error",
+            description: "Server error",
             content: {
                 "application/json": {
                     schema: {
@@ -88,7 +77,7 @@ const getUserByIdDoc = {
                             },
                             message: {
                                 type: "string",
-                                example: "ReferenceError data is not defined",
+                                example: "Unknown column 'NaN' in 'where clause'",
                             },
                         },
                     },
@@ -96,7 +85,6 @@ const getUserByIdDoc = {
             },
         },
     },
-
 };
 
-module.exports = getUserByIdDoc;
+module.exports = getAllUsersSwagger;

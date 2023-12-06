@@ -1,4 +1,19 @@
-const { getUserByIdDoc } = require("./users/getUserById");
+const getAllCitiesSwagger = require("./cities/getAllCities");
+const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
+const forgotPasswordSwagger = require("./users/forgotPassword");
+const getLoginDevicesSwagger = require("./users/getAllLoginDevices");
+const getAllUsersSwagger = require("./users/getAllUsers");
+const getUserByIdDoc = require("./users/getUserById");
+const deleteUserProfilePicSwagger = require("./users/imageDelete");
+const imageUpoadSwagger = require("./users/imageUpload");
+const loginUser = require("./users/loginUser");
+const logoutSwagger = require("./users/logout");
+const refreshTokenSchema = require("./users/refreshToken");
+const registerUserSwagger = require("./users/registerUser");
+const resetPasswordSwagger = require("./users/resetPassword");
+const sendVerificaltionEmailSwagger = require("./users/sendVerificationEmail");
+const updateUserSwagger = require("./users/updateUser");
+const verifyEmailSwagger = require("./users/verifyEmail");
 
 const apiDocumentation = {
     openapi: '3.0.1',
@@ -17,11 +32,55 @@ const apiDocumentation = {
         {
             name: 'Users',
         },
+        {
+            name: 'Cities',
+        },
     ],
     paths: {
-        '/users/{id}': {
-            'get': getUserByIdDoc
+        '/users': {
+            'get': getAllUsersSwagger
         },
+        '/users/{id}': {
+            'get': getUserByIdDoc,
+            'patch': updateUserSwagger,
+        },
+        '/users/login': {
+            'post': loginUser
+        },
+        '/users/register': {
+            'post': registerUserSwagger,
+        },
+        '/users/{id}/refresh': {
+            'post': refreshTokenSchema,
+        },
+        '/users/forgotPassword': {
+            'post': forgotPasswordSwagger,
+        },
+        '/users/resetPassword': {
+            'post': resetPasswordSwagger,
+        },
+        '/users/sendVerificationEmail': {
+            'post': sendVerificaltionEmailSwagger,
+        },
+        '/users/verifyEmail': {
+            'post': verifyEmailSwagger,
+        },
+        '/users/{id}/loginDevices': {
+            'post': getLoginDevicesSwagger,
+            'delete': deleteLoggedInDevicesSwagger,
+        },
+        '/users/{id}/imageUpload': {
+            'post': imageUpoadSwagger,
+        },
+        '/users/{id}/imageDelete': {
+            'delete': deleteUserProfilePicSwagger,
+        },
+        '/users/{id}/logout': {
+            'post': logoutSwagger,
+        },
+        '/cities': {
+            'get': getAllCitiesSwagger,
+        }
     }
 };
 
