@@ -130,6 +130,25 @@ const getAllUsers = async function (filter, columns) {
     return response.rows;
 }
 
+const getUserById = async function (userId) {
+    const response = await database.get(tables.USER_TABLE, { id: userId });
+    const data = response.rows;
+    if (data && data.length === 0) {
+        return null;
+
+    }
+    return data[0];
+}
+
+const createCityUserWithTransaction = async function (user, transaction) {
+    const response = await database.createWithTransaction(
+        tables.USER_TABLE,
+        user,
+        transaction,
+    );
+    return response;
+}
+
 module.exports = {
     getUserWithUsername,
     getUserWithEmail,
@@ -143,5 +162,7 @@ module.exports = {
     updateUserById,
     deleteForgotTokenForUserWithConnection,
     addForgotPasswordTokenWithConnection,
-    getAllUsers
+    getAllUsers,
+    getUserById,
+    createCityUserWithTransaction,
 }

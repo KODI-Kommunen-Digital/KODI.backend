@@ -19,7 +19,20 @@ const getCities = async function (filter) {
     return response.rows;
 }
 
+const createCityUserCityMappingWithTransaction = async function (cityId, userId, cityUserId, transaction) {
+    await database.createWithTransaction(
+        tables.USER_CITYUSER_MAPPING_TABLE,
+        {
+            cityId,
+            userId,
+            cityUserId,
+        },
+        transaction,
+    )
+}
+
 module.exports = {
     getCityWithId,
     getCities,
+    createCityUserCityMappingWithTransaction,
 }
