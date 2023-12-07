@@ -4,7 +4,7 @@ const categories = require("../constants/categories");
 const AppError = require("../utils/appError");
 const getDateInFormate = require("../utils/getDateInFormate")
 const database = require("../services/database");
-const tables = require("../constants/tableNames");
+// const tables = require("../constants/tableNames");
 const subcategories = require("../constants/subcategories");
 const roles = require("../constants/roles");
 const userServices = require("../services/users");
@@ -239,51 +239,39 @@ const createCityListing = async function (req, res, next) {
 }
 
 const getCityListingWithId = async function (req, res, next) {
-    const id = req.params.id;
-    const cityId = req.cityId;
-
-    if (!cityId || isNaN(cityId)) {
-        return next(new AppError(`invalid cityId given`, 400));
-    }
-    if (isNaN(Number(id)) || Number(id) <= 0) {
-        next(new AppError(`Invalid ListingsId ${id}`, 404));
-        return;
-    }
-
-    if (isNaN(Number(id)) || Number(cityId) <= 0) {
-        return next(new AppError(`City is not present`, 404));
-    } else {
-        try {
-            const response = await database.get(tables.CITIES_TABLE, {
-                id: cityId,
-            });
-            if (response.rows && response.rows.length === 0) {
-                return next(
-                    new AppError(`Invalid City '${cityId}' given`, 404)
-                );
-            }
-        } catch (err) {
-            return next(new AppError(err));
+    try {
+        const id = req.params.id;
+        const cityId = req.cityId;
+        if (!cityId || isNaN(cityId)) {
+            return next(new AppError(`invalid cityId given`, 400));
         }
-    }
-
-    database
-        .get(tables.LISTINGS_TABLE, { id }, null, cityId)
-        .then((response) => {
-            const data = response.rows;
-            if (!data || data.length === 0) {
-                return next(
-                    new AppError(`Listings with id ${id} does not exist`, 404)
-                );
+        if (isNaN(Number(id)) || Number(id) <= 0) {
+            return next(new AppError(`Invalid ListingsId ${id}`, 404));
+        }
+        if (isNaN(Number(id)) || Number(cityId) <= 0) {
+            return next(new AppError(`City is not present`, 404));
+        } else {
+            try {
+                const response = await cityServices.getCityWithId(cityId);
+                if (!response) {
+                    return next(new AppError(`Invalid City '${cityId}' given`, 400));
+                }
+            } catch (err) {
+                return next(new AppError(err));
             }
-            res.status(200).json({
-                status: "success",
-                data: data[0],
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
+        }
+        
+        const data = await listingService.getCityListingWithId(id, cityId);
+        if (!data) {
+            return next(new AppError(`Listings with id ${id} does not exist`, 404));
+        }
+        res.status(200).json({
+            status: "success",
+            data,
         });
+    } catch (err) {
+        return next(new AppError(err));
+    }
 }
 
 

@@ -17,8 +17,17 @@ const createUserListingMappingWithTransaction = async function (cityId, userId, 
     }, transaction);
 }
 
+const getCityListingWithId = async function (id, cityId) {
+    const response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
+    if (!response || !response.rows || response.rows.length === 0) {
+        return null;
+    }
+    return response.rows[0];
+}
+
 
 module.exports = {
     createListingWithTransaction,
     createUserListingMappingWithTransaction,
+    getCityListingWithId,
 }
