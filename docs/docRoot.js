@@ -1,5 +1,6 @@
 const getAllCitiesSwagger = require("./cities/getAllCities");
 const createCityListingSwagger = require("./cityListings/createCityListing");
+const getCityListingByIdSwagger = require("./cityListings/getCityListingById");
 const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
 const forgotPasswordSwagger = require("./users/forgotPassword");
 const getLoginDevicesSwagger = require("./users/getAllLoginDevices");
@@ -87,6 +88,9 @@ const apiDocumentation = {
         },
         '/cities/{cityId}/listings': {
             'post': createCityListingSwagger
+        },
+        '/cities/{cityId}/listings/{id}': {
+            'get': getCityListingByIdSwagger,
         }
     }
 };
