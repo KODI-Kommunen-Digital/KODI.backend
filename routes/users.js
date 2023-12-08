@@ -12,7 +12,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
-const objectDelete = require("../utils/imageDelete");
+const objectDeletePromise = require("../utils/objectDeletePromise");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 const errorCodes = require('../constants/errorCodes');
@@ -393,11 +393,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
-
-    const response = await database.get(tables.USER_TABLE, { id });
-    if (!response.rows || response.rows.length === 0) {
-        return next(new AppError(`User with id ${id} does not exist`, 404));
-    }
+    const response = await database.get(
+        tables.USER,
+        { id }
+    );
 
     const currentUserData = response.rows[0];
     if (payload.username && payload.username !== currentUserData.username) {
@@ -515,7 +514,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (Object.keys(updationData).length > 0) {
         database
             .update(tables.USER_TABLE, updationData, { id })
-            .then((response) => {
+            .then(() => {
                 res.status(200).json({
                     status: "success",
                 });
@@ -628,6 +627,11 @@ router.delete(
             return;
         }
 
+        const response = await database.get(tables.USER_TABLE, { id });
+        if (!response.rows || response.rows.length === 0) {
+            return next(new AppError(`User with id ${id} does not exist`, 404));
+        }
+
         try {
             if (parseInt(id) !== parseInt(req.userId)) {
                 return next(
@@ -637,21 +641,15 @@ router.delete(
                     )
                 );
             }
-            const onSucccess = async () => {
-                const updationData = {};
-                updationData.image = "";
-
+            const user = response.rows[0]
+            if (user.image) {
+                await objectDeletePromise(user.image);
+                const updationData = { image: "" };
                 await database.update(tables.USER_TABLE, updationData, { id });
-                return res.status(200).json({
-                    status: "success",
-                });
-            };
-            const onFail = (err) => {
-                return next(
-                    new AppError("Image Delete failed with Error Code: " + err)
-                );
-            };
-            await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
+            }
+            return res.status(200).json({
+                status: "success",
+            });
         } catch (err) {
             return next(new AppError(err));
         }
@@ -675,7 +673,13 @@ router.post(
             return;
         }
 
+        const response = await database.get(tables.USER_TABLE, { id });
+        if (!response.rows || response.rows.length === 0) {
+            return next(new AppError(`User with id ${id} does not exist`, 404));
+        }
+        const newImagePath = `user_${id}/profilePic_${Date.now()}`
         try {
+            const user = response.rows[0]
             if (id !== parseInt(req.userId)) {
                 return next(
                     new AppError(
@@ -685,13 +689,20 @@ router.post(
                 );
             }
 
+            if (user.image) {
+                await objectDeletePromise(user.image);
+                const updationData = { image: "" };
+                await database.update(tables.USER_TABLE, updationData, { id });
+            }
+
             const { uploadStatus } = await imageUpload(
                 image,
-                `user_${id}/profilePic`
+                newImagePath
             );
+
             if (uploadStatus === "Success") {
                 const updationData = {};
-                updationData.image = `user_${id}/profilePic`;
+                updationData.image = newImagePath;
                 database
                     .update(tables.USER_TABLE, updationData, { id })
                     .then((response) => {})

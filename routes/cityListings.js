@@ -13,9 +13,9 @@ const authentication = require("../middlewares/authentication");
 const deepl = require("deepl-node");
 const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload")
-const objectDelete = require("../utils/imageDelete");
 const getDateInFormate = require("../utils/getDateInFormate")
 const getPdfImage = require("../utils/getPdfImage");
+const objectDeletePromise = require("../utils/objectDeletePromise");
 
 // const radiusSearch = require('../services/handler')
 
@@ -685,20 +685,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if(payload.zipcode){
         updationData.zipcode = payload.zipcode;
     }
-    if (payload.logo && payload.removeImage) {
-        return next(
-            new AppError(
-                `Invalid Input, logo and removeImage both fields present`,
-                400
-            )
-        );
-    }
-    if (payload.logo) {
-        updationData.logo = payload.logo;
-    }
-    if (payload.removeImage) {
-        updationData.logo = null;
-    }
 
     if (payload.pdf && payload.removePdf) {
         return next(
@@ -707,12 +693,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 400
             )
         );
-    }
-    if (payload.pdf) {
-        updationData.pdf = payload.pdf;
-    }
-    if (payload.removePdf) {
-        updationData.pdf = null;
     }
 
     if (payload.statusId !== currentListingData.statusId) {
@@ -827,19 +807,20 @@ router.delete("/:id", authentication, async function (req, res, next) {
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
-    
-    const onSucccess = async () => {
-        database.deleteData(tables.LISTINGS_TABLE, { id }, cityId);
-        return res.status(200).json({
-            status: "success",
-        });
-    };
-    const onFail = (err) => {
-        return next(
-            new AppError("Image Delete failed with Error Code: " + err)
-        );
-    };
-    await objectDelete(currentListingData.logo, onSucccess, onFail);
+
+    if (currentListingData.logo) {
+        try {
+            await objectDeletePromise(currentListingData.logo);
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    await database.deleteData(tables.LISTINGS_TABLE, { id }, cityId);
+    return res.status(200).json({
+        status: "success",
+    });
+      
 });
 
 router.post(
@@ -923,11 +904,11 @@ router.post(
         }
 
         try {
-            const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
-
+            const newImagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${Date.now()}`
+            
             const { uploadStatus, objectKey } = await imageUpload(
                 image,
-                filePath
+                newImagePath
             );
             const updationData = { logo: objectKey };
 
@@ -1147,11 +1128,12 @@ router.delete(
                 new AppError(`You are not allowed to access this resource`, 403)
             );
         }
-        try {
-            const onSucccess = async () => {
-                const updationData = {};
-                updationData.logo = "";
 
+        if (currentListingData.logo) {
+            try {
+                await objectDeletePromise(currentListingData.logo);
+    
+                const updationData = { logo : "" };
                 await database.update(
                     tables.LISTINGS_TABLE,
                     updationData,
@@ -1161,19 +1143,13 @@ router.delete(
                 return res.status(200).json({
                     status: "success",
                 });
-            };
-            const onFail = (err) => {
-                return next(
-                    new AppError("Image Delete failed with Error Code: " + err)
-                );
-            };
-            await objectDelete(
-                `user_${req.userId}/city_${cityId}_listing_${id}`,
-                onSucccess,
-                onFail
-            );
-        } catch (err) {
-            return next(new AppError(err));
+            } catch (err) {
+                return next(new AppError(err));
+            }
+        } else {
+            return res.status(200).json({
+                status: "success",
+            });
         }
     }
 );
@@ -1240,11 +1216,12 @@ router.delete(
                 new AppError(`You are not allowed to access this resource`, 403)
             );
         }
-        try {
-            const onSucccess = async () => {
-                const updationData = {};
-                updationData.pdf = "";
 
+        if (currentListingData.pdf) {
+            try {
+                await objectDeletePromise(currentListingData.pdf);
+    
+                const updationData = { pdf : "" };
                 await database.update(
                     tables.LISTINGS_TABLE,
                     updationData,
@@ -1254,19 +1231,13 @@ router.delete(
                 return res.status(200).json({
                     status: "success",
                 });
-            };
-            const onFail = (err) => {
-                return next(
-                    new AppError("Pdf Delete failed with Error Code: " + err)
-                );
-            };
-            await objectDelete(
-                `user_${req.userId}/city_${cityId}_listing_${id}_PDF.pdf`,
-                onSucccess,
-                onFail
-            );
-        } catch (err) {
-            return next(new AppError(err));
+            } catch (err) {
+                return next(new AppError(err));
+            }
+        } else {
+            return res.status(200).json({
+                status: "success",
+            });
         }
     }
 );
