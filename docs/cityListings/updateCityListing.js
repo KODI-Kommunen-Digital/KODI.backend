@@ -1,9 +1,14 @@
-const { CityListing } = require("../models/cityListing");
+const { UpdateCityListing } = require("../models/cityListing");
 
-const getAllCityListingsSwagger = {
+const updateCityListingSwagger = {
+    summary: "Update a listing of a city",
     tags: ["City Listings"],
-    summary: "Get all the listings of a city",
-    description: "Get all listings of a city",
+    description: "Edit a particular listing of a city",
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
     parameters: [
         {
             in: "path",
@@ -16,80 +21,27 @@ const getAllCityListingsSwagger = {
             },
         },
         {
-            in: "query",
-            name: "pageNo",
+            in: "path",
+            name: "id",
             schema: {
                 type: "integer",
-                required: false,
-                description: "pagination default value is 1, and it should be greater than 0",
+                required: true,
+                description: "The listing id",
                 example: 1,
             },
         },
-        {
-            in: "query",
-            name: "pageSize",
-            schema: {
-                type: "integer",
-                required: false,
-                description: "It is the number of listings you want to see in a one-page default value is 9, and it should be greater than 0 and less than 20,",
-                example: 10,
-            },
-        },
-        {
-            in: "query",
-            name: "statusId",
-            schema: {
-                type: "integer",
-                required: false,
-                description: "When a listing is created, the status is given. Active, pending, and inactive",
-                example: 1,
-            },
-        },
-        {
-            in: "query",
-            name: "categoryId",
-            schema: {
-                type: "integer",
-                required: false,
-                description: "With the help of Id, we can get to know which category a listing belongs to",
-                example: 1,
-            },
-        },
-        {
-            in: "query",
-            name: "subcategoryId",
-            schema: {
-                type: "integer",
-                required: false,
-                description: "The subcategory id",
-                example: 1,
-            },
-        },
-        {
-            in: "query",
-            name: "userId",
-            schema: {
-                type: "integer",
-                required: false,
-                description: "To know who is the user",
-                example: 1,
-            },
-        },
-        {
-            in: "query",
-            name: "translate",
-            schema: {
-                type: "string",
-                required: false,
-                description: "To translate the listing into the given language",
-                example: 'de',
-            },
-        },
-
     ],
+    requestBody: {
+        required: true,
+        content: {
+            "application/json": {
+                schema: UpdateCityListing,
+            },
+        },
+    },
     responses: {
         200: {
-            description: "Successfully fetched the listings",
+            description: "The listing was successfully updated",
             content: {
                 "application/json": {
                     schema: {
@@ -99,14 +51,14 @@ const getAllCityListingsSwagger = {
                                 type: "string",
                                 example: "success",
                             },
-                            data: {
-                                type: "array",
-                                items: CityListing,
+                            id: {
+                                type: "integer",
+                                example: 1,
                             },
                         },
                     },
                 },
-            }
+            },
         },
         400: {
             description: "Invalid input given",
@@ -121,15 +73,15 @@ const getAllCityListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "invalid cityId given",
+                                example: "Invalid Village id '2' given",
                             },
                         },
                     },
                 },
             },
         },
-        404: {
-            description: "invalid cityId given",
+        401: {
+            description: "Unauthorized",
             content: {
                 "application/json": {
                     schema: {
@@ -141,7 +93,27 @@ const getAllCityListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Invalid City '1' given",
+                                example: "Authorization token not present",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        403: {
+            description: "Invalid auth",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "You dont have access to change this option",
                             },
                         },
                     },
@@ -171,4 +143,4 @@ const getAllCityListingsSwagger = {
     },
 };
 
-module.exports = getAllCityListingsSwagger;
+module.exports = updateCityListingSwagger;

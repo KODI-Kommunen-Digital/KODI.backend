@@ -2,6 +2,7 @@ const getAllCitiesSwagger = require("./cities/getAllCities");
 const createCityListingSwagger = require("./cityListings/createCityListing");
 const getAllCityListingsSwagger = require("./cityListings/getAllCityListings");
 const getCityListingByIdSwagger = require("./cityListings/getCityListingById");
+const updateCityListingSwagger = require("./cityListings/updateCityListing");
 const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
 const forgotPasswordSwagger = require("./users/forgotPassword");
 const getLoginDevicesSwagger = require("./users/getAllLoginDevices");
@@ -24,6 +25,15 @@ const apiDocumentation = {
         version: '1.3.0',
         title: 'KODI REST API - Documentation',
         description: `KODI - Kommunen Digital is a REST API that will be used to fetch data to and from the frontend. It provides digital citizen services and participation opportunities for cities, counties, and municipalities.`,
+    },
+    components: {
+        securitySchemes: {
+            bearerAuth: {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+            },
+        },
     },
     servers: [
         {
@@ -93,6 +103,7 @@ const apiDocumentation = {
         },
         '/cities/{cityId}/listings/{id}': {
             'get': getCityListingByIdSwagger,
+            'patch': updateCityListingSwagger,
         }
     }
 };

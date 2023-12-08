@@ -1,4 +1,4 @@
-const CityListing = require("../models/cityListing");
+const { CityListing } = require("../models/cityListing");
 
 const createCityListingSwagger = {
     summary: "Create a new listing",

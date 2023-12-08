@@ -1,3 +1,5 @@
+const { UserResponseSchema } = require("../models/userModels");
+
 const getAllUsersSwagger = {
     summary: "Get all users",
     description:
@@ -35,9 +37,7 @@ const getAllUsersSwagger = {
                             },
                             data: {
                                 type: "array",
-                                items: {
-                                    $ref: "#/components/schemas/UserResponse",
-                                },
+                                items: UserResponseSchema,
                             },
                         },
                     },

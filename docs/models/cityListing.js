@@ -117,4 +117,126 @@ const CityListing = {
     }
 }
 
-module.exports = CityListing;
+const UpdateCityListing = {
+    properties: {
+        title: {
+            type: 'string',
+            required: false,
+            description: 'The title of the city listing',
+            example: "Sample City"
+        },
+        description: {
+            type: 'string',
+            required: false,
+            description: 'The description of the city listing',
+            example: 'This is a sample description'
+        },
+        subcategoryId: {
+            type: 'number',
+            required: false,
+            description: 'The subcategory ID',
+            example: 1
+        },
+        statusId: {
+            type: 'number',
+            required: false,
+            description: 'The status ID',
+            example: 1
+        },
+        address: {
+            type: 'string',
+            required: false,
+            description: 'The address of the city listing',
+            example: '123 Main St'
+        },
+        email: {
+            type: 'string',
+            required: false,
+            description: 'The email of the city listing',
+            example: 'example@example.com'
+        },
+        phone: {
+            type: 'string',
+            required: false,
+            description: 'The phone number of the city listing',
+            example: '123-456-7890'
+        },
+        website: {
+            type: 'string',
+            required: false,
+            description: 'The website of the city listing',
+            example: 'https://example.com'
+        },
+        price: {
+            type: 'number',
+            required: false,
+            description: 'The price of the city listing',
+            example: 100
+        },
+        discountPrice: {
+            type: 'number',
+            required: false,
+            description: 'The discount price of the city listing',
+            example: 0
+        },
+        logo: {
+            type: 'string',
+            required: false,
+            description: 'The logo of the city listing',
+            example: 'https://example.com/logo.jpg'
+        },
+        longitude: {
+            type: 'number',
+            required: false,
+            description: 'The longitude of the city listing',
+            example: 0.0
+        },
+        latitude: {
+            type: 'number',
+            required: false,
+            description: 'The latitude of the city listing',
+            example: 0.0
+        },
+        zipcode: {
+            type: 'string',
+            required: false,
+            description: 'The zipcode of the city listing',
+            example: '12345'
+        },
+        endDate: {
+            type: 'string',
+            required: false,
+            description: 'The end date of the city listing',
+            example: '2022-12-31'
+        },
+        startDate: {
+            type: 'string',
+            required: false,
+            description: 'The start date of the city listing',
+            example: '2022-01-01'
+        },
+        removePdf: {
+            type: 'boolean',
+            required: false,
+            description: 'Whether or not to remove the PDF',
+            example: false
+        },
+        removeImage: {
+            type: 'boolean',
+            required: false,
+            description: 'Whether or not to remove the image',
+            example: false
+        },
+        pdf: {
+            type: 'string',
+            required: false,
+            description: 'The PDF of the city listing',
+            example: 'objectKey.pdf'
+        },
+    }
+}
+
+module.exports = {
+    CityListing,
+    UpdateCityListing,
+};
