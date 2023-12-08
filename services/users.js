@@ -149,6 +149,21 @@ const createCityUserWithTransaction = async function (user, transaction) {
     return response;
 }
 
+const getCityUserCityMapping = async function (cityId, userId) {
+    const response = await database.get(
+        tables.USER_CITYUSER_MAPPING_TABLE,
+        {
+            cityId,
+            userId,
+        }
+    );
+    const data = response.rows;
+    if (data && data.length === 0) {
+        return null;
+    }
+    return data[0];
+}
+
 module.exports = {
     getUserWithUsername,
     getUserWithEmail,
@@ -165,4 +180,5 @@ module.exports = {
     getAllUsers,
     getUserById,
     createCityUserWithTransaction,
+    getCityUserCityMapping,
 }

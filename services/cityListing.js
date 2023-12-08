@@ -44,6 +44,21 @@ const getSubCategoryById = async function (subcategoryId, cityId) {
         return null;
     }
     return data[0];
+}
+
+const getSubCategory = async function (filters, cityId) {
+    const response = await database.get(
+        tables.SUBCATEGORIES_TABLE,
+        filters,
+        null,
+        cityId
+    );
+
+    const data = response.rows;
+    if (data && data.length === 0) {
+        return null;
+    }
+    return data[0];
 
 }
 
@@ -84,4 +99,5 @@ module.exports = {
     getSubCategoryById,
     getStatusById,
     getCityUserMapping,
+    getSubCategory,
 }

@@ -25,9 +25,25 @@ const getCityListingWithId = async function (id, cityId) {
     return response.rows[0];
 }
 
+const getAllListingsWithFilters = async function (filters, cityId, pageNo, pageSize) {
+    const response = await database.get(
+        tables.LISTINGS_TABLE,
+        filters,
+        null,
+        cityId,
+        pageNo,
+        pageSize
+    );
+    if (!response || !response.rows || response.rows.length === 0) {
+        return null;
+    }
+    return response.rows;
+}
+
 
 module.exports = {
     createListingWithTransaction,
     createUserListingMappingWithTransaction,
     getCityListingWithId,
+    getAllListingsWithFilters,
 }
