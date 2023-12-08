@@ -93,6 +93,15 @@ const getCityUserMapping = async function (cityId, userId) {
     return data[0];
 }
 
+const updateCityListing = async function (listingId, payload, cityId) {
+    return await database.update(
+        tables.LISTINGS_TABLE,
+        payload,
+        { id: listingId },
+        cityId
+    );
+}
+
 module.exports = {
     getVillageById,
     getCategoryById,
@@ -100,4 +109,5 @@ module.exports = {
     getStatusById,
     getCityUserMapping,
     getSubCategory,
+    updateCityListing,
 }

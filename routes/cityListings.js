@@ -2,14 +2,12 @@ const express = require("express");
 const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
-const subcategories = require("../constants/subcategories");
 const roles = require("../constants/roles");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload")
 const objectDelete = require("../utils/imageDelete");
-const getDateInFormate = require("../utils/getDateInFormate")
 const getPdfImage = require("../utils/getPdfImage");
 const cityListingController = require("../controllers/cityListings");
 

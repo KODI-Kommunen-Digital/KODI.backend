@@ -452,7 +452,7 @@ const updateCityListing = async function (req, res, next) {
         return;
     }
 
-    let response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
     const cityUserId = response ? response.cityUserId : null;
 
     const currentListingData = await listingService.getCityListingWithId(id, cityId);
