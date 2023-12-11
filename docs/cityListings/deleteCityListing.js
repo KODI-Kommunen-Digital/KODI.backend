@@ -1,7 +1,7 @@
-const deletePDFSchemaSwagger = {
-    summary: "Delete pdf",
+const deleteCityListingSchemaSwagger = {
+    summary: "Delete city listing",
     tags: ['City Listings'],
-    description: "Delete pdf for a city listing",
+    description: "Delete city listing for a city listing",
     security: [
         {
             bearerAuth: [],
@@ -29,7 +29,7 @@ const deletePDFSchemaSwagger = {
     ],
     responses: {
         200: {
-            description: "Image deleted successfully",
+            description: "City listing deleted successfully",
             content: {
                 "application/json": {
                     schema: {
@@ -38,6 +38,26 @@ const deletePDFSchemaSwagger = {
                             status: {
                                 type: "string",
                                 example: "success",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        400: {
+            description: "Invalid data provided",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "invalid cityId given",
                             },
                         },
                     },
@@ -127,4 +147,4 @@ const deletePDFSchemaSwagger = {
     },
 };
 
-module.exports = deletePDFSchemaSwagger;
+module.exports = deleteCityListingSchemaSwagger;

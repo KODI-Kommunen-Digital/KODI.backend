@@ -1,5 +1,6 @@
 const getAllCitiesSwagger = require("./cities/getAllCities");
 const createCityListingSwagger = require("./cityListings/createCityListing");
+const deleteCityListingSchemaSwagger = require("./cityListings/deleteCityListing");
 const deleteImageSchemaSwagger = require("./cityListings/deleteImage");
 const deletePDFSchemaSwagger = require("./cityListings/deletePDF");
 const getAllCityListingsSwagger = require("./cityListings/getAllCityListings");
@@ -108,6 +109,7 @@ const apiDocumentation = {
         '/cities/{cityId}/listings/{id}': {
             'get': getCityListingByIdSwagger,
             'patch': updateCityListingSwagger,
+            'delete': deleteCityListingSchemaSwagger,
         },
         '/cities/{cityId}/listings/{id}/imageUpload': {
             'post': uploadImageSchemaSwagger,

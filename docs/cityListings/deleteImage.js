@@ -29,7 +29,7 @@ const deleteImageSchemaSwagger = {
     ],
     responses: {
         200: {
-            description: "Image uploaded successfully",
+            description: "Image deleted successfully",
             content: {
                 "application/json": {
                     schema: {
