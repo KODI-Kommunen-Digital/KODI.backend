@@ -12,6 +12,9 @@ const cityServices = require("../services/cities");
 const cityListingServices = require("../services/cityListing");
 const listingService = require("../services/listingService");
 const imageUpload = require("../utils/imageUpload");
+const getPdfImage = require("../utils/getPdfImage");
+const pdfUpload = require("../utils/pdfUpload")
+
 
 const deepl = require("deepl-node");
 const supportedLanguages = require("../constants/supportedLanguages");
@@ -611,7 +614,7 @@ const updateCityListing = async function (req, res, next) {
         res.status(200).json({
             status: "success",
         });
-    }catch(err){
+    } catch (err) {
         return next(new AppError(err));
     }
 }
@@ -625,7 +628,7 @@ const uploadImageForCityListing = async function (req, res, next) {
     } else {
         try {
             const response = await cityServices.getCityWithId(cityId);
-            if(!response) {
+            if (!response) {
                 return next(new AppError(`City '${cityId}' not found`, 404));
             }
         } catch (err) {
@@ -637,10 +640,10 @@ const uploadImageForCityListing = async function (req, res, next) {
         next(new AppError(`Invalid ListingsId ${listingId} given`, 400));
         return;
     }
-    
+
     const response = await userServices.getCityUserCityMapping(cityId, req.userId);
     const cityUserId = response ? response.cityUserId : null;
-    
+
     const currentListingData = await listingService.getCityListingWithId(listingId, cityId);
     if (!currentListingData) {
         return next(new AppError(`Listing with id ${listingId} does not exist`, 404));
@@ -654,9 +657,9 @@ const uploadImageForCityListing = async function (req, res, next) {
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
-    if(currentListingData.pdf && currentListingData.pdf.length > 0) {
+    if (currentListingData.pdf && currentListingData.pdf.length > 0) {
         return next(
-            new AppError(`Pdf is present in listing So can not upload image.`, 403) 
+            new AppError(`Pdf is present in listing So can not upload image.`, 403)
         );
     }
     const { image } = req.files;
@@ -665,10 +668,10 @@ const uploadImageForCityListing = async function (req, res, next) {
         next(new AppError(`Image not uploaded`, 400));
         return;
     }
-    
+
     if (!image.mimetype.includes("image/")) {
         return next(
-            new AppError(`Invalid Image type`, 403) 
+            new AppError(`Invalid Image type`, 403)
         );
     }
 
@@ -695,10 +698,123 @@ const uploadImageForCityListing = async function (req, res, next) {
     }
 }
 
+const uploadPDFForCityListing = async function (req, res, next) {
+    const listingId = req.params.id;
+    const cityId = req.cityId;
+
+    if (!cityId) {
+        return next(new AppError(`City is not present`, 404));
+    } else {
+        try {
+            // const response = await database.get(tables.CITIES_TABLE, {
+            //     id: cityId,
+            // });
+            // if (response.rows && response.rows.length === 0) {
+            //     return next(
+            //         new AppError(`City '${cityId}' not found`, 404)
+            //     );
+            // }
+            const response = await cityServices.getCityWithId(cityId);
+            if (!response) {
+                return next(new AppError(`City '${cityId}' not found`, 404));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+        next(new AppError(`Invalid ListingsId ${listingId} given`, 400));
+        return;
+    }
+
+    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const cityUserId = response ? response.cityUserId : null;
+
+    const currentListingData = await listingService.getCityListingWithId(listingId, cityId);
+    if (!currentListingData) {
+        return next(new AppError(`Listing with id ${listingId} does not exist`, 404));
+    }
+
+    if (
+        currentListingData.userId !== cityUserId &&
+        req.roleId !== roles.Admin
+    ) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+
+    if (currentListingData.logo && currentListingData.logo.length > 0) {
+        return next(
+            new AppError(`Image is present in listing So can not upload pdf.`, 403)
+        );
+    }
+    const { pdf } = req.files;
+
+    if (!pdf) {
+        next(new AppError(`Pdf not uploaded`, 400));
+        return;
+    }
+
+    const arrayOfAllowedFiles = ['pdf'];
+    const arrayOfAllowedFileTypes = ['application/pdf'];
+
+    const fileExtension = pdf.name.slice(
+        ((pdf.name.lastIndexOf('.') - 1) >>> 0) + 2
+    );
+
+    if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(pdf.mimetype)) {
+        return next(
+            new AppError(`Invalid Pdf type`, 403)
+        );
+    }
+
+    try {
+        const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
+        const { uploadStatus, objectKey } = await pdfUpload(
+            pdf,
+            filePath
+        );
+        const pdfUploadStatus = uploadStatus;
+        const pdfObjectKey = objectKey;
+
+        const updationData = { pdf: pdfObjectKey };
+        const pdfBucketPath = "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST;
+
+        if (pdfUploadStatus === "Success") {
+            // create image
+            const pdfFilePath = `${pdfBucketPath}/${filePath}`;
+            const imagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
+            const pdfImageBuffer = await getPdfImage(pdfFilePath);
+            const { uploadStatus, objectKey } = await imageUpload(
+                pdfImageBuffer,
+                imagePath
+            );
+
+            if (uploadStatus === "Success") {
+                // update logo
+                updationData.logo = objectKey;
+            }
+
+            await cityListingServices.updateCityListing(listingId, updationData, cityId);
+
+            return res.status(200).json({
+                status: "success",
+            });
+        } else {
+            return next(new AppError("pdf Upload failed"));
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     createCityListing,
     getCityListingWithId,
     getAllCityListings,
     updateCityListing,
     uploadImageForCityListing,
+    uploadPDFForCityListing
 }
