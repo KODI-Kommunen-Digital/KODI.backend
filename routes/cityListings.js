@@ -514,11 +514,6 @@ router.post("/", authentication, async function (req, res, next) {
                     .replace("T", " ");
             }
         }
-        if (parseInt(payload.categoryId) === categories.News) {
-            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
-                insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
-            }
-        }
         insertionData.createdAt = getDateInFormate(new Date());
     } catch (error) {
         return next(new AppError(`Invalid time format ${error}`, 400));
