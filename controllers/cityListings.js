@@ -14,6 +14,7 @@ const listingService = require("../services/listingService");
 const imageUpload = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload")
+const objectDelete = require("../utils/imageDelete");
 
 
 const deepl = require("deepl-node");
@@ -706,14 +707,6 @@ const uploadPDFForCityListing = async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            // const response = await database.get(tables.CITIES_TABLE, {
-            //     id: cityId,
-            // });
-            // if (response.rows && response.rows.length === 0) {
-            //     return next(
-            //         new AppError(`City '${cityId}' not found`, 404)
-            //     );
-            // }
             const response = await cityServices.getCityWithId(cityId);
             if (!response) {
                 return next(new AppError(`City '${cityId}' not found`, 404));
@@ -810,11 +803,76 @@ const uploadPDFForCityListing = async function (req, res, next) {
     }
 }
 
+const deleteImageForCityListing =  async function (req, res, next) {
+    const id = req.params.id;
+    const cityId = req.cityId;
+
+    if (!cityId) {
+        return next(new AppError(`City is not present`, 404));
+    } else {
+        try {
+            const response = await cityServices.getCityWithId(cityId);
+            if (!response) {
+                return next(new AppError(`City '${cityId}' not found`, 404));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid ListingsId ${id}`, 404));
+        return;
+    }
+
+    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+
+    // The current user might not be in the city db
+    const cityUserId = response ? response.cityUserId : null;
+    const currentListingData = await listingService.getCityListingWithId(id, cityId);
+    if (!currentListingData) {
+        return next(new AppError(`Listing with id ${id} does not exist`, 404));
+    }
+
+    if (
+        currentListingData.userId !== cityUserId &&
+        req.roleId !== roles.Admin
+    ) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+    try {
+        const onSucccess = async () => {
+            const updationData = {};
+            updationData.logo = "";
+
+            await cityListingServices.updateCityListing(id, updationData, cityId);
+            return res.status(200).json({
+                status: "success",
+            });
+        };
+        const onFail = (err) => {
+            return next(
+                new AppError("Image Delete failed with Error Code: " + err)
+            );
+        };
+        await objectDelete(
+            `user_${req.userId}/city_${cityId}_listing_${id}`,
+            onSucccess,
+            onFail
+        );
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     createCityListing,
     getCityListingWithId,
     getAllCityListings,
     updateCityListing,
     uploadImageForCityListing,
-    uploadPDFForCityListing
+    uploadPDFForCityListing,
+    deleteImageForCityListing
 }
