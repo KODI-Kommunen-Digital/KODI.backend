@@ -102,6 +102,10 @@ const updateCityListing = async function (listingId, payload, cityId) {
     );
 }
 
+const deleteCityListing = async function (id, cityId) {
+    return database.deleteData(tables.LISTINGS_TABLE, { id }, cityId);
+}
+
 module.exports = {
     getVillageById,
     getCategoryById,
@@ -110,4 +114,5 @@ module.exports = {
     getCityUserMapping,
     getSubCategory,
     updateCityListing,
+    deleteCityListing,
 }

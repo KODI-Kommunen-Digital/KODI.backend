@@ -875,14 +875,6 @@ const deletePDFForCityListing = async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            // const response = await database.get(tables.CITIES_TABLE, {
-            //     id: cityId,
-            // });
-            // if (response.rows && response.rows.length === 0) {
-            //     return next(
-            //         new AppError(`City '${cityId}' not found`, 404)
-            //     );
-            // }
             const response = await cityServices.getCityWithId(cityId);
             if (!response) {
                 return next(new AppError(`City '${cityId}' not found`, 404));
@@ -936,6 +928,58 @@ const deletePDFForCityListing = async function (req, res, next) {
     }
 }
 
+const deleteCityListing = async function (req, res, next) {
+    const id = req.params.id;
+    const cityId = req.cityId;
+
+    if (!cityId || isNaN(cityId)) {
+        return next(new AppError(`invalid cityId given`, 400));
+    }
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid entry ${id}`, 404));
+        return;
+    }
+
+    try {
+        const response = await cityServices.getCityWithId(cityId);
+        if (!response) {
+            return next(new AppError(`City '${cityId}' not found`, 404));
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+
+    const currentListingData = await listingService.getCityListingWithId(id, cityId);
+    if (!currentListingData) {
+        return next(new AppError(`Listing with id ${id} does not exist`, 404));
+    }
+
+    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const cityUserId = response ? response.cityUserId : null;
+    if (
+        currentListingData.userId !== cityUserId &&
+        req.roleId !== roles.Admin
+    ) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+
+    const onSucccess = async () => {
+        await cityListingServices.deleteCityListing(id, cityId);
+        return res.status(200).json({
+            status: "success",
+        });
+    };
+    const onFail = (err) => {
+        return next(
+            new AppError("Image Delete failed with Error Code: " + err)
+        );
+    };
+    await objectDelete(currentListingData.logo, onSucccess, onFail);
+}
+
+
 module.exports = {
     createCityListing,
     getCityListingWithId,
@@ -944,5 +988,6 @@ module.exports = {
     uploadImageForCityListing,
     uploadPDFForCityListing,
     deleteImageForCityListing,
-    deletePDFForCityListing
+    deletePDFForCityListing,
+    deleteCityListing,
 }
