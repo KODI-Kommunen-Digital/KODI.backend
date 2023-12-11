@@ -606,7 +606,7 @@ const updateCityListing = async function (req, res, next) {
     }
 
     try {
-        await listingService.updateCityListing(id, updationData, cityId);
+        await cityListingServices.updateCityListing(id, updationData, cityId);
         res.status(200).json({
             status: "success",
         });
