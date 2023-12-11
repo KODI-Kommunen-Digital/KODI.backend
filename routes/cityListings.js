@@ -19,7 +19,7 @@ router.get("/:id", cityListingController.getCityListingWithId);
 
 router.post("/", authentication, cityListingController.createCityListing);
 
-router.patch("/:id", authentication,cityListingController.updateCityListing);
+router.patch("/:id", authentication, cityListingController.updateCityListing);
 
 router.delete("/:id", authentication, async function (req, res, next) {
     const id = req.params.id;
@@ -32,7 +32,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
         next(new AppError(`Invalid entry ${id}`, 404));
         return;
     }
-    
+
     try {
         const response = await database.get(tables.CITIES_TABLE, {
             id: cityId,
@@ -64,7 +64,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
-    
+
     const onSucccess = async () => {
         database.deleteData(tables.LISTINGS_TABLE, { id }, cityId);
         return res.status(200).json({
@@ -79,114 +79,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
     await objectDelete(currentListingData.logo, onSucccess, onFail);
 });
 
-router.post(
-    "/:id/imageUpload",
-    authentication,
-    async function (req, res, next) {
-        const listingId = req.params.id;
-        const cityId = req.cityId;
-
-        if (!cityId) {
-            return next(new AppError(`City is not present`, 404));
-        } else {
-            try {
-                const response = await database.get(tables.CITIES_TABLE, {
-                    id: cityId,
-                });
-                if (response.rows && response.rows.length === 0) {
-                    return next(
-                        new AppError(`City '${cityId}' not found`, 404)
-                    );
-                }
-            } catch (err) {
-                return next(new AppError(err));
-            }
-        }
-
-        if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
-            next(new AppError(`Invalid ListingsId ${listingId} given`, 400));
-            return;
-        }
-
-        let response = await database.get(
-            tables.USER_CITYUSER_MAPPING_TABLE,
-            { userId: req.userId, cityId },
-            "cityUserId"
-        );
-
-        // The current user might not be in the city db
-        const cityUserId =
-            response.rows && response.rows.length > 0
-                ? response.rows[0].cityUserId
-                : null;
-
-        response = await database.get(
-            tables.LISTINGS_TABLE,
-            { id: listingId },
-            null,
-            cityId
-        );
-        if (!response.rows || response.rows.length === 0) {
-            return next(
-                new AppError(`Listing with id ${listingId} does not exist`, 404)
-            );
-        }
-        const currentListingData = response.rows[0];
-
-        if (
-            currentListingData.userId !== cityUserId &&
-            req.roleId !== roles.Admin
-        ) {
-            return next(
-                new AppError(`You are not allowed to access this resource`, 403)
-            );
-        }
-        if(currentListingData.pdf && currentListingData.pdf.length > 0) {
-            return next(
-                new AppError(`Pdf is present in listing So can not upload image.`, 403) 
-            );
-        }
-        const { image } = req.files;
-
-        if (!image) {
-            next(new AppError(`Image not uploaded`, 400));
-            return;
-        }
-        
-        if (!image.mimetype.includes("image/")) {
-            return next(
-                new AppError(`Invalid Image type`, 403) 
-            );
-        }
-
-        try {
-            const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
-
-            const { uploadStatus, objectKey } = await imageUpload(
-                image,
-                filePath
-            );
-            const updationData = { logo: objectKey };
-
-            if (uploadStatus === "Success") {
-                await database.update(
-                    tables.LISTINGS_TABLE,
-                    updationData,
-                    { id: listingId },
-                    cityId
-                );
-
-                return res.status(200).json({
-                    status: "success",
-                });
-            } else {
-                return next(new AppError("Image Upload failed"));
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-    }
-);
+router.post("/:id/imageUpload", authentication, cityListingController.uploadImageForCityListing);
 
 router.post(
     "/:id/pdfUpload",
@@ -251,7 +144,7 @@ router.post(
             );
         }
 
-        if(currentListingData.logo && currentListingData.logo.length > 0) {
+        if (currentListingData.logo && currentListingData.logo.length > 0) {
             return next(
                 new AppError(`Image is present in listing So can not upload pdf.`, 403)
             );
@@ -265,14 +158,14 @@ router.post(
 
         const arrayOfAllowedFiles = ['pdf'];
         const arrayOfAllowedFileTypes = ['application/pdf'];
-        
+
         const fileExtension = pdf.name.slice(
             ((pdf.name.lastIndexOf('.') - 1) >>> 0) + 2
         );
 
         if (!arrayOfAllowedFiles.includes(fileExtension) || !arrayOfAllowedFileTypes.includes(pdf.mimetype)) {
             return next(
-                new AppError(`Invalid Pdf type`, 403) 
+                new AppError(`Invalid Pdf type`, 403)
             );
         }
 
@@ -297,11 +190,11 @@ router.post(
                     pdfImageBuffer,
                     imagePath
                 );
-    
+
                 if (uploadStatus === "Success") {
                     // update logo
                     updationData.logo = objectKey;
-                }  
+                }
 
                 await database.update(
                     tables.LISTINGS_TABLE,

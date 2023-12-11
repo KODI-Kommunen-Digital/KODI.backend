@@ -11,6 +11,7 @@ const userServices = require("../services/users");
 const cityServices = require("../services/cities");
 const cityListingServices = require("../services/cityListing");
 const listingService = require("../services/listingService");
+const imageUpload = require("../utils/imageUpload");
 
 const deepl = require("deepl-node");
 const supportedLanguages = require("../constants/supportedLanguages");
@@ -615,9 +616,89 @@ const updateCityListing = async function (req, res, next) {
     }
 }
 
+const uploadImageForCityListing = async function (req, res, next) {
+    const listingId = req.params.id;
+    const cityId = req.cityId;
+
+    if (!cityId) {
+        return next(new AppError(`City is not present`, 404));
+    } else {
+        try {
+            const response = await cityServices.getCityWithId(cityId);
+            if(!response) {
+                return next(new AppError(`City '${cityId}' not found`, 404));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+
+    if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+        next(new AppError(`Invalid ListingsId ${listingId} given`, 400));
+        return;
+    }
+    
+    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const cityUserId = response ? response.cityUserId : null;
+    
+    const currentListingData = await listingService.getCityListingWithId(listingId, cityId);
+    if (!currentListingData) {
+        return next(new AppError(`Listing with id ${listingId} does not exist`, 404));
+    }
+
+    if (
+        currentListingData.userId !== cityUserId &&
+        req.roleId !== roles.Admin
+    ) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+    if(currentListingData.pdf && currentListingData.pdf.length > 0) {
+        return next(
+            new AppError(`Pdf is present in listing So can not upload image.`, 403) 
+        );
+    }
+    const { image } = req.files;
+
+    if (!image) {
+        next(new AppError(`Image not uploaded`, 400));
+        return;
+    }
+    
+    if (!image.mimetype.includes("image/")) {
+        return next(
+            new AppError(`Invalid Image type`, 403) 
+        );
+    }
+
+    try {
+        const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
+
+        const { uploadStatus, objectKey } = await imageUpload(
+            image,
+            filePath
+        );
+        const updationData = { logo: objectKey };
+
+        if (uploadStatus === "Success") {
+            await cityListingServices.updateCityListing(listingId, updationData, cityId);
+
+            return res.status(200).json({
+                status: "success",
+            });
+        } else {
+            return next(new AppError("Image Upload failed"));
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     createCityListing,
     getCityListingWithId,
     getAllCityListings,
     updateCityListing,
+    uploadImageForCityListing,
 }
