@@ -3,6 +3,7 @@ const createCityListingSwagger = require("./cityListings/createCityListing");
 const getAllCityListingsSwagger = require("./cityListings/getAllCityListings");
 const getCityListingByIdSwagger = require("./cityListings/getCityListingById");
 const updateCityListingSwagger = require("./cityListings/updateCityListing");
+const uploadImageSchemaSwagger = require("./cityListings/uploadImage");
 const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
 const forgotPasswordSwagger = require("./users/forgotPassword");
 const getLoginDevicesSwagger = require("./users/getAllLoginDevices");
@@ -104,6 +105,9 @@ const apiDocumentation = {
         '/cities/{cityId}/listings/{id}': {
             'get': getCityListingByIdSwagger,
             'patch': updateCityListingSwagger,
+        },
+        '/cities/{cityId}/listings/{id}/imageUpload': {
+            'post': uploadImageSchemaSwagger,
         }
     }
 };
