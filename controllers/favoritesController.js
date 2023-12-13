@@ -46,7 +46,7 @@ const getFavoriteListingsForUser = async function (req, res, next) {
 
     if (params.categoryId) {
         try {
-            const data  = await categoriesService.getCategoryById(parseInt(params.categoryId));
+            const data = await categoriesService.getCategoryById(parseInt(params.categoryId));
             if (data.length === 0) {
                 return next(
                     new AppError(`Invalid Category '${params.categoryId}' given`, 400)
@@ -61,7 +61,7 @@ const getFavoriteListingsForUser = async function (req, res, next) {
     if (params.cityId) {
         try {
             const cities = await citiesService.getCityWithId(parseInt(params.cityId));
-            if(cities.length===0){
+            if (cities.length === 0) {
                 return next(
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
@@ -73,7 +73,6 @@ const getFavoriteListingsForUser = async function (req, res, next) {
     }
 
     try {
-        // let response = await database.get(tables.FAVORITES_TABLE, favFilter);
         let response = await favoritesService.getFavoritesWithFilter(favFilter);
         const favDict = {};
         response.forEach((fav) => {
@@ -88,7 +87,7 @@ const getFavoriteListingsForUser = async function (req, res, next) {
         listings = [];
         for (const cityId in favDict) {
             listingFilter.id = favDict[cityId];
-            response = await listingService.getAllListingsWithFilters( listingFilter, cityId);
+            response = await listingService.getAllListingsWithFilters(listingFilter, cityId);
             response.forEach((l) => (l.cityId = cityId));
             listings.push(...response);
         }
@@ -102,7 +101,58 @@ const getFavoriteListingsForUser = async function (req, res, next) {
     });
 };
 
+const addNewFavoriteForUser = async function (req, res, next) {
+    const userId = parseInt(req.paramUserId);
+    const cityId = parseInt(req.body.cityId);
+    const listingId = req.body.listingId;
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid userId ${userId}`, 400));
+        return;
+    }
+    if (userId !== parseInt(req.userId)) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+
+    if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+        return next(new AppError(`Invalid cityId`, 400));
+    } else {
+        try {
+            const response = await citiesService.getCityWithId(cityId);
+            if (response.length === 0) {
+                return next(new AppError(`Invalid City '${cityId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+    if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+        next(new AppError(`Invalid ListingsId ${listingId}`, 400));
+        return;
+    } else {
+        try {
+            const response = await listingService.getCityListingWithId(listingId, cityId);
+            if (!response) {
+                return next(new AppError(`Invalid listing '${listingId}' given`, 400));
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+    try {
+        const newID = await favoritesService.addFavoriteForUser(userId, cityId, listingId);
+        res.status(200).json({
+            status: "success",
+            id: newID,
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
+    addNewFavoriteForUser,
     getAllFavoritesForUser,
     getFavoriteListingsForUser,
 }

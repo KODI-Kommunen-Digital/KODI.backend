@@ -17,7 +17,17 @@ const getFavoritesWithFilter = async (filter) => {
     return response.rows;
 }
 
+const addFavoriteForUser = async (userId, cityId, listingId) => {
+    const response = await database.create(tables.FAVORITES_TABLE, {
+        userId,
+        cityId,
+        listingId,
+    });
+    return response.id;
+}
+
 module.exports = {
     getFavoritesforUser,
     getFavoritesWithFilter,
+    addFavoriteForUser,
 };
