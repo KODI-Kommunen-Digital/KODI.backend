@@ -14,6 +14,7 @@ const updateCityListingSwagger = require("./cityListings/updateCityListing");
 const uploadImageSchemaSwagger = require("./cityListings/uploadImage");
 const uploadPDFSwagger = require("./cityListings/uploadPDF");
 const contactUsSwagger = require("./contactUs/contactUs");
+const getFavoritesSwagger = require("./favorites/getAllFavoritesForUser");
 const getAllListingsSwagger = require("./listings/getAllListings");
 const getMoreInfoSwagger = require("./moreInfo/getMoreInfo");
 const getAllStatusesSwagger = require("./status/getAllStatuses");
@@ -158,6 +159,9 @@ const apiDocumentation = {
         },
         '/moreinfo': {
             'get': getMoreInfoSwagger,
+        },
+        '/users/{userId}/favorites': {
+            'get': getFavoritesSwagger,
         },
     }
 };
