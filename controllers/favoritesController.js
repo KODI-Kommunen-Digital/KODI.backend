@@ -151,8 +151,39 @@ const addNewFavoriteForUser = async function (req, res, next) {
     }
 }
 
+const deleteFavoriteListingForUser = async function (req, res, next) {
+    const favoriteId = parseInt(req.params.id);
+    const userId = parseInt(req.paramUserId);
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid UserId ${userId}`, 400));
+        return;
+    }
+    if (isNaN(Number(favoriteId)) || Number(favoriteId) <= 0) {
+        next(new AppError(`Invalid favoriteId ${favoriteId}`, 400));
+        return;
+    }
+    if (userId !== parseInt(req.userId)) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+    try {
+        const response = await favoritesService.getFavoritesWithFilter({ id: favoriteId });
+        if (response.length === 0) {
+            return next(new AppError(`Favorites with id ${favoriteId} does not exist`, 404));
+        }
+        await favoritesService.deleteFavorite(favoriteId);
+        res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     addNewFavoriteForUser,
     getAllFavoritesForUser,
     getFavoriteListingsForUser,
+    deleteFavoriteListingForUser,
 }

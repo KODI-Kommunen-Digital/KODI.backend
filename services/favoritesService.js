@@ -26,8 +26,13 @@ const addFavoriteForUser = async (userId, cityId, listingId) => {
     return response.id;
 }
 
+const deleteFavorite = async (id) => {
+    await database.deleteData(tables.FAVORITES_TABLE, { id });
+}
+
 module.exports = {
     getFavoritesforUser,
     getFavoritesWithFilter,
     addFavoriteForUser,
+    deleteFavorite,
 };
