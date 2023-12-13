@@ -9,6 +9,20 @@ const getAllCitizenServices = async () => {
     return response.rows;
 }
 
+const getDigitalManagement = async (cityId) => {
+    let response = null;
+    if (!cityId) {
+        response = await database.get(tables.DIGITAL_MANAGEMENT_TABLE);
+    } else {
+        response = await database.get(tables.DIGITAL_MANAGEMENT_TABLE, { cityId });
+    }
+    if (!response || !response.rows || response.rows.length === 0) {
+        return [];
+    }
+    return response.rows;
+}
+
 module.exports = {
     getAllCitizenServices,
+    getDigitalManagement,
 };
