@@ -15,6 +15,7 @@ const uploadImageSchemaSwagger = require("./cityListings/uploadImage");
 const uploadPDFSwagger = require("./cityListings/uploadPDF");
 const contactUsSwagger = require("./contactUs/contactUs");
 const getAllListingsSwagger = require("./listings/getAllListings");
+const getMoreInfoSwagger = require("./moreInfo/getMoreInfo");
 const getAllStatusesSwagger = require("./status/getAllStatuses");
 const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
 const forgotPasswordSwagger = require("./users/forgotPassword");
@@ -154,6 +155,9 @@ const apiDocumentation = {
         },
         '/contactUs': {
             'post': contactUsSwagger,
+        },
+        '/moreinfo': {
+            'get': getMoreInfoSwagger,
         },
     }
 };
