@@ -2,7 +2,7 @@ const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
 const { getCityListingsWithFiltersAndPagination } = require("../services/listingService");
-const { getCities } = require("../services/cities");
+const { getCities, getCityWithId } = require("../services/cities");
 const { getStatusById, getCategoryById, getSubCategoryById } = require("../services/cityListing");
 
 const getAllListings = async function (req, res, next) {
@@ -45,7 +45,7 @@ const getAllListings = async function (req, res, next) {
     if (params.statusId) {
         try {
             const response = await getStatusById(params.statusId);
-            if (response && response.length === 0) {
+            if (!response) {
                 return next(
                     new AppError(`Invalid Status '${params.statusId}' given`, 400)
                 );
@@ -89,12 +89,13 @@ const getAllListings = async function (req, res, next) {
 
     try {
         if (params.cityId) {
-            const response = await getCities({ id: params.cityId });
-            if (response.rows.length === 0) {
+            const response = await getCityWithId(params.cityId);
+            if (!response) {
                 return next(
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );
             }
+            cities = [response];
         } else {
             cities = await getCities();
 
