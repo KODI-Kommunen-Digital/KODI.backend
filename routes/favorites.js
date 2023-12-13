@@ -4,99 +4,12 @@ const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
-const { getAllFavoritesForUser } = require("../controllers/favoritesController");
+const { getAllFavoritesForUser, getFavoriteListingsForUser } = require("../controllers/favoritesController");
 
 // To get the favorite ID  of a user
 router.get("/", authentication, getAllFavoritesForUser);
 // To get all the listings from the favorite table
-router.get("/listings", authentication, async function (req, res, next) {
-    const userId = parseInt(req.paramUserId);
-    const params = req.query;
-    let listings = [];
-    const listingFilter = {}
-    const favFilter = {
-        userId
-    }
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid userId ${userId}`, 400));
-        return;
-    }
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
-
-    if (params.categoryId) {
-        try {
-            const response = await database.get(
-                tables.CATEGORIES_TABLE,
-                { id: parseInt(params.categoryId)  },
-                null
-            );
-            const data = response.rows;
-            if (data && data.length === 0) {
-                return next(
-                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
-                );
-            }
-            listingFilter.categoryId = params.categoryId;
-        } catch (err) {
-            return next(new AppError(err));
-        }
-    }
-
-    if (params.cityId) {
-        try {
-            const response = await database.get(
-                tables.CITIES_TABLE,
-                { id: parseInt(params.cityId) },
-                null
-            );
-            const cities = response.rows;
-            if (cities && cities.length === 0) {
-                return next(
-                    new AppError(`Invalid CityId '${params.cityId}' given`, 400)
-                );
-            }
-            favFilter.cityId = params.cityId;
-        } catch (err) {
-            return next(new AppError(err));
-        }
-    }
-
-    try {
-        let response = await database.get(tables.FAVORITES_TABLE, favFilter);
-        const favDict = {};
-        response.rows.forEach((fav) => {
-            const cityId = fav.cityId;
-            const listingId = fav.listingId;
-            if (favDict[cityId]) {
-                favDict[cityId].push(listingId);
-            } else {
-                favDict[cityId] = [listingId];
-            }
-        });
-        listings = [];
-        for (const cityId in favDict) {
-            listingFilter.id = favDict[cityId];
-            response = await database.get(
-                tables.LISTINGS_TABLE,
-                listingFilter,
-                null,
-                cityId
-            );
-            response.rows.forEach((l) => (l.cityId = cityId));
-            listings.push(...response.rows);
-        }
-    } catch (err) {
-        return next(new AppError(err));
-    }
-    res.status(200).json({
-        status: "success",
-        data: listings,
-    });
-});
+router.get("/listings", authentication, getFavoriteListingsForUser);
 
 // To insert or add  a listing into favorite table
 router.post("/", authentication, async function (req, res, next) {

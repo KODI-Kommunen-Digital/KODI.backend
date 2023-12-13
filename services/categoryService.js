@@ -9,6 +9,14 @@ const getCategories = async () => {
     return response.rows;
 }
 
+const getCategoryById = async (id) => {
+    const response = await database.get(tables.CATEGORIES_TABLE, { id }, null);
+    if (response && response.rows && response.rows.length === 0) {
+        return [];
+    }
+    return response.rows;
+}
+
 const getCategoryListingCountForCity = async (cityId) => {
     const query = `SELECT categoryId, COUNT(*) as count FROM heidi_city_${cityId}.listings GROUP BY categoryId;`;
     const response = await database.callQuery(query)
@@ -49,4 +57,5 @@ module.exports = {
     getCategoryListingCountForCity,
     getCategoryListingCount,
     getSubCategoriesForCategoryId,
+    getCategoryById,
 }
