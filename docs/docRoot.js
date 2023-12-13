@@ -12,6 +12,7 @@ const updateCityListingSwagger = require("./cityListings/updateCityListing");
 const uploadImageSchemaSwagger = require("./cityListings/uploadImage");
 const uploadPDFSwagger = require("./cityListings/uploadPDF");
 const getAllListingsSwagger = require("./listings/getAllListings");
+const getAllStatusesSwagger = require("./status/getAllStatuses");
 const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
 const forgotPasswordSwagger = require("./users/forgotPassword");
 const getLoginDevicesSwagger = require("./users/getAllLoginDevices");
@@ -138,6 +139,9 @@ const apiDocumentation = {
         },
         '/categories/listingsCount': {
             'get': getCategoriesListingCountSwagger,
+        },
+        '/status': {
+            'get': getAllStatusesSwagger,
         },
     }
 };
