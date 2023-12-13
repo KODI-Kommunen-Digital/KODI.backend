@@ -4,32 +4,10 @@ const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
+const { getAllFavoritesForUser } = require("../controllers/favoritesController");
 
 // To get the favorite ID  of a user
-router.get("/", authentication, async function (req, res, next) {
-    const userId = parseInt(req.paramUserId);
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid userId ${userId}`, 400));
-        return;
-    }
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
-
-    database
-        .get(tables.FAVORITES_TABLE, { userId })
-        .then((response) => {
-            res.status(200).json({
-                status: "success",
-                data: response.rows,
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
-        });
-});
+router.get("/", authentication, getAllFavoritesForUser);
 // To get all the listings from the favorite table
 router.get("/listings", authentication, async function (req, res, next) {
     const userId = parseInt(req.paramUserId);
