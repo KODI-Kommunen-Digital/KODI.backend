@@ -1,5 +1,6 @@
 const getAllCategoriesSwagger = require("./categories/getAllCategories");
 const getCategoriesListingCountSwagger = require("./categories/getCategoriesListingCount");
+const getSubCategoriesSwagger = require("./categories/getSubCategories");
 const getAllCitiesSwagger = require("./cities/getAllCities");
 const createCityListingSwagger = require("./cityListings/createCityListing");
 const deleteCityListingSchemaSwagger = require("./cityListings/deleteCityListing");
@@ -131,6 +132,9 @@ const apiDocumentation = {
         },
         '/categories': {
             'get': getAllCategoriesSwagger,
+        },
+        '/categories/{id}/subcategories': {
+            'get': getSubCategoriesSwagger,
         },
         '/categories/listingsCount': {
             'get': getCategoriesListingCountSwagger,
