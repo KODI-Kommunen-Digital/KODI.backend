@@ -35,9 +35,18 @@ const getCategoryListingCount = async () => {
     return response.rows;
 }
 
+const getSubCategoriesForCategoryId = async (categoryId) => {
+    const response = await database.get(tables.SUBCATEGORIES_TABLE, { categoryId });
+    if (!response || !response.rows || response.rows.length === 0) {
+        return [];
+    }
+    return response.rows;
+}
+
 
 module.exports = {
     getCategories,
     getCategoryListingCountForCity,
     getCategoryListingCount,
+    getSubCategoriesForCategoryId,
 }

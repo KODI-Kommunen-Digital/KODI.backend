@@ -1,4 +1,4 @@
-const { getCategories, getCategoryListingCountForCity, getCategoryListingCount } = require("../services/categoryService");
+const { getCategories, getCategoryListingCountForCity, getCategoryListingCount, getSubCategoriesForCategoryId } = require("../services/categoryService");
 const { getCities } = require("../services/cities");
 const AppError = require("../utils/appError");
 
@@ -46,7 +46,21 @@ const getListingCount = async function (req, res, next) {
     }
 }
 
+const getSubCategories = async function (req, res, next) {
+    const categoryId = req.params.id;
+    try {
+        const data = await getSubCategoriesForCategoryId(categoryId);
+        res.status(200).json({
+            status: "success",
+            data,
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     getAllCategories,
     getListingCount,
+    getSubCategories,
 }
