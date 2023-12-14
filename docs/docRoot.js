@@ -36,6 +36,7 @@ const resetPasswordSwagger = require("./users/resetPassword");
 const sendVerificaltionEmailSwagger = require("./users/sendVerificationEmail");
 const updateUserSwagger = require("./users/updateUser");
 const verifyEmailSwagger = require("./users/verifyEmail");
+const getVillegesSwagger = require("./villages/getVillages");
 
 const apiDocumentation = {
     openapi: '3.0.1',
@@ -172,6 +173,9 @@ const apiDocumentation = {
         },
         '/users/{userId}/favorites/{id}': {
             'delete': deleteFavoriteListingSwagger,
+        },
+        '/cities/{cityId}/villages': {
+            'get': getVillegesSwagger,
         },
     }
 };
