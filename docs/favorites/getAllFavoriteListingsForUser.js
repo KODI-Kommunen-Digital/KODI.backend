@@ -1,6 +1,8 @@
-const getFavoritesSwagger = {
-    summary: "Get all favorites for user",
-    description: "Retrieve all favorites for user from the database",
+const { FavoriteCityListing } = require("../models/cityListing");
+
+const getFavoriteListingsSwagger = {
+    summary: "Get all favorite listings for user",
+    description: "Retrieve all favorite listings for user from the database",
     tags: ["Favorites"],
     security: [
         {
@@ -11,7 +13,7 @@ const getFavoritesSwagger = {
         {
             name: "userId",
             in: "path",
-            description: "ID of the user to retrieve favorites for user",
+            description: "ID of the user to retrieve favorite listings for ",
             required: true,
             schema: {
                 type: "integer",
@@ -21,7 +23,7 @@ const getFavoritesSwagger = {
     ],
     responses: {
         200: {
-            description: "Successfully fetched the favorites of the user from the database",
+            description: "Successfully fetched the favorite listings of the user from the database",
             content: {
                 "application/json": {
                     schema: {
@@ -33,27 +35,7 @@ const getFavoritesSwagger = {
                             },
                             data: {
                                 type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        id: {
-                                            type: "integer",
-                                            example: 1,
-                                        },
-                                        userId: {
-                                            type: "integer",
-                                            example: 19,
-                                        },
-                                        cityId: {
-                                            type: "integer",
-                                            example: 2,
-                                        },
-                                        listingId: {
-                                            type: "integer",
-                                            example: 4,
-                                        }
-                                    },
-                                }
+                                items: FavoriteCityListing
                             },
                         },
                     },
@@ -143,4 +125,4 @@ const getFavoritesSwagger = {
     },
 };
 
-module.exports = getFavoritesSwagger;
+module.exports = getFavoriteListingsSwagger;

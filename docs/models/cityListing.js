@@ -236,7 +236,63 @@ const UpdateCityListing = {
     }
 }
 
+const FavoriteCityListing = {
+    ...CityListing,
+    properties: {
+        id: {
+            type: 'integer',
+            required: false,
+            description: 'The ID of the favorite city listing',
+            example: 1
+        },
+        userId: {
+            type: 'integer',
+            required: false,
+            description: 'The user ID that added the city listing',
+            example: 1
+        },
+        externalId: {
+            type: 'string',
+            required: false,
+            description: 'The external ID',
+            example: ""
+        },
+        cityId: {
+            type: 'string',
+            required: false,
+            description: 'The external ID',
+            example: "1"
+        },
+        sourceId: {
+            type: 'integer',
+            required: false,
+            description: 'The source ID of the city listing',
+            example: 1
+        },
+        createdAt: {
+            type: 'date',
+            required: false,
+            description: 'The date the favorite city listing was created',
+            example: "2023-12-05T18:59:35.000Z"
+        },
+        expiryDate: {
+            type: 'date',
+            required: false,
+            description: 'The date the favorite city listing was created',
+            example: "2024-05-05T18:59:35.000Z"
+        },
+        pdf: {
+            type: 'string',
+            required: false,
+            description: 'The PDF of the city listing',
+            example: "objectKey.pdf"
+        },
+        ...CityListing.properties,
+    }
+}
+
 module.exports = {
     CityListing,
     UpdateCityListing,
+    FavoriteCityListing,
 };
