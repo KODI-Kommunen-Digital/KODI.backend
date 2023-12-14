@@ -8,10 +8,11 @@ const sendMail = require("../services/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const userService = require("../services/users");
-const { getCityWithId } = require("../services/cities");
+const { getCityWithId, getCityUserCityMapping } = require("../services/cities");
 const tokenService = require("../services/authService");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
+const cityListings = require("../services/cityListing");
 
 const tokenUtil = require("../utils/token");
 
@@ -976,6 +977,103 @@ const deleteUserProfileImage = async function (req, res, next) {
     }
 }
 
+const getUserListings = async function (req, res, next) {
+    const userId = req.params.id;
+    const pageNo = req.query.pageNo || 1;
+    const pageSize = req.query.pageSize || 9;
+
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid UserId ${userId}`, 400));
+        return;
+    }
+
+    const filters = {};
+    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
+        return next(
+            new AppError(`Please enter a positive integer for pageNo`, 400)
+        );
+    }
+
+    if (
+        isNaN(Number(pageSize)) ||
+        Number(pageSize) <= 0 ||
+        Number(pageSize) > 20
+    ) {
+        return next(
+            new AppError(
+                `Please enter a positive integer less than or equal to 20 for pageSize`,
+                400
+            )
+        );
+    }
+
+    if (req.query.statusId) {
+        try {
+            const data = await cityListings.getStatusById(req.query.statusId);
+            if (!data) {
+                return next(
+                    new AppError(
+                        `Invalid Status '${req.query.statusId}' given`,
+                        400
+                    )
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.statusId = req.query.statusId;
+    }
+
+    if (req.query.categoryId) {
+        try {
+            const data = await cityListings.getCategoryById(req.query.categoryId);
+            if (!data) {
+                return next(
+                    new AppError(
+                        `Invalid Category '${req.query.categoryId}' given`,
+                        400
+                    )
+                );
+            } else {
+                if (req.query.subcategoryId) {
+                    try {
+                        const data = await cityListings.getSubCategoryWithFilter(
+                            req.query.categoryId,
+                            req.query.subcategoryId
+                        );
+                        if (!data) {
+                            return next(
+                                new AppError(
+                                    `Invalid subCategory '${req.query.subcategoryId}' given`,
+                                    400
+                                )
+                            );
+                        }
+                    } catch (err) {
+                        return next(new AppError(err));
+                    }
+                    filters.subcategoryId = req.query.subcategoryId;
+                }
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.categoryId = req.query.categoryId;
+    }
+
+    try {
+        const cityMappings = await getCityUserCityMapping(userId);
+        const data = await userService.getUserListingsFromDatabase(userId, filters, cityMappings, pageNo, pageSize);
+        return res.status(200).json({
+            status: "success",
+            data,
+        });
+    } catch (err) {
+        console.log(err);
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -992,4 +1090,5 @@ module.exports = {
     deleteLoginDevices,
     uploadUserProfileImage,
     deleteUserProfileImage,
+    getUserListings,
 };

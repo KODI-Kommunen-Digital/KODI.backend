@@ -164,6 +164,40 @@ const getCityUserCityMapping = async function (cityId, userId) {
     return data[0];
 }
 
+
+const getUserListingsFromDatabase = async function (userId, filters, cityMappings, pageNo, pageSize) {
+    const individualQueries = [];
+    for (const cityMapping of cityMappings) {
+        let query = `SELECT *, ${cityMapping.cityId} as cityId 
+        FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings 
+        WHERE userId = ${cityMapping.cityUserId}`;
+        if (filters.categoryId || filters.statusId) {
+            if (filters.categoryId) {
+                query += ` AND categoryId = ${filters.categoryId}`;
+            }
+            if (filters.subcategoryId) {
+                query += ` AND subcategoryId = ${filters.subcategoryId}`;
+            }
+            if (filters.statusId) {
+                query += ` AND statusId = ${filters.statusId}`;
+            }
+        }
+        individualQueries.push(query);
+    }
+    if (individualQueries && individualQueries.length > 0) {
+        const query = `select * from (
+            ${individualQueries.join(" union all ")}
+        ) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+        const response = await database.callQuery(query);
+        if (!response || !response.rows) {
+            return [];
+        }
+        return response.rows;
+    }
+    return [];
+}
+
+
 module.exports = {
     getUserWithUsername,
     getUserWithEmail,
@@ -181,4 +215,5 @@ module.exports = {
     getUserById,
     createCityUserWithTransaction,
     getCityUserCityMapping,
+    getUserListingsFromDatabase,
 }

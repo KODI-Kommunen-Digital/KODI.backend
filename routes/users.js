@@ -7,7 +7,7 @@ const authentication = require("../middlewares/authentication");
 const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices, uploadUserProfileImage, deleteUserProfileImage } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices, uploadUserProfileImage, deleteUserProfileImage, getUserListings } = require("../controllers/userController");
 
 router.post("/login", login);
 
@@ -110,148 +110,7 @@ router.delete("/:id/imageDelete", authentication, deleteUserProfileImage);
 
 router.post("/:id/imageUpload", authentication, uploadUserProfileImage);
 
-router.get("/:id/listings", async function (req, res, next) {
-    const userId = req.params.id;
-    const pageNo = req.query.pageNo || 1;
-    const pageSize = req.query.pageSize || 9;
-
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 400));
-        return;
-    }
-
-    const filters = {};
-    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
-        return next(
-            new AppError(`Please enter a positive integer for pageNo`, 400)
-        );
-    }
-
-    if (
-        isNaN(Number(pageSize)) ||
-        Number(pageSize) <= 0 ||
-        Number(pageSize) > 20
-    ) {
-        return next(
-            new AppError(
-                `Please enter a positive integer less than or equal to 20 for pageSize`,
-                400
-            )
-        );
-    }
-
-    if (req.query.statusId) {
-        try {
-            const response = await database.get(
-                tables.STATUS_TABLE,
-                { id: req.query.statusId },
-                null
-            );
-            const data = response.rows;
-            if (data && data.length === 0) {
-                return next(
-                    new AppError(
-                        `Invalid Status '${req.query.statusId}' given`,
-                        400
-                    )
-                );
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-        filters.statusId = req.query.statusId;
-    }
-
-    if (req.query.categoryId) {
-        try {
-            const response = await database.get(
-                tables.CATEGORIES_TABLE,
-                { id: req.query.categoryId },
-                null
-            );
-            const data = response.rows;
-            if (data && data.length === 0) {
-                return next(
-                    new AppError(
-                        `Invalid Category '${req.query.categoryId}' given`,
-                        400
-                    )
-                );
-            } else {
-                if (req.query.subcategoryId) {
-                    try {
-                        const response = database.get(
-                            tables.SUBCATEGORIES_TABLE,
-                            {
-                                categoryId: req.query.categoryId,
-                                id: req.query.subcategoryId,
-                            }
-                        );
-                        const data = response.rows;
-                        if (data && data.length === 0) {
-                            return next(
-                                new AppError(
-                                    `Invalid subCategory '${req.query.subcategoryId}' given`,
-                                    400
-                                )
-                            );
-                        }
-                    } catch (err) {
-                        return next(new AppError(err));
-                    }
-                    filters.subcategoryId = req.query.subcategoryId;
-                }
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-        filters.categoryId = req.query.categoryId;
-    }
-
-    try {
-        let response = await database.callQuery(
-            "Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?;",
-            [userId]
-        );
-        const cityMappings = response.rows;
-        const individualQueries = [];
-        for (const cityMapping of cityMappings) {
-            // if the city database is present in the city's server, then we create a federated table in the format
-            // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT *, ${cityMapping.cityId
-            } as cityId FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."
-            }listings WHERE userId = ${cityMapping.cityUserId}`;
-            if (filters.categoryId || filters.statusId) {
-                if (filters.categoryId) {
-                    query += ` AND categoryId = ${filters.categoryId}`;
-                }
-                if (filters.subcategoryId) {
-                    query += ` AND subcategoryId = ${filters.subcategoryId}`;
-                }
-                if (filters.statusId) {
-                    query += ` AND statusId = ${filters.statusId}`;
-                }
-            }
-            individualQueries.push(query);
-        }
-        if (individualQueries && individualQueries.length > 0) {
-            const query = `select * from (
-					${individualQueries.join(" union all ")}
-				) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
-            response = await database.callQuery(query);
-            return res.status(200).json({
-                status: "success",
-                data: response.rows,
-            });
-        }
-        return res.status(200).json({
-            status: "success",
-            data: [],
-        });
-    } catch (err) {
-        return next(new AppError(err));
-    }
-});
+router.get("/:id/listings", getUserListings);
 
 router.post("/:id/refresh", refreshAuthToken);
 

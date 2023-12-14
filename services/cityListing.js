@@ -10,11 +10,10 @@ const getVillageById = async function (villageId, cityId) {
         cityId
     );
 
-    const data = response.rows;
-    if (data && data.length === 0) {
+    if (!response || !response.rows || !response.rows.length) {
         return null;
     }
-    return data[0];
+    return response.rows[0];
 }
 
 const getCategoryById = async function (categoryId, cityId) {
@@ -24,11 +23,10 @@ const getCategoryById = async function (categoryId, cityId) {
         null,
         cityId
     );
-    const data = response.rows;
-    if (data && data.length === 0) {
+    if (!response || !response.rows || !response.rows.length) {
         return null;
     }
-    return data[0];
+    return response.rows[0];
 }
 
 const getSubCategoryById = async function (subcategoryId, cityId) {
@@ -39,11 +37,24 @@ const getSubCategoryById = async function (subcategoryId, cityId) {
         cityId
     );
 
-    const data = response.rows;
-    if (data && data.length === 0) {
+    if (!response || !response.rows || !response.rows.length) {
         return null;
     }
-    return data[0];
+    return response.rows[0];
+}
+
+const getSubCategoryWithFilter = async function (filters, cityId) {
+    const response = await database.get(
+        tables.SUBCATEGORIES_TABLE,
+        filters,
+        null,
+        cityId
+    );
+
+    if (!response || !response.rows || !response.rows.length) {
+        return null;
+    }
+    return response.rows[0];
 }
 
 const getSubCategory = async function (filters, cityId) {
@@ -54,11 +65,10 @@ const getSubCategory = async function (filters, cityId) {
         cityId
     );
 
-    const data = response.rows;
-    if (data && data.length === 0) {
+    if (!response || !response.rows || !response.rows.length) {
         return null;
     }
-    return data[0];
+    return response.rows[0];
 
 }
 
@@ -70,11 +80,10 @@ const getStatusById = async function (statusId, cityId) {
         cityId
     );
 
-    const data = response.rows;
-    if (data && data.length === 0) {
+    if (!response || !response.rows || !response.rows.length) {
         return null;
     }
-    return data[0];
+    return response.rows[0];
 }
 
 const getCityUserMapping = async function (cityId, userId) {
@@ -86,11 +95,10 @@ const getCityUserMapping = async function (cityId, userId) {
         }
     );
 
-    const data = response.rows;
-    if (data && data.length === 0) {
+    if (!response || !response.rows || !response.rows.length) {
         return null;
     }
-    return data[0];
+    return response.rows[0];
 }
 
 const updateCityListing = async function (listingId, payload, cityId) {
@@ -115,4 +123,5 @@ module.exports = {
     getSubCategory,
     updateCityListing,
     deleteCityListing,
+    getSubCategoryWithFilter,
 }
