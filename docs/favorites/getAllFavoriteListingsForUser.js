@@ -13,7 +13,7 @@ const getFavoriteListingsSwagger = {
         {
             name: "userId",
             in: "path",
-            description: "ID of the user to retrieve favorite listings for ",
+            description: "ID of the user to retrieve favorite listings for",
             required: true,
             schema: {
                 type: "integer",

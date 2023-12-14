@@ -1,6 +1,6 @@
-const getFavoritesSwagger = {
-    summary: "Get all favorites for user",
-    description: "Retrieve all favorites for user from the database",
+const deleteFavoriteListingSwagger = {
+    summary: "Delete a favorite listings for user",
+    description: "Delete a favorite listings for user based on the favorite id from request path",
     tags: ["Favorites"],
     security: [
         {
@@ -11,7 +11,17 @@ const getFavoritesSwagger = {
         {
             name: "userId",
             in: "path",
-            description: "ID of the user to retrieve favorites for",
+            description: "ID of the user to delete favorite listings",
+            required: true,
+            schema: {
+                type: "integer",
+                example: 1,
+            },
+        },
+        {
+            name: "id",
+            in: "path",
+            description: "ID of the favorite listing to delete",
             required: true,
             schema: {
                 type: "integer",
@@ -21,7 +31,7 @@ const getFavoritesSwagger = {
     ],
     responses: {
         200: {
-            description: "Successfully fetched the favorites of the user from the database",
+            description: "Successfully deleted the favorite listings of the user from the database",
             content: {
                 "application/json": {
                     schema: {
@@ -30,31 +40,7 @@ const getFavoritesSwagger = {
                             status: {
                                 type: "string",
                                 example: "success",
-                            },
-                            data: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        id: {
-                                            type: "integer",
-                                            example: 1,
-                                        },
-                                        userId: {
-                                            type: "integer",
-                                            example: 19,
-                                        },
-                                        cityId: {
-                                            type: "integer",
-                                            example: 2,
-                                        },
-                                        listingId: {
-                                            type: "integer",
-                                            example: 4,
-                                        }
-                                    },
-                                }
-                            },
+                            }
                         },
                     },
                 },
@@ -80,26 +66,6 @@ const getFavoritesSwagger = {
                 },
             },
         },
-        401: {
-            description: "Unauthorized",
-            content: {
-                "application/json": {
-                    schema: {
-                        type: "object",
-                        properties: {
-                            status: {
-                                type: "string",
-                                example: "error",
-                            },
-                            message: {
-                                type: "string",
-                                example: "Authorization token not present",
-                            },
-                        },
-                    },
-                },
-            },
-        },
         403: {
             description: "Forbidden",
             content: {
@@ -114,6 +80,26 @@ const getFavoritesSwagger = {
                             message: {
                                 type: "string",
                                 example: "You are not allowed to access this resource",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        404: {
+            description: "Favorite listing with the given id does not exist",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "Favorites with id 1 does not exist",
                             },
                         },
                     },
@@ -143,4 +129,4 @@ const getFavoritesSwagger = {
     },
 };
 
-module.exports = getFavoritesSwagger;
+module.exports = deleteFavoriteListingSwagger;
