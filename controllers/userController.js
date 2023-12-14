@@ -551,7 +551,7 @@ const refreshAuthToken = async function (req, res, next) {
     } catch (error) {
         if (error.name === "TokenExpiredError") {
             await tokenService.deleteRefreshTokenByRefreshToken(req.body.refreshToken);
-            return next(new AppError(`Unauthorized! Token was expired!`, 401));
+            return next(new AppError(`Unauthorized! Refresh Token was expired!`, 401));
         }
         return next(new AppError(error));
     }
