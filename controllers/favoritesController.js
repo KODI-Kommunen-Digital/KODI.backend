@@ -120,7 +120,7 @@ const addNewFavoriteForUser = async function (req, res, next) {
     } else {
         try {
             const response = await citiesService.getCityWithId(cityId);
-            if (response.length === 0) {
+            if (!response) {
                 return next(new AppError(`Invalid City '${cityId}' given`, 400));
             }
         } catch (err) {
