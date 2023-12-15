@@ -53,11 +53,15 @@ const getUserByUsernameOrEmail = async function (username, email) {
 }
 
 const getuserCityMappings = async function (userId) {
-    return await database.get(
+    const cityUsers =  await database.get(
         tables.USER_CITYUSER_MAPPING_TABLE,
         { userId },
         "cityId, cityUserId"
     );
+    if(!cityUsers || !cityUsers.rows || cityUsers.rows.length === 0) {
+        return [];
+    }
+    return cityUsers.rows;
 }
 
 const getUserWithId = async function (userId) {

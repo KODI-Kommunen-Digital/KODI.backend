@@ -282,7 +282,7 @@ const login = async function (req, res, next) {
         return res.status(200).json({
             status: "success",
             data: {
-                cityUsers: userMappings.rows,
+                cityUsers: userMappings,
                 userId: userData.id,
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
