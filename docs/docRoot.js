@@ -26,6 +26,7 @@ const forgotPasswordSwagger = require("./users/forgotPassword");
 const getLoginDevicesSwagger = require("./users/getAllLoginDevices");
 const getAllUsersSwagger = require("./users/getAllUsers");
 const getUserByIdDoc = require("./users/getUserById");
+const getUserListings = require("./users/getUserListings");
 const deleteUserProfilePicSwagger = require("./users/imageDelete");
 const imageUpoadSwagger = require("./users/imageUpload");
 const loginUser = require("./users/loginUser");
@@ -99,6 +100,9 @@ const apiDocumentation = {
         },
         '/users/verifyEmail': {
             'post': verifyEmailSwagger,
+        },
+        '/users/{id}/listings': {
+            'get': getUserListings,
         },
         '/users/{id}/loginDevices': {
             'post': getLoginDevicesSwagger,

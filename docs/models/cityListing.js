@@ -291,8 +291,24 @@ const FavoriteCityListing = {
     }
 }
 
+
+const UserCityListing = {
+    ...FavoriteCityListing,
+    properties: {
+        ...FavoriteCityListing.properties,
+        cityId: {
+            type: 'integer',
+            required: false,
+            description: 'The city ID',
+            example: 1
+        },
+    }
+}
+
+
 module.exports = {
     CityListing,
     UpdateCityListing,
     FavoriteCityListing,
+    UserCityListing,
 };
