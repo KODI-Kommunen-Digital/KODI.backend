@@ -22,6 +22,7 @@ const getAllListingsSwagger = require("./listings/getAllListings");
 const getMoreInfoSwagger = require("./moreInfo/getMoreInfo");
 const getAllStatusesSwagger = require("./status/getAllStatuses");
 const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
+const deleteUserByIdSwagger = require("./users/deleteUserById");
 const forgotPasswordSwagger = require("./users/forgotPassword");
 const getLoginDevicesSwagger = require("./users/getAllLoginDevices");
 const getAllUsersSwagger = require("./users/getAllUsers");
@@ -79,6 +80,7 @@ const apiDocumentation = {
         '/users/{id}': {
             'get': getUserByIdDoc,
             'patch': updateUserSwagger,
+            'delete': deleteUserByIdSwagger,
         },
         '/users/login': {
             'post': loginUser
