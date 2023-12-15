@@ -88,10 +88,28 @@ const fetchRefreshTokensOtherThan = async function (userId, refreshToken) {
         `select id, userId, sourceAddress, browser, device from refreshtokens where userId = ? and refreshToken NOT IN (?); `,
         [userId, refreshToken]
     );
-    if(!tokens){
+    if (!tokens) {
         return [];
     }
     return tokens.rows;
+}
+
+const deleteRefreshTokenWithTransaction = async function (userId, transaction) {
+    await database.deleteDataWithTransaction(tables.REFRESH_TOKENS_TABLE, {
+        userId,
+    }, transaction);
+}
+
+const deleteForgotPasswordTokenWithTransaction = async function (userId, transaction) {
+    await database.deleteDataWithTransaction(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
+        userId,
+    }, transaction);
+}
+
+const deleteVerificationTokenWithTransaction = async function (userId, transaction) {
+    await database.deleteDataWithTransaction(tables.VERIFICATION_TOKENS_TABLE, {
+        userId,
+    }, transaction);
 }
 
 
@@ -109,4 +127,7 @@ module.exports = {
     deleteVerificationToken,
     deleteRefreshTokenFor,
     fetchRefreshTokensOtherThan,
+    deleteRefreshTokenWithTransaction,
+    deleteForgotPasswordTokenWithTransaction,
+    deleteVerificationTokenWithTransaction,
 }

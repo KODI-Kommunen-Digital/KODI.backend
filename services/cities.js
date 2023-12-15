@@ -42,9 +42,20 @@ const getCityUserCityMapping = async (userId) => {
     return response.rows;
 }
 
+const deleteCityUserCityMappingWithTransaction = async function (userId, transaction) {
+    await database.deleteDataWithTransaction(
+        tables.USER_CITYUSER_MAPPING_TABLE,
+        {
+            userId,
+        },
+        transaction
+    );
+}
+
 module.exports = {
     getCityWithId,
     getCities,
     createCityUserCityMappingWithTransaction,
     getCityUserCityMapping,
+    deleteCityUserCityMappingWithTransaction,
 }

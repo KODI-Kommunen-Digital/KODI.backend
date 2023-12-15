@@ -53,12 +53,12 @@ const getUserByUsernameOrEmail = async function (username, email) {
 }
 
 const getuserCityMappings = async function (userId) {
-    const cityUsers =  await database.get(
+    const cityUsers = await database.get(
         tables.USER_CITYUSER_MAPPING_TABLE,
         { userId },
         "cityId, cityUserId"
     );
-    if(!cityUsers || !cityUsers.rows || cityUsers.rows.length === 0) {
+    if (!cityUsers || !cityUsers.rows || cityUsers.rows.length === 0) {
         return [];
     }
     return cityUsers.rows;
@@ -201,6 +201,14 @@ const getUserListingsFromDatabase = async function (userId, filters, cityMapping
     return [];
 }
 
+const deleteUserWithTransaction = async (id, transaction) => {
+    await database.deleteDataWithTransaction(
+        tables.USER_TABLE,
+        { id },
+        transaction
+    );
+}
+
 
 module.exports = {
     getUserWithUsername,
@@ -220,4 +228,5 @@ module.exports = {
     createCityUserWithTransaction,
     getCityUserCityMapping,
     getUserListingsFromDatabase,
+    deleteUserWithTransaction,
 }

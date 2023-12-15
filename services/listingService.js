@@ -74,10 +74,26 @@ const getCityListingsWithFiltersAndPagination = async function (filters, pageNo,
     return response.rows;
 }
 
+const deleteListingForUserWithTransaction = async (userId, transaction) => {
+    await database.deleteDataWithTransaction(
+        tables.LISTINGS_TABLE,
+        { userId },
+        transaction
+    );
+}
+
+const deleteUserListingMappingWithTransaction = async (userId, transaction) => {
+    await database.deleteDataWithTransaction(tables.USER_LISTING_MAPPING_TABLE, {
+        userId,
+    }, transaction);
+}
+
 module.exports = {
     createListingWithTransaction,
     createUserListingMappingWithTransaction,
     getCityListingWithId,
     getAllListingsWithFilters,
     getCityListingsWithFiltersAndPagination,
+    deleteListingForUserWithTransaction,
+    deleteUserListingMappingWithTransaction
 }

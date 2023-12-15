@@ -13,8 +13,12 @@ const tokenService = require("../services/authService");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const cityListings = require("../services/cityListing");
-
+const listingService = require("../services/listingService");
+const authService = require("../services/authService");
+const cityService = require("../services/cities");
+const favoriteService = require("../services/favoritesService");
 const tokenUtil = require("../utils/token");
+const { getUserImages, deleteImage } = require("../services/imageService");
 
 const register = async function (req, res, next) {
     const payload = req.body;
@@ -1074,6 +1078,92 @@ const getUserListings = async function (req, res, next) {
     }
 }
 
+const deleteUser = async function (req, res, next) {
+    const id = parseInt(req.params.id);
+
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+        next(new AppError(`Invalid UserId ${id}`, 404));
+        return;
+    }
+
+    if (id !== req.userId) {
+        return next(
+            new AppError(`You are not allowed to access this resource`, 403)
+        );
+    }
+
+    try {
+        const userData = await userService.getUserDataById(id);
+        if (!userData) {
+            return next(new AppError(`User with id ${id} does not exist`, 404));
+        }
+
+        const cityUsers = await userService.getuserCityMappings(id);
+
+        const userImageList = await getUserImages(id);
+
+        const onSuccess = async () => {
+            for (const cityUser of cityUsers) {
+                let cityTransaction;
+                try {
+                    cityTransaction = await database.createTransaction(cityUser.cityId);
+                    await listingService.deleteListingForUserWithTransaction(cityUser.cityUserId, cityTransaction)
+                    await userService.deleteUser(cityUser.cityUserId, cityUser.cityId)
+                    await database.commitTransaction(cityTransaction);
+                } catch (err) {
+                    console.log(err);
+                    if (cityTransaction) {
+                        await database.rollbackTransaction(cityTransaction);
+                    }
+                    return next(new AppError(err));
+                }
+            }
+
+            let transaction;
+            try {
+                transaction = await database.createTransaction(null);
+                await cityService.deleteCityUserCityMappingWithTransaction(id, transaction);
+
+                await listingService.deleteUserListingMappingWithTransaction(id, transaction);
+
+                await authService.deleteRefreshTokenWithTransaction(id, transaction);
+
+                await authService.deleteForgotPasswordTokenWithTransaction(id, transaction);
+
+                await authService.deleteVerificationTokenWithTransaction(id, transaction);
+
+                await favoriteService.deleteFavoriteforUserWithTransaction(id, transaction);
+
+                await userService.deleteUserWithTransaction(id, transaction);
+
+                await database.commitTransaction(transaction);
+
+                return res.status(200).json({
+                    status: "success",
+                });
+            } catch (err) {
+                console.log(err);
+                if (transaction) {
+                    await database.rollbackTransaction(transaction);
+                }
+                return next(new AppError(err));
+            }
+
+        };
+
+        const onFail = (err) => {
+            return next(
+                new AppError("Image Delete failed with Error Code: " + err)
+            );
+        };
+
+        await deleteImage(userImageList, onSuccess, onFail)
+    } catch (err) {
+        console.log(err);
+        return next(new AppError(err));
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -1091,4 +1181,5 @@ module.exports = {
     uploadUserProfileImage,
     deleteUserProfileImage,
     getUserListings,
+    deleteUser,
 };

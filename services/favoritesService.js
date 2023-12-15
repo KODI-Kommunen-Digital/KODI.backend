@@ -30,9 +30,14 @@ const deleteFavorite = async (id) => {
     await database.deleteData(tables.FAVORITES_TABLE, { id });
 }
 
+const deleteFavoriteforUserWithTransaction = async (userId, transaction) => {
+    await database.deleteDataWithTransaction(tables.FAVORITES_TABLE, { userId }, transaction);
+}
+
 module.exports = {
     getFavoritesforUser,
     getFavoritesWithFilter,
     addFavoriteForUser,
     deleteFavorite,
+    deleteFavoriteforUserWithTransaction,
 };
