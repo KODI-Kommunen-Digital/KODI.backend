@@ -206,7 +206,6 @@ const createCityListing = async function (req, res, next) {
         const transaction = await database.createTransaction(cityId);
         const heidiTransaction = await database.createTransaction(); // for root database
         try {
-            const transaction = await database.createTransaction(cityId);
             let response = {};
             const userId = user.id;
             if (city.isAdminListings) {
@@ -221,10 +220,10 @@ const createCityListing = async function (req, res, next) {
                     delete user.emailVerified;
                     delete user.socialMedia;
 
-                    response = await userServices.createCityUserWithTransaction(user, cityId, transaction);
+                    response = await userServices.createCityUserWithTransaction(user, transaction);
 
                     const cityUserId = response.id;
-                    await cityServices.createCityUserCityMappingWithTransaction(cityId, userId, cityUserId, transaction);
+                    await cityServices.createCityUserCityMappingWithTransaction(cityId, userId, cityUserId, heidiTransaction);
                     insertionData.userId = cityUserId;
                 } else {
                     insertionData.userId = response.cityUserId;
