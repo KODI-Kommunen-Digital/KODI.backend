@@ -668,20 +668,20 @@ const uploadImageForCityListing = async function (req, res, next) {
             new AppError(`Pdf is present in listing So can not upload image.`, 403)
         );
     }
-    const { image } = req.files;
-
-    if (!image) {
-        next(new AppError(`Image not uploaded`, 400));
-        return;
-    }
-
-    if (!image.mimetype.includes("image/")) {
-        return next(
-            new AppError(`Invalid Image type`, 403)
-        );
-    }
 
     try {
+        const { image } = req.files;
+        if (!image) {
+            next(new AppError(`Image not uploaded`, 400));
+            return;
+        }
+
+        if (!image.mimetype.includes("image/")) {
+            return next(
+                new AppError(`Invalid Image type`, 403)
+            );
+        }
+
         const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
 
         const { uploadStatus, objectKey } = await imageUpload(
