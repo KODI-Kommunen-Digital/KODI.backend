@@ -681,6 +681,14 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.zipcode = payload.zipcode;
     }
 
+    if (payload.categoryId) {
+        updationData.categoryId = payload.categoryId;
+    }
+
+    if (payload.subcategoryId) {
+        updationData.subcategoryId = payload.subcategoryId;
+    }
+
     if (payload.pdf && payload.removePdf) {
         return next(
             new AppError(
