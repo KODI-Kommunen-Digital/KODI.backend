@@ -514,6 +514,13 @@ router.post("/", authentication, async function (req, res, next) {
                     .replace("T", " ");
             }
         }
+        
+        if (parseInt(payload.categoryId) === categories.News) {
+            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
+                insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
+            }
+        }
+
         insertionData.createdAt = getDateInFormate(new Date());
     } catch (error) {
         return next(new AppError(`Invalid time format ${error}`, 400));
@@ -907,6 +914,14 @@ router.post(
         }
 
         try {
+            if (currentListingData.logo) {
+                try {
+                    await objectDeletePromise(currentListingData.logo);
+                } catch (err) {
+                    return next(new AppError(err));
+                }
+            }
+
             const newImagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${Date.now()}`
             
             const { uploadStatus, objectKey } = await imageUpload(
@@ -1024,7 +1039,25 @@ router.post(
         }
 
         try {
-            const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
+
+            
+            if (currentListingData.pdf) {
+                try {
+                    await objectDeletePromise(currentListingData.pdf);
+                } catch (err) {
+                    return next(new AppError(err));
+                }
+            }
+            
+            if (currentListingData.logo) {
+                try {
+                    await objectDeletePromise(currentListingData.logo);
+                } catch (err) {
+                    return next(new AppError(err));
+                }
+            }
+
+            const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF_${Date.now()}.pdf`;
             const { uploadStatus, objectKey } = await pdfUpload(
                 pdf,
                 filePath
@@ -1038,7 +1071,7 @@ router.post(
             if (pdfUploadStatus === "Success") {
                 // create image
                 const pdfFilePath = `${pdfBucketPath}/${filePath}`;
-                const imagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
+                const imagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${Date.now()}`;
                 const pdfImageBuffer = await getPdfImage(pdfFilePath);
                 const { uploadStatus, objectKey } = await imageUpload(
                     pdfImageBuffer,
