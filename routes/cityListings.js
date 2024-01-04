@@ -3,6 +3,8 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
+const defaultImageCount = require("../constants/defaultImagesInBucketCount");
+
 const subcategories = require("../constants/subcategories");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
@@ -21,6 +23,8 @@ const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const getPdfImage = require("../utils/getPdfImage");
 
 // const radiusSearch = require('../services/handler')
+
+const DEFAULTIMAGE = "Defaultimage";
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -270,6 +274,7 @@ router.post("/", authentication, async function (req, res, next) {
     const insertionData = {};
     let user = {};
     let city = {};
+    const hasDefaultImage =  (payload.logo !== undefined &&  payload.logo !== null) || payload.hasAttachment ? false : true;
     const userId = req.userId;  
 
     if (!payload) {
@@ -493,10 +498,7 @@ router.post("/", authentication, async function (req, res, next) {
                 insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                 insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
             } else {
-                insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                    .toISOString()
-                    .slice(0, 19)
-                    .replace("T", " ");
+                insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
             }
         }
         insertionData.createdAt = getDateInFormate(new Date());
@@ -548,6 +550,18 @@ router.post("/", authentication, async function (req, res, next) {
             userId,
             listingId,
         });
+
+
+        if(hasDefaultImage){
+            const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
+            const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+            const categoryImage = await database.callQuery(query);
+            const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
+            const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+            const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+            addDefaultImage(cityId,listingId,imageName);
+        }
+
         res.status(200).json({
             status: "success",
             id: listingId,
@@ -558,7 +572,7 @@ router.post("/", authentication, async function (req, res, next) {
 });
 
 router.patch("/:id", authentication, async function (req, res, next) {
-    const id = req.params.id;
+    const id = +req.params.id;
     const cityId = req.cityId;
     const payload = req.body;
     const updationData = {};
@@ -751,6 +765,17 @@ router.patch("/:id", authentication, async function (req, res, next) {
         }
     } catch (error) {
         return next(new AppError(`Invalid time format ${error}`, 400));
+    }
+
+    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
+    if(hasDefaultImage){
+        const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
+        const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+        const categoryImage = await database.callQuery(query);
+        const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
+        const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+        const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+        addDefaultImage(cityId,id,imageName);
     }
 
     database
@@ -1275,5 +1300,18 @@ router.delete(
         }
     }
 );
+
+async function addDefaultImage(cityId,listingId,imageName){
+    const imageOrder = 1;
+    return await database.create(
+        tables.LISTINGS_IMAGES_TABLE,
+        {
+            listingId,
+            imageOrder,
+            logo: imageName,
+        },
+        cityId
+    );
+}
 
 module.exports = router;
