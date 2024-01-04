@@ -568,6 +568,22 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
         const onSucccess = async () => {
             for (const cityUser of cityUsers) {
+                database.get(tables.LISTINGS_TABLE, { id }, null, cityUser.cityUserId)
+                    .then(async (response) => {
+                        const data = response.rows;
+                        if (!data || data.length === 0) {
+                            return next(new AppError(`Listings with id ${id} does not exist`, 404));
+                        }
+                        await database.deleteData(
+                            tables.LISTINGS_IMAGES_TABLE,
+                            { listingId: id },
+                            null,
+                            cityUser.cityId
+                        );
+                    })
+                    .catch((err) => {
+                        return next(new AppError(err));
+                    });
                 await database.deleteData(
                     tables.LISTINGS_TABLE,
                     { userId: cityUser.cityUserId },
@@ -824,28 +840,51 @@ router.get("/:id/listings", async function (req, res, next) {
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT *, ${
-                cityMapping.cityId
-            } as cityId FROM heidi_city_${cityMapping.cityId}${
+            const listingImageTableName = `heidi_city_${cityMapping.cityId}${
                 cityMapping.inCityServer ? "_" : "."
-            }listings WHERE userId = ${cityMapping.cityUserId}`;
+            }listing_images LI_${cityMapping.cityId}`;
+            const cityListAlias = `L_${cityMapping.cityId}`;
+
+            let query = `SELECT  
+            sub.logo,
+            sub.logoCount,
+            ${cityListAlias}.*, ${cityMapping.cityId} as cityId,
+            otherLogos FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings ${cityListAlias}
+            LEFT JOIN (
+                SELECT 
+                    listingId,
+                    MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
+                    COUNT(*) as logoCount
+                FROM ${listingImageTableName}
+                GROUP BY listingId
+            ) sub ON ${cityListAlias}.id = sub.listingId
+            LEFT JOIN (
+                SELECT
+                    listingId,
+                    JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder,'id',id,'listingId', listingId )) as otherLogos
+                FROM ${listingImageTableName}
+                GROUP BY listingId
+            ) other ON ${cityListAlias}.id = other.listingId
+            WHERE ${cityListAlias}.userId = ${cityMapping.cityUserId}`;
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
-                    query += ` AND categoryId = ${filters.categoryId}`;
+                    query += ` AND ${cityListAlias}.categoryId = ${filters.categoryId}`;
                 }
-                if (filters.subcategoryId) {
-                    query += ` AND subcategoryId = ${filters.subcategoryId}`;
+                if (filters.subCategoryId) {
+                    query += ` AND ${cityListAlias}.subCategoryId = ${filters.subCategoryId}`;
                 }
                 if (filters.statusId) {
-                    query += ` AND statusId = ${filters.statusId}`;
+                    query += ` AND ${cityListAlias}.statusId = ${filters.statusId}`;
                 }
             }
             individualQueries.push(query);
         }
+
         if (individualQueries && individualQueries.length > 0) {
             const query = `select * from (
 					${individualQueries.join(" union all ")}
 				) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
+
             response = await database.callQuery(query);
             return res.status(200).json({
                 status: "success",
