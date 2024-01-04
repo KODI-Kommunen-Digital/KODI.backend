@@ -1,4 +1,4 @@
-if(process.env.APPLICATION === "WALDI") {
+if (process.env.APPLICATION === "WALDI") {
     module.exports = {
         News: 1,
         RoadWorksOrTraffic: 2,
@@ -36,4 +36,3 @@ if(process.env.APPLICATION === "WALDI") {
         officialnotification:16
     }
 }
-
