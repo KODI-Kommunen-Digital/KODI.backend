@@ -256,7 +256,9 @@ router.get("/:id", async function (req, res, next) {
                 null,
                 cityId
             );
-            const logo = listingImagesList.rows.length > 0 ? listingImagesList.rows[0].logo : null;
+
+            const logo = listingImagesList.rows && listingImagesList.rows.length > 0 ? listingImagesList.rows[0].logo : null;
+
             res.status(200).json({
                 status: "success",
                 data: { ...data[0], logo, otherlogos: listingImagesList.rows },
@@ -497,15 +499,7 @@ router.post("/", authentication, async function (req, res, next) {
                 insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                 insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
             } else {
-                insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                    .toISOString()
-                    .slice(0, 19)
-                    .replace("T", " ");
-            }
-        }
-        if (parseInt(payload.categoryId) === categories.News) {
-            if (parseInt(payload.subcategoryId) !== subcategories.timelessNews){
-                insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
+                insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
             }
         }
         insertionData.createdAt = getDateInFormate(new Date());
@@ -685,6 +679,15 @@ router.patch("/:id", authentication, async function (req, res, next) {
         );
     }
 
+    if (payload.removeImage) {
+    // await database.deleteData(
+    //     tables.LISTINGS_IMAGES_TABLE,
+    //     { listingId: id },
+    //     cityId
+    // );
+    // updationData.logo = null;
+    }
+
     if (payload.pdf && payload.removePdf) {
         return next(
             new AppError(
@@ -716,7 +719,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
-                    new AppError(`Invalid Status '${payload.statusId}' given`, 400)
+                    new AppError(
+                        `Invalid Status '${payload.statusId}' given`,
+                        400
+                    )
                 );
             }
             updationData.statusId = payload.statusId;
@@ -847,7 +853,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
         });
     };
     const onFail = (err) => {
-        return next(new AppError("Image Delete failed with Error Code: " + err));
+        return next(
+            new AppError("Image Delete failed with Error Code: " + err)
+        );
     };
     await imageDeleteMultiple(
         userImageList.map((image) => ({ Key: image.Key._text })),
@@ -862,6 +870,7 @@ router.post(
     async function (req, res, next) {
         const listingId = req.params.id;
         const cityId = req.cityId;
+
         if (!cityId) {
             return next(new AppError(`City is not present`, 404));
         } else {
@@ -870,7 +879,9 @@ router.post(
                     id: cityId,
                 });
                 if (response.rows && response.rows.length === 0) {
-                    return next(new AppError(`City '${cityId}' not found`, 404));
+                    return next(
+                        new AppError(`City '${cityId}' not found`, 404)
+                    );
                 }
             } catch (err) {
                 return next(new AppError(err));
@@ -890,9 +901,9 @@ router.post(
 
         // The current user might not be in the city db
         const cityUserId =
-      response.rows && response.rows.length > 0
-          ? response.rows[0].cityUserId
-          : null;
+            response.rows && response.rows.length > 0
+                ? response.rows[0].cityUserId
+                : null;
 
         response = await database.get(
             tables.LISTINGS_TABLE,
@@ -909,7 +920,7 @@ router.post(
 
         if (
             currentListingData.userId !== cityUserId &&
-      req.roleId !== roles.Admin
+            req.roleId !== roles.Admin
         ) {
             return next(
                 new AppError(`You are not allowed to access this resource`, 403)
@@ -1121,7 +1132,9 @@ router.delete(
                     id: cityId,
                 });
                 if (response.rows && response.rows.length === 0) {
-                    return next(new AppError(`City '${cityId}' not found`, 404));
+                    return next(
+                        new AppError(`City '${cityId}' not found`, 404)
+                    );
                 }
             } catch (err) {
                 return next(new AppError(err));
@@ -1141,20 +1154,26 @@ router.delete(
 
         // The current user might not be in the city db
         const cityUserId =
-      response.rows && response.rows.length > 0
-          ? response.rows[0].cityUserId
-          : null;
+            response.rows && response.rows.length > 0
+                ? response.rows[0].cityUserId
+                : null;
 
-        response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
-
+        response = await database.get(
+            tables.LISTINGS_TABLE,
+            { id },
+            null,
+            cityId
+        );
         if (!response.rows || response.rows.length === 0) {
-            return next(new AppError(`Listing with id ${id} does not exist`, 404));
+            return next(
+                new AppError(`Listing with id ${id} does not exist`, 404)
+            );
         }
         const currentListingData = response.rows[0];
 
         if (
             currentListingData.userId !== cityUserId &&
-      req.roleId !== roles.Admin
+            req.roleId !== roles.Admin
         ) {
             return next(
                 new AppError(`You are not allowed to access this resource`, 403)
@@ -1212,7 +1231,9 @@ router.delete(
                     id: cityId,
                 });
                 if (response.rows && response.rows.length === 0) {
-                    return next(new AppError(`City '${cityId}' not found`, 404));
+                    return next(
+                        new AppError(`City '${cityId}' not found`, 404)
+                    );
                 }
             } catch (err) {
                 return next(new AppError(err));
@@ -1232,19 +1253,26 @@ router.delete(
 
         // The current user might not be in the city db
         const cityUserId =
-      response.rows && response.rows.length > 0
-          ? response.rows[0].cityUserId
-          : null;
+            response.rows && response.rows.length > 0
+                ? response.rows[0].cityUserId
+                : null;
 
-        response = await database.get(tables.LISTINGS_TABLE, { id }, null, cityId);
+        response = await database.get(
+            tables.LISTINGS_TABLE,
+            { id },
+            null,
+            cityId
+        );
         if (!response.rows || response.rows.length === 0) {
-            return next(new AppError(`Listing with id ${id} does not exist`, 404));
+            return next(
+                new AppError(`Listing with id ${id} does not exist`, 404)
+            );
         }
         const currentListingData = response.rows[0];
 
         if (
             currentListingData.userId !== cityUserId &&
-      req.roleId !== roles.Admin
+            req.roleId !== roles.Admin
         ) {
             return next(
                 new AppError(`You are not allowed to access this resource`, 403)
@@ -1279,7 +1307,6 @@ router.delete(
     }
 );
 
-// Add Default image to the list
 async function addDefaultImage(cityId,listingId,imageName){
     const imageOrder = 1;
     return await database.create(
