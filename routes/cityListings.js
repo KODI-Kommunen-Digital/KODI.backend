@@ -1084,7 +1084,16 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
     
             if (uploadStatus === "Success") {
                 // update logo
-                updationData.logo = objectKey;
+                const imageOrder = 1;
+                await database.create(
+                    tables.LISTINGS_IMAGES_TABLE,
+                    {
+                        listingId,
+                        imageOrder,
+                        logo: objectKey,
+                    },
+                    cityId
+                );
             }  
 
             await database.update(
