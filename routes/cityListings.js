@@ -1075,7 +1075,8 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
         if (pdfUploadStatus === "Success") {
             // create image
             const pdfFilePath = `${pdfBucketPath}/${filePath}`;
-            const imagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}`;
+            const imageOrder = 1;
+            const imagePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${imageOrder}`;
             const pdfImageBuffer = await getPdfImage(pdfFilePath);
             const { uploadStatus, objectKey } = await imageUpload(
                 pdfImageBuffer,
@@ -1084,7 +1085,6 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
     
             if (uploadStatus === "Success") {
                 // update logo
-                const imageOrder = 1;
                 await database.create(
                     tables.LISTINGS_IMAGES_TABLE,
                     {
