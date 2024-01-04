@@ -498,10 +498,12 @@ router.post("/", authentication, async function (req, res, next) {
                 insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                 insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
             } else {
-                insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                    .toISOString()
-                    .slice(0, 19)
-                    .replace("T", " ");
+                insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
+            }
+        }
+        if (parseInt(payload.categoryId) === categories.News) {
+            if (parseInt(payload.subcategoryId) !== subcategories.timelessNews){
+                insertionData.expiryDate = getDateInFormate(new Date(new Date().getTime() + 1000 * 60 * 60 * 24 * 15));
             }
         }
         insertionData.createdAt = getDateInFormate(new Date());
