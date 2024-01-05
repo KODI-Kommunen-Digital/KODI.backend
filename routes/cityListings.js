@@ -20,6 +20,7 @@ const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const getPdfImage = require("../utils/getPdfImage");
+const sendPushNotification = require("../services/sendPushNotification")
 
 // const radiusSearch = require('../services/handler')
 
@@ -552,7 +553,6 @@ router.post("/", authentication, async function (req, res, next) {
             listingId,
         });
 
-
         if(hasDefaultImage){
             const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
             const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
@@ -563,6 +563,11 @@ router.post("/", authentication, async function (req, res, next) {
             addDefaultImage(cityId,listingId,imageName);
         }
 
+        const sourceAddress = req.headers["x-forwarded-for"]
+            ? req.headers["x-forwarded-for"].split(",").shift()
+            : req.socket.remoteAddress;
+        const listing = await database.get(tables.LISTINGS_TABLE, {id: listingId}, null, cityId);
+        sendPushNotification(userId, sourceAddress, "New Listing Added", listing.rows[0].title, null, next)
         res.status(200).json({
             status: "success",
             id: listingId,

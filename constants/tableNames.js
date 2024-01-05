@@ -18,5 +18,6 @@ module.exports = {
     FAVORITES_TABLE: 'favorites',
     CITIZEN_SERVICES_TABLE: 'citizen_services',
     MORE_INFO_TABLE: 'moreinfo',
-    DIGITAL_MANAGEMENT_TABLE: 'digital_management'
+    DIGITAL_MANAGEMENT_TABLE: 'digital_management',
+    FIREBASE_TOKEN: 'firebase_token'
 }
