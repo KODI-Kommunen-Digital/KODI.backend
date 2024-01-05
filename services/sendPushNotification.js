@@ -12,11 +12,15 @@ async function sendPushNotification(userId, sourceAddress) {
     const response = await database.get(tables.FIREBASE_TOKEN, { deviceAddress: sourceAddress, userId: userId });
     const token = response.rows[0].firebaseToken
 
+    console.log("Token", token)
     const message = {
-        token: token,
+        token:token,
         notification: {
             title: "Hello world!",
-            body: "Greetings from node app"
+            body: "Greetings from node app third Test"
+        },
+        data: {
+            sentBy: "Moizzz"
         }
     }
     try {
@@ -26,7 +30,7 @@ async function sendPushNotification(userId, sourceAddress) {
         console.log('Error sending push notification', e);
     }
 
-    console.log("Token", token)
+    console.log("Token", token.length)
 
     console.log("Success")
 }
