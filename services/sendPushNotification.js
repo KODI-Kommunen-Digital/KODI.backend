@@ -1,7 +1,6 @@
 const admin = require("firebase-admin");
 const database = require("./database");
 const tables = require("../constants/tableNames");
-const AppError = require("../utils/appError");
 const serviceAccount = require("./config/privateKey.json");
 
 async function sendPushNotification(userId, sourceAddress, title="New Notification", body="Check it out", imageUrl, next) {
@@ -11,7 +10,7 @@ async function sendPushNotification(userId, sourceAddress, title="New Notificati
     });
 
     const response = await database.get(tables.FIREBASE_TOKEN, { deviceAddress: sourceAddress, userId: userId });
-    if(!response || response.rows?.length === 0) {
+    if(!response || response.rows?.length === 0) {
         return false
     }
     const token = response.rows[0].firebaseToken
