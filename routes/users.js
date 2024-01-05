@@ -1332,4 +1332,56 @@ router.delete(
     }
 );
 
+router.post("/:id/storeFirebaseUserToken", authentication, async function(req, res, next) {
+    try{
+        const firebaseToken = req.body.firebaseToken
+        const userId = parseInt(req.params.id);
+        let sourceAddress = req.headers["x-forwarded-for"]
+        ? req.headers["x-forwarded-for"].split(",").shift()
+        : req.socket.remoteAddress;
+
+        if (userId !== parseInt(req.userId)) {
+            return next(
+                new AppError(`You are not allowed to access this resource`, 403)
+            );
+        } 
+        if (!firebaseToken) {
+            return next(new AppError(`Token not present`, 400));
+        }
+        let response = await database.get(tables.USER_TABLE, { id: userId });
+        let data = response.rows;
+        if (data && data.length === 0) {
+            return next(new AppError(`UserId ${userId} does not exist`, 400));
+        }
+        response = await database.get(tables.FIREBASE_TOKEN, { deviceAddress: sourceAddress, userId: userId });
+        data = response.rows;
+        if (data && data.length === 0) {
+            let insertionData = {}
+            insertionData.userId = userId
+            insertionData.firebaseToken = firebaseToken
+            insertionData.createdAt = getDateInFormate(new Date());
+            insertionData.deviceAddress = sourceAddress 
+            await database.create(
+                tables.FIREBASE_TOKEN,
+                insertionData
+            );
+        } else {
+            let updationData = data[0]
+            updationData.firebaseToken = firebaseToken
+            updationData.createdAt = getDateInFormate(new Date());
+            await database.update(
+                tables.FIREBASE_TOKEN,
+                updationData,
+                { userId: userId }
+            );
+        }
+        res.status(200).json({
+            status: "success",
+        });
+        
+    } catch (e) {
+        next(new AppError("Error occured while storing the firbase token", e))
+    }
+})
+
 module.exports = router;
