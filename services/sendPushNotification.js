@@ -1,9 +1,9 @@
-var admin = require("firebase-admin");
+const admin = require("firebase-admin");
 const database = require("./database");
 const tables = require("../constants/tableNames");
 
 async function sendPushNotification(userId, sourceAddress) {
-    var serviceAccount = require("./config/privateKey.json");
+    const serviceAccount = require("./config/privateKey.json");
 
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
@@ -17,7 +17,7 @@ async function sendPushNotification(userId, sourceAddress) {
         notification: {
             title: "Hello world!",
             body: "Greetings from node app"
-          }
+        }
     }
     try {
         await admin.messaging().send(message)

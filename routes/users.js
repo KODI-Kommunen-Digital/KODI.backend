@@ -1336,9 +1336,9 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
     try{
         const firebaseToken = req.body.firebaseToken
         const userId = parseInt(req.params.id);
-        let sourceAddress = req.headers["x-forwarded-for"]
-        ? req.headers["x-forwarded-for"].split(",").shift()
-        : req.socket.remoteAddress;
+        const sourceAddress = req.headers["x-forwarded-for"]
+            ? req.headers["x-forwarded-for"].split(",").shift()
+            : req.socket.remoteAddress;
 
         if (userId !== parseInt(req.userId)) {
             return next(
@@ -1356,7 +1356,7 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
         response = await database.get(tables.FIREBASE_TOKEN, { deviceAddress: sourceAddress, userId: userId });
         data = response.rows;
         if (data && data.length === 0) {
-            let insertionData = {}
+            const insertionData = {}
             insertionData.userId = userId
             insertionData.firebaseToken = firebaseToken
             insertionData.createdAt = getDateInFormate(new Date());
@@ -1366,7 +1366,7 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
                 insertionData
             );
         } else {
-            let updationData = data[0]
+            const updationData = data[0]
             updationData.firebaseToken = firebaseToken
             updationData.createdAt = getDateInFormate(new Date());
             await database.update(
