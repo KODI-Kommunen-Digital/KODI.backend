@@ -20,6 +20,7 @@ const getDateInFormate = require("../utils/getDateInFormate")
 const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
+const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const getPdfImage = require("../utils/getPdfImage");
 
 // const radiusSearch = require('../services/handler')
@@ -942,15 +943,57 @@ router.post(
             return next(new AppError(`Invalid Image type`, 403));
         }
 
-        try {
-            await database.deleteData(
-                tables.LISTINGS_IMAGES_TABLE,
-                { listingId },
-                cityId
-            );
+        let imageOrder = 0;
+        response = await database.get(
+            tables.LISTINGS_IMAGES_TABLE,
+            { listingId },
+            null,
+            cityId
+        );
+        
+        if (response.rows && response.rows.length > 0) {
 
-            await imageArr.map(async (individualImage, index) => {
-                const imageOrder = index + 1;
+            if (response.rows[0].logo.startsWith("admin/")) {
+                await database.update(
+                    tables.LISTINGS_IMAGES_TABLE,
+                    { imageOrder: ++imageOrder },
+                    { id: response.rows[0].id },
+                    cityId
+                );
+
+            } else {
+
+                const existingImages = response.rows;
+                const imagesToRetain = existingImages.filter(value => (req.body.image || []).includes(value.logo));
+                const imagesToDelete = existingImages.filter(value => !imagesToRetain.map(i2r => i2r.logo).includes(value.logo));
+    
+                if (imagesToDelete && imagesToDelete.length > 0) {
+                    await imageDeleteAsync.deleteMultiple(imagesToDelete.map(i => i.logo))
+                    await database.deleteData(
+                        tables.LISTINGS_IMAGES_TABLE,
+                        { id: imagesToDelete.id },
+                        cityId
+                    );
+                }
+    
+    
+                if (imagesToRetain && imagesToRetain.length > 0) {
+                    for (const imageToRetain of imagesToRetain) {
+                        await database.update(
+                            tables.LISTINGS_IMAGES_TABLE,
+                            { imageOrder: ++imageOrder },
+                            { id: imageToRetain.id },
+                            cityId
+                        );
+                    }
+                }
+            }
+        }
+
+        try
+        {
+            for (const individualImage of imageArr) {
+                imageOrder++;
                 const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${imageOrder}`;
                 const { uploadStatus, objectKey } = await imageUpload(
                     individualImage,
@@ -969,7 +1012,7 @@ router.post(
                 } else {
                     return next(new AppError("Image Upload failed"));
                 }
-            });
+            }
             return res.status(200).json({
                 status: "success",
             });
