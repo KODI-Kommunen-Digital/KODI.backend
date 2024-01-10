@@ -21,7 +21,7 @@ async function sendPushNotification(userId, sourceAddress, title="New Notificati
             body: body
         }
     }
-    if(imageUrl.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g)) {
+    if(imageUrl && imageUrl.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g)) {
         message.notification.imageUrl = imageUrl
     }
     
