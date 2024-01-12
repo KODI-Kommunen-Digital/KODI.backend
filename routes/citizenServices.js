@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getCitizenServices, getDigitalManagementServices } = require("../controllers/citizenServiceController");
+const { getCitizenServices, getDigitalManagementServices } = require("../services/citizenService");
 
 router.get("/", getCitizenServices);
 

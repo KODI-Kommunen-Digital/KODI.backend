@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/authentication");
-const cityListingController = require("../controllers/cityListings");
+const cityListingController = require("../services/cityListings");
 
 // const radiusSearch = require('../services/handler')
 

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/authentication");
-const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices, uploadUserProfileImage, deleteUserProfileImage, getUserListings, deleteUser } = require("../controllers/userController");
+const { register, login, getUserById, updateUser, refreshAuthToken, forgotPassword, resetPassword, sendVerificationEmail, verifyEmail, logout, getUsers, listLoginDevices, deleteLoginDevices, uploadUserProfileImage, deleteUserProfileImage, getUserListings, deleteUser } = require("../services/users");
 
 router.post("/login", login);
 

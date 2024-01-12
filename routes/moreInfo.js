@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getMoreInfo } = require("../controllers/moreInfoController");
+const { getMoreInfo } = require("../services/moreInfos");
 
 router.get("/", getMoreInfo);
 

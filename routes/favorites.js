@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/authentication");
-const { getAllFavoritesForUser, getFavoriteListingsForUser, addNewFavoriteForUser, deleteFavoriteListingForUser } = require("../controllers/favoritesController");
+const { getAllFavoritesForUser, getFavoriteListingsForUser, addNewFavoriteForUser, deleteFavoriteListingForUser } = require("../services/favorites");
 
 // To get the favorite ID  of a user
 router.get("/", authentication, getAllFavoritesForUser);

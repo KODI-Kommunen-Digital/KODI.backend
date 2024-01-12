@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getAllStatuses } = require("../controllers/statusController");
+const { getAllStatuses } = require("../services/statuses");
 
 router.get("/", getAllStatuses);
 
