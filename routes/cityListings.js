@@ -954,10 +954,9 @@ router.post(
         if (response.rows && response.rows.length > 0) {
 
             if (response.rows[0].logo.startsWith("admin/")) {
-                await database.update(
+                await database.deleteData(
                     tables.LISTINGS_IMAGES_TABLE,
-                    { imageOrder: ++imageOrder },
-                    { id: response.rows[0].id },
+                    { listingId },
                     cityId
                 );
 
@@ -994,7 +993,7 @@ router.post(
         {
             for (const individualImage of imageArr) {
                 imageOrder++;
-                const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${imageOrder}`;
+                const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${imageOrder}_${Date.now()}`;
                 const { uploadStatus, objectKey } = await imageUpload(
                     individualImage,
                     filePath
@@ -1104,7 +1103,7 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
     }
 
     try {
-        const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
+        const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${Date.now()}_PDF.pdf`;
         const { uploadStatus, objectKey } = await pdfUpload(
             pdf,
             filePath
