@@ -1,10 +1,10 @@
-const { getCategories, getCategoryListingCountForCity, getCategoryListingCount, getSubCategoriesForCategoryId } = require("../services/categoryService");
-const { getCities } = require("../services/cities");
+const categoryRepo = require("../repository/category");
+const cityRepo = require("../repository/cities");
 const AppError = require("../utils/appError");
 
 const getAllCategories = async function (req, res, next) {
     try {
-        const data = await getCategories()
+        const data = await categoryRepo.getCategories()
         res.status(200).json({
             status: "success",
             data,
@@ -19,7 +19,7 @@ const getListingCount = async function (req, res, next) {
 
     if (params.cityId) {
         try {
-            const response = await getCities({ id: params.cityId });
+            const response = await cityRepo.getCities({ id: params.cityId });
             if (response.length === 0) {
                 return next(
                     new AppError(`Invalid City '${params.cityId}' given`, 404)
@@ -28,14 +28,14 @@ const getListingCount = async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        const response = await getCategoryListingCountForCity(params.cityId);
+        const response = await categoryRepo.getCategoryListingCountForCity(params.cityId);
         res.status(200).json({
             status: "success",
             data: response
         });
     } else {
         try {
-            const response = await getCategoryListingCount();
+            const response = await categoryRepo.getCategoryListingCount();
             res.status(200).json({
                 status: "success",
                 data: response
@@ -49,7 +49,7 @@ const getListingCount = async function (req, res, next) {
 const getSubCategories = async function (req, res, next) {
     const categoryId = req.params.id;
     try {
-        const data = await getSubCategoriesForCategoryId(categoryId);
+        const data = await categoryRepo.getSubCategoriesForCategoryId(categoryId);
         res.status(200).json({
             status: "success",
             data,

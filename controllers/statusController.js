@@ -1,9 +1,9 @@
-const { getStatuses } = require("../services/statusService");
+const statusRepo = require("../repository/status");
 const AppError = require("../utils/appError");
 
 const getAllStatuses = async function (req, res, next) {
     try {
-        const data = await getStatuses();
+        const data = await statusRepo.getStatuses();
         res.status(200).json({
             status: "success",
             data,

@@ -1,24 +1,24 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const database = require("../services/database");
+const database = require("../repository/database");
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const roles = require("../constants/roles");
-const sendMail = require("../services/sendMail");
+const sendMail = require("../repository/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const userService = require("../services/users");
-const { getCityWithId, getCityUserCityMapping } = require("../services/cities");
-const tokenService = require("../services/authService");
+const userRepo = require("../repository/users");
+const { getCityWithId, getCityUserCityMapping } = require("../repository/cities");
+const tokenRepo = require("../repository/auth");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
-const cityListings = require("../services/cityListing");
-const listingService = require("../services/listingService");
-const authService = require("../services/authService");
-const cityService = require("../services/cities");
-const favoriteService = require("../services/favoritesService");
+const cityListings = require("../repository/cityListing");
+const listingsRepo = require("../repository/listings");
+const authRepo = require("../repository/auth");
+const cityRepo = require("../repository/cities");
+const favoriteRepo = require("../repository/favorites");
 const tokenUtil = require("../utils/token");
-const { getUserImages, deleteImage } = require("../services/imageService");
+const { getUserImages, deleteImage } = require("../repository/image");
 
 const register = async function (req, res, next) {
     const payload = req.body;
@@ -36,7 +36,7 @@ const register = async function (req, res, next) {
     } else {
         try {
 
-            const user = await userService.getUserWithUsername(payload.username);
+            const user = await userRepo.getUserWithUsername(payload.username);
             if (user) {
                 return next(
                     new AppError(
@@ -66,7 +66,7 @@ const register = async function (req, res, next) {
         return next(new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL));
     } else {
         try {
-            const user = await userService.getUserWithEmail(payload.email);
+            const user = await userRepo.getUserWithEmail(payload.email);
             if (user) {
                 return next(
                     new AppError(
@@ -176,7 +176,7 @@ const register = async function (req, res, next) {
 
     const connection = await database.createTransaction();
     try {
-        const response = await userService.createUser(insertionData, connection);
+        const response = await userRepo.createUser(insertionData, connection);
 
         const userId = response.id;
         const now = new Date();
@@ -187,7 +187,7 @@ const register = async function (req, res, next) {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await userService.addVerificationToken(tokenData, connection);
+        await userRepo.addVerificationToken(tokenData, connection);
 
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         const { subject, body } = verifyEmail(
@@ -233,7 +233,7 @@ const login = async function (req, res, next) {
 
     try {
 
-        const userData = await userService.getUserByUsernameOrEmail(payload.username, payload.username);
+        const userData = await userRepo.getUserByUsernameOrEmail(payload.username, payload.username);
         if (!userData) {
             return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
         }
@@ -256,7 +256,7 @@ const login = async function (req, res, next) {
             return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
         }
 
-        const userMappings = await userService.getuserCityMappings(userData.id);
+        const userMappings = await userRepo.getuserCityMappings(userData.id);
 
         const tokens = tokenUtil.generator({
             userId: userData.id,
@@ -264,14 +264,14 @@ const login = async function (req, res, next) {
             rememberMe: payload.rememberMe,
         });
 
-        const refreshData = await tokenService.getRefreshToken(userData.id);
+        const refreshData = await tokenRepo.getRefreshToken(userData.id);
         if (refreshData) {
             if (
                 refreshData.sourceAddress === sourceAddress &&
                 refreshData.browser === head.browsername &&
                 refreshData.device === head.devicetype
             ) {
-                await tokenService.deleteRefreshToken(userData.id);
+                await tokenRepo.deleteRefreshToken(userData.id);
             }
         }
         const insertionData = {
@@ -282,7 +282,7 @@ const login = async function (req, res, next) {
             device: head.devicetype,
         };
 
-        await tokenService.insertRefreshTokenData(insertionData);
+        await tokenRepo.insertRefreshTokenData(insertionData);
         return res.status(200).json({
             status: "success",
             data: {
@@ -318,7 +318,7 @@ const getUserById = async function (req, res, next) {
                 );
             }
 
-            const cityUser = await userService.getCityUser(cityId, userId);
+            const cityUser = await userRepo.getCityUser(cityId, userId);
             if (!cityUser) {
                 return next(
                     new AppError(
@@ -334,7 +334,7 @@ const getUserById = async function (req, res, next) {
     }
 
     try {
-        const data = await userService.getUserWithId(userId);
+        const data = await userRepo.getUserWithId(userId);
         if (!data) {
             return next(
                 new AppError(`User with id ${userId} does not exist`, 404)
@@ -365,7 +365,7 @@ const updateUser = async function (req, res, next) {
         );
     }
 
-    const currentUserData = await userService.getUserDataById(id);
+    const currentUserData = await userRepo.getUserDataById(id);
     if (!currentUserData) {
         return next(new AppError(`User with id ${id} does not exist`, 404));
     }
@@ -484,7 +484,7 @@ const updateUser = async function (req, res, next) {
 
     if (Object.keys(updationData).length > 0) {
         try {
-            await userService.updateUserById(id, updationData);
+            await userRepo.updateUserById(id, updationData);
             res.status(200).json({
                 status: "success",
             });
@@ -524,7 +524,7 @@ const refreshAuthToken = async function (req, res, next) {
             return next(new AppError(`Invalid refresh token`, 403));
         }
 
-        const refreshTokenData = await tokenService.getRefreshTokenByRefreshToken(refreshToken);
+        const refreshTokenData = await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
         if (!refreshTokenData) {
             return next(new AppError(`Invalid refresh token`, 400));
         }
@@ -542,9 +542,9 @@ const refreshAuthToken = async function (req, res, next) {
             refreshToken: newTokens.refreshToken,
         };
 
-        await tokenService.deleteRefreshTokenByTokenUid(refreshTokenData.id)
+        await tokenRepo.deleteRefreshTokenByTokenUid(refreshTokenData.id)
 
-        await tokenService.insertRefreshTokenData(insertionData);
+        await tokenRepo.insertRefreshTokenData(insertionData);
 
         return res.status(200).json({
             status: "success",
@@ -555,7 +555,7 @@ const refreshAuthToken = async function (req, res, next) {
         });
     } catch (error) {
         if (error.name === "TokenExpiredError") {
-            await tokenService.deleteRefreshTokenByRefreshToken(req.body.refreshToken);
+            await tokenRepo.deleteRefreshTokenByRefreshToken(req.body.refreshToken);
             return next(new AppError(`Unauthorized! Refresh Token was expired!`, 401));
         }
         return next(new AppError(error));
@@ -577,14 +577,14 @@ const forgotPassword = async function (req, res, next) {
     const transaction = await database.createTransaction();
     try {
 
-        const user = await userService.getUserByUsernameOrEmail(username, username);
+        const user = await userRepo.getUserByUsernameOrEmail(username, username);
         if (!user) {
             return next(
                 new AppError(`Username ${username} does not exist`, 404)
             );
         }
 
-        await userService.deleteForgotTokenForUserWithConnection(user.id, transaction);
+        await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
 
         const now = new Date();
         now.setMinutes(now.getMinutes() + 30);
@@ -595,7 +595,7 @@ const forgotPassword = async function (req, res, next) {
             expiresAt: getDateInFormate(now),
         };
 
-        await userService.addForgotPasswordTokenWithConnection(tokenData, transaction);
+        await userRepo.addForgotPasswordTokenWithConnection(tokenData, transaction);
 
         const resetPasswordEmail = require(`../emailTemplates/${language}/resetPasswordEmail`);
         const { subject, body } = resetPasswordEmail(
@@ -640,7 +640,7 @@ const resetPassword = async function (req, res, next) {
     }
 
     try {
-        const user = await userService.getUserDataById(userId);
+        const user = await userRepo.getUserDataById(userId);
         if (!user) {
             return next(new AppError(`UserId ${userId} does not exist`, 400));
         }
@@ -652,11 +652,11 @@ const resetPassword = async function (req, res, next) {
         if (passwordCheck) {
             return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
         }
-        const tokenData = await tokenService.getForgotPasswordToken(userId, token);
+        const tokenData = await tokenRepo.getForgotPasswordToken(userId, token);
         if (!tokenData) {
             return next(new AppError(`Invalid data sent`, 400));
         }
-        await tokenService.deleteForgotPasswordToken(userId, token);
+        await tokenRepo.deleteForgotPasswordToken(userId, token);
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(new AppError(`Token Expired`, 400));
@@ -667,7 +667,7 @@ const resetPassword = async function (req, res, next) {
             Number(process.env.SALT)
         );
 
-        await userService.updateUserById(userId, { password: hashedPassword });
+        await userRepo.updateUserById(userId, { password: hashedPassword });
 
         const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
         const { subject, body } = passwordResetDone(
@@ -696,7 +696,7 @@ const sendVerificationEmail = async function (req, res, next) {
     }
 
     try {
-        const user = await userService.getUserWithEmail(email);
+        const user = await userRepo.getUserWithEmail(email);
         if (!user) {
             return next(new AppError(`Email ${email} does not exist`, 400));
         }
@@ -704,7 +704,7 @@ const sendVerificationEmail = async function (req, res, next) {
             return next(new AppError(`Email already verified`, 400));
         }
 
-        await tokenService.deleteVerificationToken({ userId: user.id });
+        await tokenRepo.deleteVerificationToken({ userId: user.id });
 
         const now = new Date();
         now.setHours(now.getHours() + 24);
@@ -714,7 +714,7 @@ const sendVerificationEmail = async function (req, res, next) {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await tokenService.insertVerificationTokenData(tokenData);
+        await tokenRepo.insertVerificationTokenData(tokenData);
 
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         const { subject, body } = verifyEmail(
@@ -751,7 +751,7 @@ const verifyEmail = async function (req, res, next) {
     }
 
     try {
-        const user = await userService.getUserDataById(userId);
+        const user = await userRepo.getUserDataById(userId);
         if (!user) {
             return next(new AppError(`UserId ${userId} does not exist`, 400));
         }
@@ -762,12 +762,12 @@ const verifyEmail = async function (req, res, next) {
             });
         }
 
-        const tokenData = await tokenService.getEmailVerificationToken(userId, token);
+        const tokenData = await tokenRepo.getEmailVerificationToken(userId, token);
         if (!tokenData) {
             return next(new AppError(`Invalid data sent`, 400));
         }
 
-        await tokenService.deleteVerificationToken({ userId, token });
+        await tokenRepo.deleteVerificationToken({ userId, token });
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
             return next(
@@ -775,7 +775,7 @@ const verifyEmail = async function (req, res, next) {
             );
         }
 
-        await userService.updateUserById(userId, { emailVerified: true });
+        await userRepo.updateUserById(userId, { emailVerified: true });
 
         const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
         const { subject, body } = verificationDone(
@@ -805,12 +805,12 @@ const logout = async function (req, res, next) {
     }
 
     try {
-        const token = await tokenService.getRefreshTokenByRefreshToken(req.body.refreshToken);
+        const token = await tokenRepo.getRefreshTokenByRefreshToken(req.body.refreshToken);
         if (!token) {
             return next(new AppError(`User with id ${req.body.refreshToken} does not exist`, 404));
         }
 
-        await tokenService.deleteRefreshTokenFor({ refreshToken: req.body.refreshToken, userId });
+        await tokenRepo.deleteRefreshTokenFor({ refreshToken: req.body.refreshToken, userId });
         return res.status(200).json({
             status: "success",
         });
@@ -849,7 +849,7 @@ const getUsers = async function (req, res, next) {
         throw new new AppError("You need to send some params to filter")
     }
     try {
-        const users = await userService.getAllUsers(filter, columsToQuery);
+        const users = await userRepo.getAllUsers(filter, columsToQuery);
         res.status(200).json({
             status: "success",
             data: users,
@@ -869,7 +869,7 @@ const listLoginDevices = async function (req, res, next) {
     }
 
     try {
-        const tokens = await tokenService.fetchRefreshTokensOtherThan(userId, refreshToken);
+        const tokens = await tokenRepo.fetchRefreshTokensOtherThan(userId, refreshToken);
         res.status(200).json({
             status: "success",
             data: tokens,
@@ -884,9 +884,9 @@ const deleteLoginDevices = async function (req, res, next) {
     const id = req.query.id;
     try {
         if (!id) {
-            await tokenService.deleteRefreshToken(userId);
+            await tokenRepo.deleteRefreshToken(userId);
         } else {
-            await tokenService.deleteRefreshTokenFor({ userId, id });
+            await tokenRepo.deleteRefreshTokenFor({ userId, id });
         }
         res.status(200).json({
             status: "success",
@@ -928,7 +928,7 @@ const uploadUserProfileImage = async function (req, res, next) {
 
             const updationData = {};
             updationData.image = `user_${id}/profilePic`;
-            await userService.updateUserById(id, updationData);
+            await userRepo.updateUserById(id, updationData);
 
             return res.status(200).json({
                 status: "success",
@@ -965,7 +965,7 @@ const deleteUserProfileImage = async function (req, res, next) {
             const updationData = {};
             updationData.image = "";
 
-            await userService.updateUserById(id, updationData);
+            await userRepo.updateUserById(id, updationData);
             return res.status(200).json({
                 status: "success",
             });
@@ -1067,7 +1067,7 @@ const getUserListings = async function (req, res, next) {
 
     try {
         const cityMappings = await getCityUserCityMapping(userId);
-        const data = await userService.getUserListingsFromDatabase(userId, filters, cityMappings, pageNo, pageSize);
+        const data = await userRepo.getUserListingsFromDatabase(userId, filters, cityMappings, pageNo, pageSize);
         return res.status(200).json({
             status: "success",
             data,
@@ -1093,12 +1093,12 @@ const deleteUser = async function (req, res, next) {
     }
 
     try {
-        const userData = await userService.getUserDataById(id);
+        const userData = await userRepo.getUserDataById(id);
         if (!userData) {
             return next(new AppError(`User with id ${id} does not exist`, 404));
         }
 
-        const cityUsers = await userService.getuserCityMappings(id);
+        const cityUsers = await userRepo.getuserCityMappings(id);
 
         const userImageList = await getUserImages(id);
 
@@ -1107,8 +1107,8 @@ const deleteUser = async function (req, res, next) {
                 let cityTransaction;
                 try {
                     cityTransaction = await database.createTransaction(cityUser.cityId);
-                    await listingService.deleteListingForUserWithTransaction(cityUser.cityUserId, cityTransaction)
-                    await userService.deleteUser(cityUser.cityUserId, cityUser.cityId)
+                    await listingsRepo.deleteListingForUserWithTransaction(cityUser.cityUserId, cityTransaction)
+                    await userRepo.deleteUser(cityUser.cityUserId, cityUser.cityId)
                     await database.commitTransaction(cityTransaction);
                 } catch (err) {
                     console.log(err);
@@ -1122,19 +1122,19 @@ const deleteUser = async function (req, res, next) {
             let transaction;
             try {
                 transaction = await database.createTransaction(null);
-                await cityService.deleteCityUserCityMappingWithTransaction(id, transaction);
+                await cityRepo.deleteCityUserCityMappingWithTransaction(id, transaction);
 
-                await listingService.deleteUserListingMappingWithTransaction(id, transaction);
+                await listingsRepo.deleteUserListingMappingWithTransaction(id, transaction);
 
-                await authService.deleteRefreshTokenWithTransaction(id, transaction);
+                await authRepo.deleteRefreshTokenWithTransaction(id, transaction);
 
-                await authService.deleteForgotPasswordTokenWithTransaction(id, transaction);
+                await authRepo.deleteForgotPasswordTokenWithTransaction(id, transaction);
 
-                await authService.deleteVerificationTokenWithTransaction(id, transaction);
+                await authRepo.deleteVerificationTokenWithTransaction(id, transaction);
 
-                await favoriteService.deleteFavoriteforUserWithTransaction(id, transaction);
+                await favoriteRepo.deleteFavoriteforUserWithTransaction(id, transaction);
 
-                await userService.deleteUserWithTransaction(id, transaction);
+                await userRepo.deleteUserWithTransaction(id, transaction);
 
                 await database.commitTransaction(transaction);
 

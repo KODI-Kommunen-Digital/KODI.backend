@@ -3,14 +3,14 @@ const source = require("../constants/source");
 const categories = require("../constants/categories");
 const AppError = require("../utils/appError");
 const getDateInFormate = require("../utils/getDateInFormate")
-const database = require("../services/database");
+const databaseUtil = require("../utils/database");
 // const tables = require("../constants/tableNames");
 const subcategories = require("../constants/subcategories");
 const roles = require("../constants/roles");
-const userServices = require("../services/users");
-const cityServices = require("../services/cities");
-const cityListingServices = require("../services/cityListing");
-const listingService = require("../services/listingService");
+const userRepo = require("../repository/users");
+const cityRepo = require("../repository/cities");
+const cityListingRepo = require("../repository/cityListing");
+const listingRepo = require("../repository/listings");
 const imageUpload = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload")
@@ -38,12 +38,12 @@ const createCityListing = async function (req, res, next) {
             return next(new AppError(`City is not present`, 404));
         }
 
-        city = await cityServices.getCityWithId(cityId);
+        city = await cityRepo.getCityWithId(cityId);
         if (!city) {
             return next(new AppError(`Invalid City '${cityId}' given`, 400));
         }
 
-        user = await userServices.getUserById(userId);
+        user = await userRepo.getUserById(userId);
         if (!user) {
             return next(new AppError(`Invalid User '${userId}' given`, 400));
         }
@@ -52,7 +52,7 @@ const createCityListing = async function (req, res, next) {
             typeof parseInt(payload.villageId) === "number" &&
             parseInt(payload.villageId) !== 0
         ) {
-            const village = await cityListingServices.getVillageById(
+            const village = await cityListingRepo.getVillageById(
                 payload.villageId,
                 cityId
             );
@@ -91,7 +91,7 @@ const createCityListing = async function (req, res, next) {
         if (!payload.categoryId) {
             return next(new AppError(`Category is not present`, 400));
         } else {
-            const category = await cityListingServices.getCategoryById(payload.categoryId, cityId);
+            const category = await cityListingRepo.getCategoryById(payload.categoryId, cityId);
             if (!category) {
                 return next(new AppError(`Invalid Category '${payload.categoryId}' given`, 400));
             }
@@ -99,7 +99,7 @@ const createCityListing = async function (req, res, next) {
         }
 
         if (payload.subcategoryId) {
-            const subcategory = await cityListingServices.getSubCategoryById(payload.subcategoryId, cityId);
+            const subcategory = await cityListingRepo.getSubCategoryById(payload.subcategoryId, cityId);
             if (!subcategory) {
                 return next(new AppError(`Invalid Sub Category '${payload.subcategoryId}' given`, 400));
             }
@@ -112,7 +112,7 @@ const createCityListing = async function (req, res, next) {
             if (roleId !== roles.Admin) {
                 insertionData.statusId = status.Pending;
             } else {
-                const status = await cityListingServices.getStatusById(payload.statusId, cityId);
+                const status = await cityListingRepo.getStatusById(payload.statusId, cityId);
                 if (!status) {
                     return next(new AppError(`Invalid Status '${payload.statusId}' given`, 400));
                 }
@@ -197,8 +197,8 @@ const createCityListing = async function (req, res, next) {
             return next(new AppError(`Invalid time format ${error}`, 400));
         }
 
-        const transaction = await database.createTransaction(cityId);
-        const heidiTransaction = await database.createTransaction(); // for root database
+        const transaction = await databaseUtil.createTransaction(cityId);
+        const heidiTransaction = await databaseUtil.createTransaction(); // for root database
         try {
             let response = {};
             const userId = user.id;
@@ -206,7 +206,7 @@ const createCityListing = async function (req, res, next) {
                 // If the city is admin listings, we need directly set the user id of the listing as 1 (i.e. admin's id)
                 insertionData.userId = 1;
             } else {
-                response = await cityListingServices.getCityUserMapping(cityId, userId);
+                response = await cityListingRepo.getCityUserMapping(cityId, userId);
                 if (!response) {
                     delete user.id;
                     delete user.password;
@@ -214,30 +214,30 @@ const createCityListing = async function (req, res, next) {
                     delete user.emailVerified;
                     delete user.socialMedia;
 
-                    response = await userServices.createCityUserWithTransaction(user, transaction);
+                    response = await userRepo.createCityUserWithTransaction(user, transaction);
 
                     const cityUserId = response.id;
-                    await cityServices.createCityUserCityMappingWithTransaction(cityId, userId, cityUserId, heidiTransaction);
+                    await cityRepo.createCityUserCityMappingWithTransaction(cityId, userId, cityUserId, heidiTransaction);
                     insertionData.userId = cityUserId;
                 } else {
                     insertionData.userId = response.cityUserId;
                 }
             }
-            response = await listingService.createListingWithTransaction(insertionData, transaction);
+            response = await listingRepo.createListingWithTransaction(insertionData, transaction);
             const listingId = response.id;
-            await listingService.createUserListingMappingWithTransaction(cityId, userId, listingId, heidiTransaction);
+            await listingRepo.createUserListingMappingWithTransaction(cityId, userId, listingId, heidiTransaction);
 
             // commit both the transactions together to ensure atomicity
-            await database.commitTransaction(transaction);
-            await database.commitTransaction(heidiTransaction);
+            await databaseUtil.commitTransaction(transaction);
+            await databaseUtil.commitTransaction(heidiTransaction);
 
             res.status(200).json({
                 status: "success",
                 id: listingId,
             });
         } catch (err) {
-            await database.rollbackTransaction(transaction);
-            await database.rollbackTransaction(heidiTransaction);
+            await databaseUtil.rollbackTransaction(transaction);
+            await databaseUtil.rollbackTransaction(heidiTransaction);
             throw new AppError(err);
         }
     } catch (err) {
@@ -259,7 +259,7 @@ const getCityListingWithId = async function (req, res, next) {
             return next(new AppError(`City is not present`, 404));
         } else {
             try {
-                const response = await cityServices.getCityWithId(cityId);
+                const response = await cityRepo.getCityWithId(cityId);
                 if (!response) {
                     return next(new AppError(`Invalid City '${cityId}' given`, 400));
                 }
@@ -268,7 +268,7 @@ const getCityListingWithId = async function (req, res, next) {
             }
         }
 
-        const data = await listingService.getCityListingWithId(id, cityId);
+        const data = await listingRepo.getCityListingWithId(id, cityId);
         if (!data) {
             return next(new AppError(`Listings with id ${id} does not exist`, 404));
         }
@@ -296,7 +296,7 @@ const getAllCityListings = async function (req, res, next) {
         return next(new AppError(`Invalid City '${cityId}' given`, 404));
     } else {
         try {
-            const city = await cityServices.getCityWithId(cityId);
+            const city = await cityRepo.getCityWithId(cityId);
             if (!city) {
                 return next(new AppError(`Invalid City '${cityId}' given`, 404));
             }
@@ -329,7 +329,7 @@ const getAllCityListings = async function (req, res, next) {
 
     if (params.statusId) {
         try {
-            const status = await cityListingServices.getStatusById(params.statusId, cityId);
+            const status = await cityListingRepo.getStatusById(params.statusId, cityId);
             if (!status) {
                 return next(new AppError(`Invalid Status '${params.statusId}' given`, 400));
             }
@@ -341,7 +341,7 @@ const getAllCityListings = async function (req, res, next) {
 
     if (params.categoryId) {
         try {
-            const category = await cityListingServices.getCategoryById(params.categoryId, cityId);
+            const category = await cityListingRepo.getCategoryById(params.categoryId, cityId);
             if (!category) {
                 return next(new AppError(`Invalid Category '${params.categoryId}' given`, 400));
             }
@@ -355,7 +355,7 @@ const getAllCityListings = async function (req, res, next) {
         if (!params.categoryId)
             return next(new AppError(`categoryId not present`, 400));
         try {
-            const subcategory = await cityListingServices.getSubCategory(
+            const subcategory = await cityListingRepo.getSubCategory(
                 {
                     id: params.subcategoryId,
                     categoryId: params.categoryId
@@ -373,7 +373,7 @@ const getAllCityListings = async function (req, res, next) {
 
     if (params.userId) {
         try {
-            const user = await userServices.getCityUserCityMapping(cityId, params.userId);
+            const user = await userRepo.getCityUserCityMapping(cityId, params.userId);
             if (user) {
                 filters.userId = user.cityUserId;
             }
@@ -383,7 +383,7 @@ const getAllCityListings = async function (req, res, next) {
     }
 
     try {
-        listings = await listingService.getAllListingsWithFilters(filters, cityId, pageNo, pageSize);
+        listings = await listingRepo.getAllListingsWithFilters(filters, cityId, pageNo, pageSize);
         if (!listings) {
             listings = [];
         }
@@ -456,10 +456,10 @@ const updateCityListing = async function (req, res, next) {
         return;
     }
 
-    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const response = await userRepo.getCityUserCityMapping(cityId, req.userId);
     const cityUserId = response ? response.cityUserId : null;
 
-    const currentListingData = await listingService.getCityListingWithId(id, cityId);
+    const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
     if (!currentListingData) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
@@ -576,7 +576,7 @@ const updateCityListing = async function (req, res, next) {
                 new AppError("You dont have access to change this option", 403)
             );
         try {
-            const status = await cityListingServices.getStatusById(payload.statusId, cityId);
+            const status = await cityListingRepo.getStatusById(payload.statusId, cityId);
             if (!status) {
                 return next(new AppError(`Invalid Status '${payload.statusId}' given`, 400));
             }
@@ -616,7 +616,7 @@ const updateCityListing = async function (req, res, next) {
     }
 
     try {
-        await cityListingServices.updateCityListing(id, updationData, cityId);
+        await cityListingRepo.updateCityListing(id, updationData, cityId);
         res.status(200).json({
             status: "success",
         });
@@ -633,7 +633,7 @@ const uploadImageForCityListing = async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            const response = await cityServices.getCityWithId(cityId);
+            const response = await cityRepo.getCityWithId(cityId);
             if (!response) {
                 return next(new AppError(`City '${cityId}' not found`, 404));
             }
@@ -647,10 +647,10 @@ const uploadImageForCityListing = async function (req, res, next) {
         return;
     }
 
-    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const response = await userRepo.getCityUserCityMapping(cityId, req.userId);
     const cityUserId = response ? response.cityUserId : null;
 
-    const currentListingData = await listingService.getCityListingWithId(listingId, cityId);
+    const currentListingData = await listingRepo.getCityListingWithId(listingId, cityId);
     if (!currentListingData) {
         return next(new AppError(`Listing with id ${listingId} does not exist`, 404));
     }
@@ -691,7 +691,7 @@ const uploadImageForCityListing = async function (req, res, next) {
         const updationData = { logo: objectKey };
 
         if (uploadStatus === "Success") {
-            await cityListingServices.updateCityListing(listingId, updationData, cityId);
+            await cityListingRepo.updateCityListing(listingId, updationData, cityId);
 
             return res.status(200).json({
                 status: "success",
@@ -712,7 +712,7 @@ const uploadPDFForCityListing = async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            const response = await cityServices.getCityWithId(cityId);
+            const response = await cityRepo.getCityWithId(cityId);
             if (!response) {
                 return next(new AppError(`City '${cityId}' not found`, 404));
             }
@@ -726,10 +726,10 @@ const uploadPDFForCityListing = async function (req, res, next) {
         return;
     }
 
-    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const response = await userRepo.getCityUserCityMapping(cityId, req.userId);
     const cityUserId = response ? response.cityUserId : null;
 
-    const currentListingData = await listingService.getCityListingWithId(listingId, cityId);
+    const currentListingData = await listingRepo.getCityListingWithId(listingId, cityId);
     if (!currentListingData) {
         return next(new AppError(`Listing with id ${listingId} does not exist`, 404));
     }
@@ -795,7 +795,7 @@ const uploadPDFForCityListing = async function (req, res, next) {
                 updationData.logo = objectKey;
             }
 
-            await cityListingServices.updateCityListing(listingId, updationData, cityId);
+            await cityListingRepo.updateCityListing(listingId, updationData, cityId);
 
             return res.status(200).json({
                 status: "success",
@@ -816,7 +816,7 @@ const deleteImageForCityListing = async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            const response = await cityServices.getCityWithId(cityId);
+            const response = await cityRepo.getCityWithId(cityId);
             if (!response) {
                 return next(new AppError(`City '${cityId}' not found`, 404));
             }
@@ -830,11 +830,11 @@ const deleteImageForCityListing = async function (req, res, next) {
         return;
     }
 
-    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const response = await userRepo.getCityUserCityMapping(cityId, req.userId);
 
     // The current user might not be in the city db
     const cityUserId = response ? response.cityUserId : null;
-    const currentListingData = await listingService.getCityListingWithId(id, cityId);
+    const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
     if (!currentListingData) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
@@ -852,7 +852,7 @@ const deleteImageForCityListing = async function (req, res, next) {
             const updationData = {};
             updationData.logo = "";
 
-            await cityListingServices.updateCityListing(id, updationData, cityId);
+            await cityListingRepo.updateCityListing(id, updationData, cityId);
             return res.status(200).json({
                 status: "success",
             });
@@ -880,7 +880,7 @@ const deletePDFForCityListing = async function (req, res, next) {
         return next(new AppError(`City is not present`, 404));
     } else {
         try {
-            const response = await cityServices.getCityWithId(cityId);
+            const response = await cityRepo.getCityWithId(cityId);
             if (!response) {
                 return next(new AppError(`City '${cityId}' not found`, 404));
             }
@@ -894,11 +894,11 @@ const deletePDFForCityListing = async function (req, res, next) {
         return;
     }
 
-    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const response = await userRepo.getCityUserCityMapping(cityId, req.userId);
 
     // The current user might not be in the city db
     const cityUserId = response ? response.cityUserId : null;
-    const currentListingData = await listingService.getCityListingWithId(id, cityId);
+    const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
 
     if (
         currentListingData.userId !== cityUserId &&
@@ -913,7 +913,7 @@ const deletePDFForCityListing = async function (req, res, next) {
             const updationData = {};
             updationData.pdf = "";
 
-            await cityListingServices.updateCityListing(id, updationData, cityId);
+            await cityListingRepo.updateCityListing(id, updationData, cityId);
             return res.status(200).json({
                 status: "success",
             });
@@ -946,7 +946,7 @@ const deleteCityListing = async function (req, res, next) {
     }
 
     try {
-        const response = await cityServices.getCityWithId(cityId);
+        const response = await cityRepo.getCityWithId(cityId);
         if (!response) {
             return next(new AppError(`City '${cityId}' not found`, 404));
         }
@@ -954,12 +954,12 @@ const deleteCityListing = async function (req, res, next) {
         return next(new AppError(err));
     }
 
-    const currentListingData = await listingService.getCityListingWithId(id, cityId);
+    const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
     if (!currentListingData) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
 
-    const response = await userServices.getCityUserCityMapping(cityId, req.userId);
+    const response = await userRepo.getCityUserCityMapping(cityId, req.userId);
     const cityUserId = response ? response.cityUserId : null;
     if (
         currentListingData.userId !== cityUserId &&
@@ -971,7 +971,7 @@ const deleteCityListing = async function (req, res, next) {
     }
 
     const onSucccess = async () => {
-        await cityListingServices.deleteCityListing(id, cityId);
+        await cityListingRepo.deleteCityListing(id, cityId);
         return res.status(200).json({
             status: "success",
         });

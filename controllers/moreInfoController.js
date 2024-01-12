@@ -1,5 +1,6 @@
 const moreInfoTranslations = require("../constants/moreInfoTranslations");
-const { getMoreInfoService } = require("../services/moreInfoService");
+// const { getMoreInfoService } = require("../repository/moreInfo");
+const moreInfoRepo = require("../repository/moreInfo");
 const AppError = require("../utils/appError");
 
 const getMoreInfo = async function (req, res, next) {
@@ -8,7 +9,7 @@ const getMoreInfo = async function (req, res, next) {
         language = "en";
     }
     try {
-        const data = await getMoreInfoService();
+        const data = await moreInfoRepo.getMoreInfoService();
         data.forEach(d => {
             d.title = moreInfoTranslations[language][d.title];
             d.isPdf = d.isPdf === 1;

@@ -1,8 +1,8 @@
-const favoritesService = require("../services/favoritesService");
+const favoritesRepo = require("../repository/favorites");
 const AppError = require("../utils/appError");
-const categoriesService = require("../services/categoryService");
-const citiesService = require("../services/cities");
-const listingService = require("../services/listingService");
+const categoriesRepo = require("../repository/category");
+const citiesRepo = require("../repository/cities");
+const listingRepo = require("../repository/listings");
 
 const getAllFavoritesForUser = async function (req, res, next) {
     const userId = parseInt(req.paramUserId);
@@ -16,7 +16,7 @@ const getAllFavoritesForUser = async function (req, res, next) {
         );
     }
     try {
-        const response = await favoritesService.getFavoritesforUser(userId);
+        const response = await favoritesRepo.getFavoritesforUser(userId);
         res.status(200).json({
             status: "success",
             data: response,
@@ -46,7 +46,7 @@ const getFavoriteListingsForUser = async function (req, res, next) {
 
     if (params.categoryId) {
         try {
-            const data = await categoriesService.getCategoryById(parseInt(params.categoryId));
+            const data = await categoriesRepo.getCategoryById(parseInt(params.categoryId));
             if (data.length === 0) {
                 return next(
                     new AppError(`Invalid Category '${params.categoryId}' given`, 400)
@@ -60,7 +60,7 @@ const getFavoriteListingsForUser = async function (req, res, next) {
 
     if (params.cityId) {
         try {
-            const cities = await citiesService.getCityWithId(parseInt(params.cityId));
+            const cities = await citiesRepo.getCityWithId(parseInt(params.cityId));
             if (cities.length === 0) {
                 return next(
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
@@ -73,7 +73,7 @@ const getFavoriteListingsForUser = async function (req, res, next) {
     }
 
     try {
-        let response = await favoritesService.getFavoritesWithFilter(favFilter);
+        let response = await favoritesRepo.getFavoritesWithFilter(favFilter);
         const favDict = {};
         response.forEach((fav) => {
             const cityId = fav.cityId;
@@ -87,7 +87,7 @@ const getFavoriteListingsForUser = async function (req, res, next) {
         listings = [];
         for (const cityId in favDict) {
             listingFilter.id = favDict[cityId];
-            response = await listingService.getAllListingsWithFilters(listingFilter, cityId);
+            response = await listingRepo.getAllListingsWithFilters(listingFilter, cityId);
             response.forEach((l) => (l.cityId = cityId));
             listings.push(...response);
         }
@@ -119,7 +119,7 @@ const addNewFavoriteForUser = async function (req, res, next) {
         return next(new AppError(`Invalid cityId`, 400));
     } else {
         try {
-            const response = await citiesService.getCityWithId(cityId);
+            const response = await citiesRepo.getCityWithId(cityId);
             if (!response) {
                 return next(new AppError(`Invalid City '${cityId}' given`, 400));
             }
@@ -132,7 +132,7 @@ const addNewFavoriteForUser = async function (req, res, next) {
         return;
     } else {
         try {
-            const response = await listingService.getCityListingWithId(listingId, cityId);
+            const response = await listingRepo.getCityListingWithId(listingId, cityId);
             if (!response) {
                 return next(new AppError(`Invalid listing '${listingId}' given`, 400));
             }
@@ -141,7 +141,7 @@ const addNewFavoriteForUser = async function (req, res, next) {
         }
     }
     try {
-        const newID = await favoritesService.addFavoriteForUser(userId, cityId, listingId);
+        const newID = await favoritesRepo.addFavoriteForUser(userId, cityId, listingId);
         res.status(200).json({
             status: "success",
             id: newID,
@@ -168,11 +168,11 @@ const deleteFavoriteListingForUser = async function (req, res, next) {
         );
     }
     try {
-        const response = await favoritesService.getFavoritesWithFilter({ id: favoriteId });
+        const response = await favoritesRepo.getFavoritesWithFilter({ id: favoriteId });
         if (response.length === 0) {
             return next(new AppError(`Favorites with id ${favoriteId} does not exist`, 404));
         }
-        await favoritesService.deleteFavorite(favoriteId);
+        await favoritesRepo.deleteFavorite(favoriteId);
         res.status(200).json({
             status: "success",
         });

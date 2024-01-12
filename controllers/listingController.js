@@ -1,9 +1,10 @@
 const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
-const { getCityListingsWithFiltersAndPagination } = require("../services/listingService");
-const { getCities, getCityWithId } = require("../services/cities");
-const { getStatusById, getCategoryById, getSubCategoryById } = require("../services/cityListing");
+const listingRepo = require("../repository/listings");
+const cityRepo = require("../repository/cities");
+// const { getStatusById, getCategoryById, getSubCategoryById } = require("../services/cityListing");
+const cityListingRepo = require("../repository/cityListing");
 
 const getAllListings = async function (req, res, next) {
     const params = req.query;
@@ -44,7 +45,7 @@ const getAllListings = async function (req, res, next) {
 
     if (params.statusId) {
         try {
-            const response = await getStatusById(params.statusId);
+            const response = await cityListingRepo.getStatusById(params.statusId);
             if (!response) {
                 return next(
                     new AppError(`Invalid Status '${params.statusId}' given`, 400)
@@ -58,7 +59,7 @@ const getAllListings = async function (req, res, next) {
 
     if (params.categoryId) {
         try {
-            const data = await getCategoryById(params.categoryId);
+            const data = await cityListingRepo.getCategoryById(params.categoryId);
             if (!data) {
                 return next(
                     new AppError(`Invalid Category '${params.categoryId}' given`, 400)
@@ -66,7 +67,7 @@ const getAllListings = async function (req, res, next) {
             } else {
                 if (params.subcategoryId) {
                     try {
-                        const data = await getSubCategoryById(params.subcategoryId);
+                        const data = await cityListingRepo.getSubCategoryById(params.subcategoryId);
                         if (!data) {
                             return next(
                                 new AppError(
@@ -89,7 +90,7 @@ const getAllListings = async function (req, res, next) {
 
     try {
         if (params.cityId) {
-            const response = await getCityWithId(params.cityId);
+            const response = await cityRepo.getCityWithId(params.cityId);
             if (!response) {
                 return next(
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
@@ -97,7 +98,7 @@ const getAllListings = async function (req, res, next) {
             }
             cities = [response];
         } else {
-            cities = await getCities();
+            cities = await cityRepo.getCities();
 
         }
     } catch (err) {
@@ -105,7 +106,7 @@ const getAllListings = async function (req, res, next) {
     }
 
     try {
-        const listings = await getCityListingsWithFiltersAndPagination(params, pageNo, pageSize, cities, sortByStartDate)
+        const listings = await listingRepo.getCityListingsWithFiltersAndPagination(params, pageNo, pageSize, cities, sortByStartDate)
         const noOfListings = listings.length;
         if (
             noOfListings > 0 &&
