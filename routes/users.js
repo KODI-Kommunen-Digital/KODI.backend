@@ -654,7 +654,7 @@ router.delete(
                 );
             }
 
-            let response = await database.get(tables.USER_TABLE, { id });
+            const response = await database.get(tables.USER_TABLE, { id });
             if (!response || !response.rows || response.rows.length === 0) {
                 return next(new AppError(`User ${id} does not exist`, 404));
             }
