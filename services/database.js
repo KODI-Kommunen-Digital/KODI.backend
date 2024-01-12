@@ -48,15 +48,20 @@ async function update(table, data, conditions, cityId) {
     connection.release();
 }
 
-async function deleteData(table, filter, cityId) {
+async function deleteData(table, filter, cityId, joinFilterBy="AND") {
     const connection = await getConnection(cityId);
     let query = `DELETE FROM ${table} `;
     const queryParams = [];
-    if (filter) {
+    if (filter && Object.keys(filter).length > 0) {
         query += "WHERE ";
         for (const key in filter) {
-            query += `${key} = ? AND `;
-            queryParams.push(filter[key]);
+            if (Array.isArray(filter[key])) {
+                query += `${key} IN (${filter[key].map(() => "?").join(",")}) ${joinFilterBy} `;
+                queryParams.push(...filter[key]);
+            } else {
+                query += `${key} = ? ${joinFilterBy} `;
+                queryParams.push(filter[key]);
+            }
         }
         query = query.slice(0, -4);
     }

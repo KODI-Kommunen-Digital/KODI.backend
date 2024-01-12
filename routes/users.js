@@ -653,6 +653,13 @@ router.delete(
                     )
                 );
             }
+
+            const response = await database.get(tables.USER_TABLE, { id });
+            if (!response || !response.rows || response.rows.length === 0) {
+                return next(new AppError(`User ${id} does not exist`, 404));
+            }
+
+
             const onSucccess = async () => {
                 const updationData = {};
                 updationData.image = "";
@@ -667,7 +674,7 @@ router.delete(
                     new AppError("Image Delete failed with Error Code: " + err)
                 );
             };
-            await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
+            await objectDelete(response[0].image, onSucccess, onFail);
         } catch (err) {
             return next(new AppError(err));
         }
@@ -701,13 +708,14 @@ router.post(
                 );
             }
 
+            const imagePath = `user_${id}/profilePic_${Date.now()}`
             const { uploadStatus } = await imageUpload(
                 image,
-                `user_${id}/profilePic`
+                imagePath
             );
             if (uploadStatus === "Success") {
                 const updationData = {};
-                updationData.image = `user_${id}/profilePic`;
+                updationData.image = imagePath;
                 database
                     .update(tables.USER_TABLE, updationData, { id })
                     .then((response) => {})
