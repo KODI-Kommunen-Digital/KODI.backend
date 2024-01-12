@@ -929,13 +929,10 @@ router.post(
                 new AppError(`Pdf is present in listing So can not upload image.`, 403)
             );
         }
-        const { image } = req.files;
 
-        if (!image) {
-            next(new AppError(`Image not uploaded`, 400));
-            return;
-        }
-        const imageArr = image.length > 1 ? image : [image];
+        const image = req.files?.image;
+        const imageArr = image ? image.length > 1 ? image : [image] : [];
+
         const hasIncorrectMime = imageArr.some(
             (i) => !i.mimetype.includes("image/")
         );
@@ -970,7 +967,7 @@ router.post(
                     await imageDeleteAsync.deleteMultiple(imagesToDelete.map(i => i.logo))
                     await database.deleteData(
                         tables.LISTINGS_IMAGES_TABLE,
-                        { id: imagesToDelete.id },
+                        { id: imagesToDelete.map(i => i.id)},
                         cityId
                     );
                 }
