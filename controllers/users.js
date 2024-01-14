@@ -236,7 +236,7 @@ const logout = async function (req, res, next) {
 }
 
 const getUsers = async function (req, res, next) {
-    const userName = req.query.userName;
+    const userName = req.query.username;
     try {
         let userIds;
         if (req.query.ids) {

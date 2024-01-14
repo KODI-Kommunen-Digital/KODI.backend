@@ -661,9 +661,11 @@ const getUsers = async function (userIds, username) {
         "description",
         "roleId",
     ];
-    const filter = {}
+    let filter = {}
     if (userIds) {
-        filter.id = userIds;
+        filter = {
+            id: userIds,
+        };
     }
     if (username) {
         filter.username = username;
