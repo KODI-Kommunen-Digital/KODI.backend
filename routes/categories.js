@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getAllCategories, getListingCount, getSubCategories } = require("../services/categories");
+const { getAllCategories, getListingCount, getSubCategories } = require("../controllers/categories");
 
 router.get("/", getAllCategories);
 

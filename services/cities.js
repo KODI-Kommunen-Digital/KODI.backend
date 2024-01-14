@@ -1,19 +1,12 @@
 const AppError = require("../utils/appError");
-const cityService = require("../services/cities");
+const cityService = require("../repository/cities");
 
-const getCities = async function (req, res, next) {
-    const filter = {};
-    if (req.query.hasForum) {
-        filter.hasForum = true;
-    }
+const getCities = async function (filter) {
     try {
-        const data = await cityService.getCities(filter);
-        res.status(200).json({
-            status: "success",
-            data,
-        });
-    } catch (error) {
-        return next(new AppError(error));
+        return await cityService.getCities(filter);
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 

@@ -1,15 +1,11 @@
 const statusRepo = require("../repository/status");
 const AppError = require("../utils/appError");
 
-const getAllStatuses = async function (req, res, next) {
+const getAllStatuses = async function () {
     try {
-        const data = await statusRepo.getStatuses();
-        res.status(200).json({
-            status: "success",
-            data,
-        });
+        return await statusRepo.getStatuses();
     } catch (error) {
-        return next(new AppError(error));
+        throw new AppError(error);
     }
 }
 

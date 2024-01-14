@@ -1,5 +1,4 @@
-
-const database = require("../services/database");
+const database = require("../utils/database");
 const tables = require("../constants/tableNames");
 
 const getStatuses = async function (){

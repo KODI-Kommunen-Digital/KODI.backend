@@ -1,5 +1,5 @@
 const express = require("express");
-const { getVillages } = require("../services/villages");
+const { getVillages } = require("../controllers/villages");
 const router = express.Router();
 
 router.get("/", getVillages);

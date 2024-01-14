@@ -1,64 +1,40 @@
-const { getAllCitizenServices, getDigitalManagement } = require("../services/citizenServices");
+const citizenServiceRepo = require("../repository/citizenServices");
 const AppError = require("../utils/appError");
-const cityService = require("../services/cities");
+const cityRepo = require("../repository/cities");
 
-const getCitizenServices = async function (req, res, next) {
+const getCitizenServices = async function () {
     try {
-        const data = await getAllCitizenServices();
-        res.status(200).json({
-            status: "success",
-            data,
-        });    
+        return await citizenServiceRepo.getAllCitizenServices();
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const getDigitalManagementServices = async function (req, res, next) {
-    const cityId = req.query.cityId || null;
-    // let promise = null;
-    let data = [];
+const getDigitalManagementServices = async function (cityId) {
     try {
         if (cityId) {
             if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-                return next(new AppError(`City is not present`, 404));
+                throw new AppError(`City is not present`, 404);
             } else {
                 try {
-                    const response = await cityService.getCityWithId(cityId);
+                    const response = await cityRepo.getCityWithId(cityId);
                     if (!response) {
-                        return next(new AppError(`Invalid City '${cityId}' given`, 400));
+                        throw new AppError(`Invalid City '${cityId}' given`, 400);
                     }
                 } catch (err) {
-                    return next(new AppError(err));
+                    if (err instanceof AppError) throw err;
+                    throw new AppError(err);
                 }
             }
-            // promise = database.get(tables.DIGITAL_MANAGEMENT_TABLE, { cityId });
-            data = await getDigitalManagement(cityId);
-            
+            return await citizenServiceRepo.getDigitalManagement(cityId);
         } else {
-            // promise = database.get(tables.DIGITAL_MANAGEMENT_TABLE);
-            data = await getDigitalManagement();
+            return await citizenServiceRepo.getDigitalManagement();
         }
-        res.status(200).json({
-            status: "success",
-            data,
-        });
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
-    
-
-    // promise
-    //     .then((response) => {
-    //         const data = response.rows;
-    //         res.status(200).json({
-    //             status: "success",
-    //             data,
-    //         });
-    //     })
-    //     .catch((err) => {
-    //         return next(new AppError(err));
-    //     });
 }
 
 module.exports = {

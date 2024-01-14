@@ -1,4 +1,4 @@
-const database = require("./database");
+const database = require("../utils/database");
 const tables = require("../constants/tableNames");
 
 const getRefreshToken = async function (userId) {

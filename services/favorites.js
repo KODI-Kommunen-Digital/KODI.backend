@@ -4,71 +4,57 @@ const categoriesRepo = require("../repository/category");
 const citiesRepo = require("../repository/cities");
 const listingRepo = require("../repository/listings");
 
-const getAllFavoritesForUser = async function (req, res, next) {
-    const userId = parseInt(req.paramUserId);
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid userId ${userId}`, 400));
-        return;
+const getAllFavoritesForUser = async function (paramUserId, userId) {
+    if (isNaN(Number(paramUserId)) || Number(paramUserId) <= 0) {
+        throw new AppError(`Invalid userId ${paramUserId}`, 400);
     }
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
+    if (paramUserId !== userId) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
     }
     try {
-        const response = await favoritesRepo.getFavoritesforUser(userId);
-        res.status(200).json({
-            status: "success",
-            data: response,
-        });
+        return await favoritesRepo.getFavoritesforUser(paramUserId);
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const getFavoriteListingsForUser = async function (req, res, next) {
-    const userId = parseInt(req.paramUserId);
-    const params = req.query;
+const getFavoriteListingsForUser = async function (paramUserId, userId, categoryId, cityId,) {
     let listings = [];
     const listingFilter = {}
     const favFilter = {
-        userId
+        userId: paramUserId
     }
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid userId ${userId}`, 400));
-        return;
+    if (isNaN(Number(paramUserId)) || Number(paramUserId) <= 0) {
+        throw new AppError(`Invalid userId ${paramUserId}`, 400);
     }
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
+    if (paramUserId !== userId) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
-    if (params.categoryId) {
+    if (categoryId) {
         try {
-            const data = await categoriesRepo.getCategoryById(parseInt(params.categoryId));
+            const data = await categoriesRepo.getCategoryById(categoryId);
             if (data.length === 0) {
-                return next(
-                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
-                );
+                throw new AppError(`Invalid Category '${categoryId}' given`, 400);
             }
-            listingFilter.categoryId = params.categoryId;
+            listingFilter.categoryId = categoryId;
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
     }
 
-    if (params.cityId) {
+    if (cityId) {
         try {
-            const cities = await citiesRepo.getCityWithId(parseInt(params.cityId));
+            const cities = await citiesRepo.getCityWithId(cityId);
             if (cities.length === 0) {
-                return next(
-                    new AppError(`Invalid CityId '${params.cityId}' given`, 400)
-                );
+                throw new AppError(`Invalid CityId '${cityId}' given`, 400);
             }
-            favFilter.cityId = params.cityId;
+            favFilter.cityId = cityId;
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
     }
 
@@ -92,92 +78,74 @@ const getFavoriteListingsForUser = async function (req, res, next) {
             listings.push(...response);
         }
     } catch (err) {
-        console.log(err);
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
-    res.status(200).json({
-        status: "success",
-        data: listings,
-    });
+    return listings;
 };
 
-const addNewFavoriteForUser = async function (req, res, next) {
-    const userId = parseInt(req.paramUserId);
-    const cityId = parseInt(req.body.cityId);
-    const listingId = req.body.listingId;
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid userId ${userId}`, 400));
-        return;
+const addNewFavoriteForUser = async function (paramUserId, userId, cityId, listingId) {
+    if (isNaN(Number(paramUserId)) || Number(paramUserId) <= 0) {
+        throw new AppError(`Invalid userId ${paramUserId}`, 400);
     }
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
+    if (paramUserId !== userId) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
     if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-        return next(new AppError(`Invalid cityId`, 400));
+        throw new AppError(`Invalid cityId`, 400);
     } else {
         try {
             const response = await citiesRepo.getCityWithId(cityId);
             if (!response) {
-                return next(new AppError(`Invalid City '${cityId}' given`, 400));
+                throw new AppError(`Invalid City '${cityId}' given`, 400);
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
     }
     if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
-        next(new AppError(`Invalid ListingsId ${listingId}`, 400));
-        return;
+        throw new AppError(`Invalid ListingsId ${listingId}`, 400);
+
     } else {
         try {
             const response = await listingRepo.getCityListingWithId(listingId, cityId);
             if (!response) {
-                return next(new AppError(`Invalid listing '${listingId}' given`, 400));
+                throw new AppError(`Invalid listing '${listingId}' given`, 400);
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
     }
     try {
-        const newID = await favoritesRepo.addFavoriteForUser(userId, cityId, listingId);
-        res.status(200).json({
-            status: "success",
-            id: newID,
-        });
+        return await favoritesRepo.addFavoriteForUser(paramUserId, cityId, listingId);
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const deleteFavoriteListingForUser = async function (req, res, next) {
-    const favoriteId = parseInt(req.params.id);
-    const userId = parseInt(req.paramUserId);
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 400));
-        return;
+const deleteFavoriteListingForUser = async function (favoriteId, paramUserId, userId) {
+    if (isNaN(Number(paramUserId)) || Number(paramUserId) <= 0) {
+        throw new AppError(`Invalid UserId ${paramUserId}`, 400);
     }
     if (isNaN(Number(favoriteId)) || Number(favoriteId) <= 0) {
-        next(new AppError(`Invalid favoriteId ${favoriteId}`, 400));
-        return;
+        throw new AppError(`Invalid favoriteId ${favoriteId}`, 400);
     }
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
+    if (paramUserId !== userId) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
     }
     try {
         const response = await favoritesRepo.getFavoritesWithFilter({ id: favoriteId });
         if (response.length === 0) {
-            return next(new AppError(`Favorites with id ${favoriteId} does not exist`, 404));
+            throw new AppError(`Favorites with id ${favoriteId} does not exist`, 404);
         }
         await favoritesRepo.deleteFavorite(favoriteId);
-        res.status(200).json({
-            status: "success",
-        });
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 

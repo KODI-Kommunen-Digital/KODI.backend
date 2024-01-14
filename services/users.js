@@ -1,10 +1,10 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const database = require("../repository/database");
+const database = require("../utils/database");
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const roles = require("../constants/roles");
-const sendMail = require("../repository/sendMail");
+const sendMail = require("../utils/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const userRepo = require("../repository/users");
@@ -20,64 +20,62 @@ const favoriteRepo = require("../repository/favorites");
 const tokenUtil = require("../utils/token");
 const { getUserImages, deleteImage } = require("../repository/image");
 
-const register = async function (req, res, next) {
-    const payload = req.body;
+const register = async function (payload) {
     const insertionData = {};
     if (!payload) {
-        return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
+        throw new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD);
     }
     const language = payload.language || "de";
     if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400, errorCodes.INVALID_LANGUAGE));
+        throw new AppError(`Incorrect language given`, 400, errorCodes.INVALID_LANGUAGE);
     }
 
     if (!payload.username) {
-        return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
+        throw new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME);
     } else {
         try {
 
             const user = await userRepo.getUserWithUsername(payload.username);
             if (user) {
-                return next(
-                    new AppError(
-                        `User with username '${payload.username}' already exists`,
-                        400,
-                        errorCodes.USER_ALREADY_EXISTS
-                    )
-                );
+                throw new AppError(
+                    `User with username '${payload.username}' already exists`,
+                    400,
+                    errorCodes.USER_ALREADY_EXISTS
+                )
+
             }
 
             if (/\s/.test(payload.username) || /^_/.test(payload.username) || /^[^a-z_]/.test(payload.username)) {
-                return next(
-                    new AppError(
-                        `Username '${payload.username}' is not valid`,
-                        400,
-                        errorCodes.INVALID_USERNAME
-                    )
-                );
+                throw new AppError(
+                    `Username '${payload.username}' is not valid`,
+                    400,
+                    errorCodes.INVALID_USERNAME
+                )
+
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
         insertionData.username = payload.username;
     }
 
     if (!payload.email) {
-        return next(new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL));
+        throw new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL);
     } else {
         try {
             const user = await userRepo.getUserWithEmail(payload.email);
             if (user) {
-                return next(
-                    new AppError(
-                        `User with email '${payload.email}' is already registered`,
-                        400,
-                        errorCodes.EMAIL_ALREADY_EXISTS
-                    )
-                );
+                throw new AppError(
+                    `User with email '${payload.email}' is already registered`,
+                    400,
+                    errorCodes.EMAIL_ALREADY_EXISTS
+                )
+
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
         insertionData.email = payload.email;
     }
@@ -85,23 +83,23 @@ const register = async function (req, res, next) {
     insertionData.roleId = roles["Content Creator"];
 
     if (!payload.firstname) {
-        return next(new AppError(`Firstname is not present`, 400, errorCodes.MISSING_FIRSTNAME));
+        throw new AppError(`Firstname is not present`, 400, errorCodes.MISSING_FIRSTNAME);
     } else {
         insertionData.firstname = payload.firstname;
     }
 
     if (!payload.lastname) {
-        return next(new AppError(`Lastname is not present`, 400, errorCodes.MISSING_LASTNAME));
+        throw new AppError(`Lastname is not present`, 400, errorCodes.MISSING_LASTNAME);
     } else {
         insertionData.lastname = payload.lastname;
     }
 
     if (!payload.password) {
-        return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
+        throw new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD);
     } else {
         const re = /^\S{8,}$/;
         if (!re.test(payload.password)) {
-            return next(new AppError(`Invalid Password. `, 400, errorCodes.INVALID_PASSWORD));
+            throw new AppError(`Invalid Password. `, 400, errorCodes.INVALID_PASSWORD);
         } else {
             insertionData.password = await bcrypt.hash(
                 payload.password,
@@ -118,18 +116,17 @@ const register = async function (req, res, next) {
     if (payload.phoneNumber) {
         const re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
         if (!re.test(payload.phoneNumber))
-            return next(new AppError("Phone number is not valid"));
+            throw new AppError("Phone number is not valid");
         insertionData.website = payload.website;
     }
 
     if (payload.description) {
         if (payload.description.length > 255) {
-            return next(
-                new AppError(
-                    `Length of Description cannot exceed 255 characters`,
-                    400
-                )
-            );
+            throw new AppError(
+                `Length of Description cannot exceed 255 characters`,
+                400
+            )
+
         }
         insertionData.description = payload.description;
     }
@@ -144,12 +141,11 @@ const register = async function (req, res, next) {
             const socialMediaList = payload.socialMedia;
             Object.keys(socialMediaList).forEach((socialMedia) => {
                 if (!supportedSocialMedia.includes(socialMedia)) {
-                    return next(
-                        new AppError(
-                            `Unsupported social media '${socialMedia}'`,
-                            400
-                        )
-                    );
+                    throw new AppError(
+                        `Unsupported social media '${socialMedia}'`,
+                        400
+                    )
+
                 }
 
                 if (
@@ -158,19 +154,17 @@ const register = async function (req, res, next) {
                         socialMedia.toLowerCase()
                     )
                 ) {
-                    return next(
-                        new AppError(
-                            `Invalid input given for social media '${socialMedia}' `,
-                            400
-                        )
-                    );
+                    throw new AppError(
+                        `Invalid input given for social media '${socialMedia}' `,
+                        400
+                    )
                 }
             });
             insertionData.socialMedia = JSON.stringify(socialMediaList);
-        } catch (e) {
-            return next(
-                new AppError(`Invalid input given for social media`, 400)
-            );
+        } catch (err) {
+            if (err instanceof AppError) throw err;
+            throw new AppError(`Invalid input given for social media`, 400)
+
         }
     }
 
@@ -201,50 +195,27 @@ const register = async function (req, res, next) {
 
         database.commitTransaction(connection);
 
-        return res.status(200).json({
-            status: "success",
-            id: userId,
-        });
+        return userId;
     } catch (err) {
+        if (err instanceof AppError) throw err;
         database.rollbackTransaction(connection);
-        return next(new AppError(err));
+        throw new AppError(err);
     }
 }
 
-const login = async function (req, res, next) {
-    const payload = req.body;
-    const head = req.headers;
-    let sourceAddress = req.headers["x-forwarded-for"]
-        ? req.headers["x-forwarded-for"].split(",").shift()
-        : req.socket.remoteAddress;
-    sourceAddress = sourceAddress.toString().replace("::ffff:", "");
-
-    if (!payload.username && !payload.password) {
-        return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
-    }
-
-    if (!payload.username) {
-        return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
-    }
-
-    if (!payload.password) {
-        return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
-    }
+const login = async function (payload, sourceAddress, browsername, devicetype) {
 
     try {
-
         const userData = await userRepo.getUserByUsernameOrEmail(payload.username, payload.username);
         if (!userData) {
-            return next(new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS));
+            throw new AppError(`Invalid username or email`, 401, errorCodes.INVALID_CREDENTIALS);
         }
 
         if (!userData.emailVerified) {
-            return next(
-                new AppError(
-                    `Verification email sent to your email id. Please verify first before trying to login.`,
-                    401,
-                    errorCodes.EMAIL_NOT_VERIFIED
-                )
+            throw new AppError(
+                `Verification email sent to your email id. Please verify first before trying to login.`,
+                401,
+                errorCodes.EMAIL_NOT_VERIFIED
             );
         }
 
@@ -253,7 +224,7 @@ const login = async function (req, res, next) {
             userData.password
         );
         if (!correctPassword) {
-            return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
+            throw new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD);
         }
 
         const userMappings = await userRepo.getuserCityMappings(userData.id);
@@ -268,8 +239,8 @@ const login = async function (req, res, next) {
         if (refreshData) {
             if (
                 refreshData.sourceAddress === sourceAddress &&
-                refreshData.browser === head.browsername &&
-                refreshData.device === head.devicetype
+                refreshData.browser === browsername &&
+                refreshData.device === devicetype
             ) {
                 await tokenRepo.deleteRefreshToken(userData.id);
             }
@@ -278,49 +249,39 @@ const login = async function (req, res, next) {
             userId: userData.id,
             sourceAddress,
             refreshToken: tokens.refreshToken,
-            browser: head.browsername,
-            device: head.devicetype,
+            browser: browsername,
+            device: devicetype,
         };
 
         await tokenRepo.insertRefreshTokenData(insertionData);
-        return res.status(200).json({
-            status: "success",
-            data: {
-                cityUsers: userMappings,
-                userId: userData.id,
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken,
-            },
-        });
+        return {
+            cityUsers: userMappings,
+            userId: userData.id,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+        };
     } catch (err) {
-        return next(new AppError(err, 500));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err, 500);
     }
 }
 
-const getUserById = async function (req, res, next) {
-    let userId = req.params.id;
-    const cityUser = req.query.cityUser || false;
-    const cityId = req.query.cityId;
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 404));
-        return;
-    }
-
+const getUserById = async function (userId, cityUser, cityId) {
     if (cityUser) {
         if (!cityId) {
-            return next(new AppError(`City id not given`, 400));
+            throw new AppError(`City id not given`, 400);
         }
         try {
             const city = await getCityWithId(cityId);
             if (!city) {
-                return next(
+                throw (
                     new AppError(`City with id ${cityId} does not exist`, 400)
                 );
             }
 
             const cityUser = await userRepo.getCityUser(cityId, userId);
             if (!cityUser) {
-                return next(
+                throw (
                     new AppError(
                         `User ${userId} is not found in city ${cityId}`,
                         404
@@ -329,56 +290,44 @@ const getUserById = async function (req, res, next) {
             }
             userId = cityUser.userId;
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
     }
 
     try {
         const data = await userRepo.getUserWithId(userId);
         if (!data) {
-            return next(
+            throw (
                 new AppError(`User with id ${userId} does not exist`, 404)
             );
         }
-        return res.status(200).json({
-            status: "success",
-            data,
-        });
+
+        return data;
+
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const updateUser = async function (req, res, next) {
-    const id = Number(req.params.id);
-    const payload = req.body;
+const updateUser = async function (id, payload) {
     const updationData = {};
-
-    if (isNaN(id) || id <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
-        return;
-    }
-
-    if (id !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
 
     const currentUserData = await userRepo.getUserDataById(id);
     if (!currentUserData) {
-        return next(new AppError(`User with id ${id} does not exist`, 404));
+        throw new AppError(`User with id ${id} does not exist`, 404);
     }
 
     if (payload.username && payload.username !== currentUserData.username) {
-        return next(new AppError(`Username cannot be edited`, 400));
+        throw new AppError(`Username cannot be edited`, 400);
     }
 
     if (payload.email && payload.email !== currentUserData.email) {
         const re =
             /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
-            return next(new AppError(`Invalid email given`, 400));
+            throw new AppError(`Invalid email given`, 400);
         }
         updationData.email = payload.email;
     }
@@ -389,24 +338,19 @@ const updateUser = async function (req, res, next) {
 
     if (payload.newPassword) {
         if (!payload.currentPassword) {
-            return next(
-                new AppError(
-                    `Current password not given to update password`,
-                    400
-                )
-            );
+            throw new AppError(`Current password not given to update password`, 400);
         }
         if (
             !(await bcrypt.compare(payload.currentPassword, currentUserData.password))
         ) {
-            return next(new AppError(`Incorrect current password given`, 401));
+            throw new AppError(`Incorrect current password given`, 401);
         }
         const passwordCheck = await bcrypt.compare(
             payload.newPassword,
             currentUserData.password
         );
         if (passwordCheck) {
-            return next(new AppError(`New password should not be same as the old password`, 400));
+            throw new AppError(`New password should not be same as the old password`, 400);
         }
         updationData.password = await bcrypt.hash(
             payload.newPassword,
@@ -421,18 +365,13 @@ const updateUser = async function (req, res, next) {
     if (payload.phoneNumber) {
         const re = /^\+49\d{11}$/;
         if (!re.test(payload.phoneNumber))
-            return next(new AppError("Phone number is not valid", 400));
+            throw new AppError("Phone number is not valid", 400);
         updationData.phoneNumber = payload.phoneNumber;
     }
 
     if (payload.description) {
         if (payload.description.length > 255) {
-            return next(
-                new AppError(
-                    `Length of Description cannot exceed 255 characters`,
-                    400
-                )
-            );
+            throw new AppError(`Length of Description cannot exceed 255 characters`, 400);
         }
 
         updationData.description = payload.description;
@@ -457,12 +396,7 @@ const updateUser = async function (req, res, next) {
         const socialMediaList = JSON.parse(payload.socialMedia);
         socialMediaList.forEach((socialMedia) => {
             if (!supportedSocialMedia.includes(Object.keys(socialMedia)[0])) {
-                return next(
-                    new AppError(
-                        `Unsupported social media '${socialMedia}'`,
-                        400
-                    )
-                );
+                throw new AppError(`Unsupported social media '${socialMedia}'`, 400);
             }
 
             if (
@@ -471,12 +405,7 @@ const updateUser = async function (req, res, next) {
                     Object.values(socialMedia)[0].toLowerCase()
                 )
             ) {
-                return next(
-                    new AppError(
-                        `Invalid input given for social '${socialMedia}' `,
-                        400
-                    )
-                );
+                throw new AppError(`Invalid input given for social '${socialMedia}' `, 400);
             }
         });
         updationData.socialMedia = JSON.stringify(socialMediaList);
@@ -485,52 +414,38 @@ const updateUser = async function (req, res, next) {
     if (Object.keys(updationData).length > 0) {
         try {
             await userRepo.updateUserById(id, updationData);
-            res.status(200).json({
-                status: "success",
-            });
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
-    } else {
-        return res.status(200).json({
-            status: "success",
-        });
     }
 }
 
-const refreshAuthToken = async function (req, res, next) {
-    const userId = req.params.id;
-    const sourceAddress = req.headers["x-forwarded-for"]
-        ? req.headers["x-forwarded-for"].split(",").shift()
-        : req.socket.remoteAddress;
-
+const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 404));
-        return;
+        throw new AppError(`Invalid UserId ${userId}`, 404);
     }
 
     try {
-        const refreshToken = req.body.refreshToken;
         if (!refreshToken) {
-            return next(new AppError(`Refresh token not present`, 400));
+            throw new AppError(`Refresh token not present`, 400);
         }
 
         const decodedToken = tokenUtil.verify(
             refreshToken,
-            process.env.REFRESH_PUBLIC,
-            next
+            process.env.REFRESH_PUBLIC
         );
         if (decodedToken.userId !== parseInt(userId)) {
-            return next(new AppError(`Invalid refresh token`, 403));
+            throw new AppError(`Invalid refresh token`, 403);
         }
 
         const refreshTokenData = await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
         if (!refreshTokenData) {
-            return next(new AppError(`Invalid refresh token`, 400));
+            throw new AppError(`Invalid refresh token`, 400);
         }
 
         if (refreshTokenData.userId !== parseInt(userId)) {
-            return next(new AppError(`Invalid refresh token`, 400));
+            throw new AppError(`Invalid refresh token`, 400);
         }
         const newTokens = tokenUtil.generator({
             userId: decodedToken.userId,
@@ -546,40 +461,26 @@ const refreshAuthToken = async function (req, res, next) {
 
         await tokenRepo.insertRefreshTokenData(insertionData);
 
-        return res.status(200).json({
-            status: "success",
-            data: {
-                accessToken: newTokens.accessToken,
-                refreshToken: newTokens.refreshToken,
-            },
-        });
-    } catch (error) {
-        if (error.name === "TokenExpiredError") {
-            await tokenRepo.deleteRefreshTokenByRefreshToken(req.body.refreshToken);
-            return next(new AppError(`Unauthorized! Refresh Token was expired!`, 401));
+        return {
+            accessToken: newTokens.accessToken,
+            refreshToken: newTokens.refreshToken,
+        };
+    } catch (err) {
+        if (err.name === "TokenExpiredError") {
+            await tokenRepo.deleteRefreshTokenByRefreshToken(refreshToken);
+            throw new AppError(`Unauthorized! Refresh Token was expired!`, 401);
         }
-        return next(new AppError(error));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const forgotPassword = async function (req, res, next) {
-    const username = req.body.username;
-    const language = req.body.language || "de";
-
-    if (!username) {
-        return next(new AppError(`Username not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
-    }
-
+const forgotPassword = async function (username, language = "de") {
     const transaction = await database.createTransaction();
     try {
-
         const user = await userRepo.getUserByUsernameOrEmail(username, username);
         if (!user) {
-            return next(
+            throw (
                 new AppError(`Username ${username} does not exist`, 404)
             );
         }
@@ -608,41 +509,18 @@ const forgotPassword = async function (req, res, next) {
 
         await database.commitTransaction(transaction);
 
-        return res.status(200).json({
-            status: "success",
-        });
     } catch (err) {
         await database.rollbackTransaction(transaction);
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const resetPassword = async function (req, res, next) {
-    const userId = req.body.userId;
-    const language = req.body.language || "de";
-    const token = req.body.token;
-    const password = req.body.password;
-
-    if (!userId) {
-        return next(new AppError(`Username not present`, 400));
-    }
-
-    if (!token) {
-        return next(new AppError(`Token not present`, 400));
-    }
-
-    if (!password) {
-        return next(new AppError(`Password not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
-    }
-
+const resetPassword = async function (userId, language, token, password) {
     try {
         const user = await userRepo.getUserDataById(userId);
         if (!user) {
-            return next(new AppError(`UserId ${userId} does not exist`, 400));
+            throw new AppError(`UserId ${userId} does not exist`, 400);
         }
 
         const passwordCheck = await bcrypt.compare(
@@ -650,16 +528,16 @@ const resetPassword = async function (req, res, next) {
             user.password
         );
         if (passwordCheck) {
-            return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
+            throw new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT);
         }
         const tokenData = await tokenRepo.getForgotPasswordToken(userId, token);
         if (!tokenData) {
-            return next(new AppError(`Invalid data sent`, 400));
+            throw new AppError(`Invalid data sent`, 400);
         }
         await tokenRepo.deleteForgotPasswordToken(userId, token);
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
-            return next(new AppError(`Token Expired`, 400));
+            throw new AppError(`Token Expired`, 400);
         }
 
         const hashedPassword = await bcrypt.hash(
@@ -675,33 +553,21 @@ const resetPassword = async function (req, res, next) {
             user.lastname
         );
         await sendMail(user.email, subject, null, body);
-        return res.status(200).json({
-            status: "success",
-        });
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const sendVerificationEmail = async function (req, res, next) {
-    const email = req.body.email;
-    const language = req.body.language || "de";
-
-    if (!email) {
-        return next(new AppError(`Email not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
-    }
+const sendVerificationEmail = async function (email, language = "de") {
 
     try {
         const user = await userRepo.getUserWithEmail(email);
         if (!user) {
-            return next(new AppError(`Email ${email} does not exist`, 400));
+            throw new AppError(`Email ${email} does not exist`, 400);
         }
         if (user.emailVerified) {
-            return next(new AppError(`Email already verified`, 400));
+            throw new AppError(`Email already verified`, 400);
         }
 
         await tokenRepo.deleteVerificationToken({ userId: user.id });
@@ -725,52 +591,31 @@ const sendVerificationEmail = async function (req, res, next) {
             language
         );
         await sendMail(user.email, subject, null, body);
-        return res.status(200).json({
-            status: "success",
-        });
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const verifyEmail = async function (req, res, next) {
-    const userId = req.body.userId;
-    const language = req.body.language || "de";
-    const token = req.body.token;
-
-    if (!userId) {
-        return next(new AppError(`Username not present`, 400));
-    }
-
-    if (!token) {
-        return next(new AppError(`Token not present`, 400));
-    }
-
-    if (language !== "en" && language !== "de") {
-        return next(new AppError(`Incorrect language given`, 400));
-    }
-
+const verifyEmail = async function (userId, token, language = "de") {
     try {
         const user = await userRepo.getUserDataById(userId);
         if (!user) {
-            return next(new AppError(`UserId ${userId} does not exist`, 400));
+            throw new AppError(`UserId ${userId} does not exist`, 400);
         }
         if (user.emailVerified) {
-            return res.status(200).json({
-                status: "success",
-                message: "Email has already been vefified!!",
-            });
+            return "Email has already been vefified!!";
         }
 
         const tokenData = await tokenRepo.getEmailVerificationToken(userId, token);
         if (!tokenData) {
-            return next(new AppError(`Invalid data sent`, 400));
+            throw new AppError(`Invalid data sent`, 400);
         }
 
         await tokenRepo.deleteVerificationToken({ userId, token });
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
-            return next(
+            throw (
                 new AppError(`Token Expired, send verification mail again`, 400)
             );
         }
@@ -783,45 +628,27 @@ const verifyEmail = async function (req, res, next) {
             user.lastname
         );
         await sendMail(user.email, subject, null, body);
-        return res.status(200).json({
-            status: "success",
-            message: "The Email Verification was successfull!",
-        });
+        return "The Email Verification was successfull!";
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const logout = async function (req, res, next) {
-    const userId = parseInt(req.params.id);
-
-    if (userId !== parseInt(req.userId)) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
-    if (!req.body.refreshToken) {
-        return next(new AppError(`Refresh Token not sent`, 403));
-    }
-
+const logout = async function (userId, refreshToken) {
     try {
-        const token = await tokenRepo.getRefreshTokenByRefreshToken(req.body.refreshToken);
+        const token = await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
         if (!token) {
-            return next(new AppError(`User with id ${req.body.refreshToken} does not exist`, 404));
+            throw new AppError(`User with id ${refreshToken} does not exist`, 404);
         }
-
-        await tokenRepo.deleteRefreshTokenFor({ refreshToken: req.body.refreshToken, userId });
-        return res.status(200).json({
-            status: "success",
-        });
-
-    } catch (error) {
-        return next(new AppError(error));
+        await tokenRepo.deleteRefreshTokenFor({ refreshToken, userId });
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const getUsers = async function (req, res, next) {
-    const params = req.query;
+const getUsers = async function (userIds, username) {
     const columsToQuery = [
         "id",
         "username",
@@ -835,267 +662,145 @@ const getUsers = async function (req, res, next) {
         "roleId",
     ];
     const filter = {}
-    if (params.ids) {
-        const ids = params.ids.split(",").map((id) => parseInt(id))
-        if (ids && ids.length > 10) {
-            next(new AppError("You can only fetch upto 10 users", 400));
-        }
-        filter.id = ids;
+    if (userIds) {
+        filter.id = userIds;
     }
-    if (params.username) {
-        filter.username = params.username;
+    if (username) {
+        filter.username = username;
     }
     if (!filter) {
-        throw new new AppError("You need to send some params to filter")
+        throw new AppError("You need to send some params to filter")
     }
     try {
         const users = await userRepo.getAllUsers(filter, columsToQuery);
-        res.status(200).json({
-            status: "success",
-            data: users,
-        });
-    } catch (error) {
-        return next(new AppError(error));
+        return users;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const listLoginDevices = async function (req, res, next) {
-    const userId = parseInt(req.params.id);
-    const refreshToken = req.body.refreshToken;
-    if (userId !== req.userId) {
-        return next(
-            new AppError("You are not allowed to access this resource")
-        );
-    }
-
+const listLoginDevices = async function (userId, refreshToken) {
     try {
         const tokens = await tokenRepo.fetchRefreshTokensOtherThan(userId, refreshToken);
-        res.status(200).json({
-            status: "success",
-            data: tokens,
-        });
-    } catch (error) {
-        return next(new AppError(error));
+        return tokens;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const deleteLoginDevices = async function (req, res, next) {
-    const userId = parseInt(req.params.id);
-    const id = req.query.id;
+const deleteLoginDevices = async function (paramId, queryId) {
     try {
-        if (!id) {
-            await tokenRepo.deleteRefreshToken(userId);
+        if (!queryId) {
+            await tokenRepo.deleteRefreshToken(paramId);
         } else {
-            await tokenRepo.deleteRefreshTokenFor({ userId, id });
+            await tokenRepo.deleteRefreshTokenFor({ paramId, id: queryId });
         }
-        res.status(200).json({
-            status: "success",
-        });
-    } catch (error) {
-        return next(new AppError(error));
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const uploadUserProfileImage = async function (req, res, next) {
-    const id = parseInt(req.params.id);
-
-    if (isNaN(Number(id)) || Number(id) <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
-        return;
-    }
-    const { image } = req.files;
-
-    if (!image) {
-        next(new AppError(`Image not uploaded`, 400));
-        return;
-    }
-
+const uploadUserProfileImage = async function (id, image) {
     try {
-        if (id !== parseInt(req.userId)) {
-            return next(
-                new AppError(
-                    `You are not allowed to access this resource`,
-                    403
-                )
-            );
-        }
-
         const { uploadStatus } = await imageUpload(
             image,
             `user_${id}/profilePic`
         );
         if (uploadStatus === "Success") {
-
             const updationData = {};
             updationData.image = `user_${id}/profilePic`;
             await userRepo.updateUserById(id, updationData);
-
-            return res.status(200).json({
-                status: "success",
-                data: updationData
-            });
-        } else {
-            return res.status(500).json({
-                status: "Failed!! Please try again",
-            });
+            return updationData;
         }
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const deleteUserProfileImage = async function (req, res, next) {
-    const id = req.params.id;
-
-    if (isNaN(Number(id)) || Number(id) <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
-        return;
-    }
-
+const deleteUserProfileImage = async function (userId) {
     try {
-        if (parseInt(id) !== parseInt(req.userId)) {
-            return next(
-                new AppError(
-                    `You are not allowed to access this resource`,
-                    403
-                )
-            );
-        }
-        const onSucccess = async () => {
+        const onSuccess = async () => {
             const updationData = {};
             updationData.image = "";
 
-            await userRepo.updateUserById(id, updationData);
-            return res.status(200).json({
-                status: "success",
-            });
+            await userRepo.updateUserById(userId, updationData);
         };
         const onFail = (err) => {
-            return next(
+            throw (
                 new AppError("Image Delete failed with Error Code: " + err)
             );
         };
-        await objectDelete(`user_${id}/profilePic`, onSucccess, onFail);
+        await objectDelete(`user_${userId}/profilePic`, onSuccess, onFail);
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const getUserListings = async function (req, res, next) {
-    const userId = req.params.id;
-    const pageNo = req.query.pageNo || 1;
-    const pageSize = req.query.pageSize || 9;
-
-    if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 400));
-        return;
-    }
-
+const getUserListings = async function (userId, pageNo, pageSize, statusId, categoryId, subcategoryId) {
     const filters = {};
-    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
-        return next(
-            new AppError(`Please enter a positive integer for pageNo`, 400)
-        );
-    }
 
-    if (
-        isNaN(Number(pageSize)) ||
-        Number(pageSize) <= 0 ||
-        Number(pageSize) > 20
-    ) {
-        return next(
-            new AppError(
-                `Please enter a positive integer less than or equal to 20 for pageSize`,
-                400
-            )
-        );
-    }
-
-    if (req.query.statusId) {
+    if (statusId) {
         try {
-            const data = await cityListings.getStatusById(req.query.statusId);
+            const data = await cityListings.getStatusById(statusId);
             if (!data) {
-                return next(
-                    new AppError(
-                        `Invalid Status '${req.query.statusId}' given`,
-                        400
-                    )
-                );
+                throw new AppError(`Invalid Status '${statusId}' given`, 400);
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
-        filters.statusId = req.query.statusId;
+        filters.statusId = statusId;
     }
 
-    if (req.query.categoryId) {
+    if (categoryId) {
         try {
-            const data = await cityListings.getCategoryById(req.query.categoryId);
+            const data = await cityListings.getCategoryById(categoryId);
             if (!data) {
-                return next(
-                    new AppError(
-                        `Invalid Category '${req.query.categoryId}' given`,
-                        400
-                    )
-                );
+                throw new AppError(`Invalid Category '${categoryId}' given`, 400);
             } else {
-                if (req.query.subcategoryId) {
+                if (subcategoryId) {
                     try {
                         const data = await cityListings.getSubCategoryWithFilter(
-                            req.query.categoryId,
-                            req.query.subcategoryId
+                            categoryId,
+                            subcategoryId
                         );
                         if (!data) {
-                            return next(
-                                new AppError(
-                                    `Invalid subCategory '${req.query.subcategoryId}' given`,
-                                    400
-                                )
-                            );
+                            throw new AppError(`Invalid subCategory '${subcategoryId}' given`, 400);
                         }
                     } catch (err) {
-                        return next(new AppError(err));
+                        if (err instanceof AppError) throw err;
+                        throw new AppError(err);
                     }
-                    filters.subcategoryId = req.query.subcategoryId;
+                    filters.subcategoryId = subcategoryId;
                 }
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
-        filters.categoryId = req.query.categoryId;
+        filters.categoryId = categoryId;
     }
 
     try {
         const cityMappings = await getCityUserCityMapping(userId);
         const data = await userRepo.getUserListingsFromDatabase(userId, filters, cityMappings, pageNo, pageSize);
-        return res.status(200).json({
-            status: "success",
-            data,
-        });
+        return data;
     } catch (err) {
-        console.log(err);
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const deleteUser = async function (req, res, next) {
-    const id = parseInt(req.params.id);
-
-    if (isNaN(Number(id)) || Number(id) <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
-        return;
-    }
-
-    if (id !== req.userId) {
-        return next(
-            new AppError(`You are not allowed to access this resource`, 403)
-        );
-    }
-
+const deleteUser = async function (id) {
     try {
         const userData = await userRepo.getUserDataById(id);
         if (!userData) {
-            return next(new AppError(`User with id ${id} does not exist`, 404));
+            throw new AppError(`User with id ${id} does not exist`, 404);
         }
 
         const cityUsers = await userRepo.getuserCityMappings(id);
@@ -1111,11 +816,11 @@ const deleteUser = async function (req, res, next) {
                     await userRepo.deleteUser(cityUser.cityUserId, cityUser.cityId)
                     await database.commitTransaction(cityTransaction);
                 } catch (err) {
-                    console.log(err);
+                    if (err instanceof AppError) throw err;
                     if (cityTransaction) {
                         await database.rollbackTransaction(cityTransaction);
                     }
-                    return next(new AppError(err));
+                    throw new AppError(err);
                 }
             }
 
@@ -1137,30 +842,24 @@ const deleteUser = async function (req, res, next) {
                 await userRepo.deleteUserWithTransaction(id, transaction);
 
                 await database.commitTransaction(transaction);
-
-                return res.status(200).json({
-                    status: "success",
-                });
             } catch (err) {
-                console.log(err);
                 if (transaction) {
                     await database.rollbackTransaction(transaction);
                 }
-                return next(new AppError(err));
+                if (err instanceof AppError) throw err;
+                throw new AppError(err);
             }
 
         };
 
         const onFail = (err) => {
-            return next(
-                new AppError("Image Delete failed with Error Code: " + err)
-            );
+            throw new AppError("Image Delete failed with Error Code: " + err);
         };
 
         await deleteImage(userImageList, onSuccess, onFail)
     } catch (err) {
-        console.log(err);
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 

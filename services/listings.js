@@ -3,98 +3,86 @@ const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
 const listingRepo = require("../repository/listings");
 const cityRepo = require("../repository/cities");
-// const { getStatusById, getCategoryById, getSubCategoryById } = require("../services/cityListing");
 const cityListingRepo = require("../repository/cityListing");
 
-const getAllListings = async function (req, res, next) {
-    const params = req.query;
-    const pageNo = params.pageNo || 1;
-    const pageSize = params.pageSize || 9;
+const getAllListings = async function (pageNo, pageSize, reqSortByStartDate, reqStatusId, reqSubcategoryId, reqCategoryId, reqCityId, reqTranslate) {
     const filters = {};
     let sortByStartDate = false;
     let cities = [];
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
-        return next(
-            new AppError(`Please enter a positive integer for pageNo`, 400)
-        );
+        throw new AppError(`Please enter a positive integer for pageNo`, 400)
+
     }
     if (
         isNaN(Number(pageSize)) ||
         Number(pageSize) <= 0 ||
         Number(pageSize) > 20
     ) {
-        return next(
-            new AppError(
-                `Please enter a positive integer less than or equal to 20 for pageSize`,
-                400
-            )
+        throw new AppError(
+            `Please enter a positive integer less than or equal to 20 for pageSize`,
+            400
         );
+
     }
 
-    if (params.sortByStartDate) {
-        const sortByStartDateString = params.sortByStartDate.toString()
+    if (reqSortByStartDate) {
+        const sortByStartDateString = reqSortByStartDate.toString()
         if (sortByStartDateString !== 'true' && sortByStartDateString !== 'false') {
-            return next(
-                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
-            );
+            throw new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+
         } else {
             sortByStartDate = sortByStartDateString === 'true';
         }
     }
 
-    if (params.statusId) {
+    if (reqStatusId) {
         try {
-            const response = await cityListingRepo.getStatusById(params.statusId);
+            const response = await cityListingRepo.getStatusById(reqStatusId);
             if (!response) {
-                return next(
-                    new AppError(`Invalid Status '${params.statusId}' given`, 400)
-                );
+                throw new AppError(`Invalid Status '${reqStatusId}' given`, 400)
+
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
-        filters.statusId = params.statusId;
+        filters.statusId = reqStatusId;
     }
 
-    if (params.categoryId) {
+    if (reqCategoryId) {
         try {
-            const data = await cityListingRepo.getCategoryById(params.categoryId);
+            const data = await cityListingRepo.getCategoryById(reqCategoryId);
             if (!data) {
-                return next(
-                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
-                );
+                throw new AppError(`Invalid Category '${reqCategoryId}' given`, 400);
+
             } else {
-                if (params.subcategoryId) {
+                if (reqSubcategoryId) {
                     try {
-                        const data = await cityListingRepo.getSubCategoryById(params.subcategoryId);
+                        const data = await cityListingRepo.getSubCategoryById(reqSubcategoryId);
                         if (!data) {
-                            return next(
-                                new AppError(
-                                    `Invalid subCategory '${params.subcategoryId}' given`,
-                                    400
-                                )
-                            );
+                            throw new AppError(`Invalid subCategory '${reqSubcategoryId}' given`, 400);
                         }
                     } catch (err) {
-                        return next(new AppError(err));
+                        if (err instanceof AppError) throw err;
+                        throw new AppError(err);
                     }
-                    filters.subcategoryId = params.subcategoryId;
+                    filters.subcategoryId = reqSubcategoryId;
                 }
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
-        filters.categoryId = params.categoryId;
+        filters.categoryId = reqCategoryId;
     }
 
     try {
-        if (params.cityId) {
-            const response = await cityRepo.getCityWithId(params.cityId);
+        if (reqCityId) {
+            const response = await cityRepo.getCityWithId(reqCityId);
             if (!response) {
-                return next(
-                    new AppError(`Invalid CityId '${params.cityId}' given`, 400)
-                );
+                throw new AppError(`Invalid CityId '${reqCityId}' given`, 400);
+
             }
             cities = [response];
         } else {
@@ -102,16 +90,17 @@ const getAllListings = async function (req, res, next) {
 
         }
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 
     try {
-        const listings = await listingRepo.getCityListingsWithFiltersAndPagination(params, pageNo, pageSize, cities, sortByStartDate)
+        const listings = await listingRepo.getCityListingsWithFiltersAndPagination(filters, pageNo, pageSize, cities, sortByStartDate)
         const noOfListings = listings.length;
         if (
             noOfListings > 0 &&
-            params.translate &&
-            supportedLanguages.includes(params.translate)
+            reqTranslate &&
+            supportedLanguages.includes(reqTranslate)
         ) {
             const textToTranslate = [];
             listings.forEach((listing) => {
@@ -122,18 +111,18 @@ const getAllListings = async function (req, res, next) {
             const translations = await translator.translateText(
                 textToTranslate,
                 null,
-                params.translate
+                reqTranslate
             );
             for (let i = 0; i < noOfListings; i++) {
                 if (
-                    translations[2 * i].detectedSourceLang !== params.translate.slice(0, 2)
+                    translations[2 * i].detectedSourceLang !== reqTranslate.slice(0, 2)
                 ) {
                     listings[i].titleLanguage = translations[2 * i].detectedSourceLang;
                     listings[i].titleTranslation = translations[2 * i].text;
                 }
                 if (
                     translations[2 * i + 1].detectedSourceLang !==
-                    params.translate.slice(0, 2)
+                    reqTranslate.slice(0, 2)
                 ) {
                     listings[i].descriptionLanguage =
                         translations[2 * i + 1].detectedSourceLang;
@@ -141,12 +130,10 @@ const getAllListings = async function (req, res, next) {
                 }
             }
         }
-        return res.status(200).json({
-            status: "success",
-            data: listings,
-        });
+        return listings;
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 };
 

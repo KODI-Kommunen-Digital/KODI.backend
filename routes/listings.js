@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getAllListings } = require("../services/listings");
+const { getAllListings } = require("../controllers/listings");
 
 router.get("/", getAllListings);
 

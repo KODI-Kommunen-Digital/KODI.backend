@@ -1,4 +1,4 @@
-const database = require("../services/database");
+const database = require("../utils/database");
 
 async function radiusSearch(lat0, lon0, D, cityId) {
     const connection = await database.getConnection(cityId);

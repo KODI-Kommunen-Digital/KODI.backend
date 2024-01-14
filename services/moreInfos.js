@@ -1,11 +1,10 @@
 const moreInfoTranslations = require("../constants/moreInfoTranslations");
-// const { getMoreInfoService } = require("../repository/moreInfo");
 const moreInfoRepo = require("../repository/moreInfo");
 const AppError = require("../utils/appError");
 
-const getMoreInfo = async function (req, res, next) {
+const getMoreInfo = async function (queryLanguage) {
     let language = "de";
-    if (req.query.language === "en") {
+    if (queryLanguage === "en") {
         language = "en";
     }
     try {
@@ -14,12 +13,11 @@ const getMoreInfo = async function (req, res, next) {
             d.title = moreInfoTranslations[language][d.title];
             d.isPdf = d.isPdf === 1;
         })
-        res.status(200).json({
-            status: "success",
-            data,
-        });
+        return data;
+
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 };
 

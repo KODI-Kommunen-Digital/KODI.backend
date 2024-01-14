@@ -4,58 +4,43 @@ const AppError = require("../utils/appError");
 
 const getAllCategories = async function (req, res, next) {
     try {
-        const data = await categoryRepo.getCategories()
-        res.status(200).json({
-            status: "success",
-            data,
-        });
+        return await categoryRepo.getCategories();
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
-const getListingCount = async function (req, res, next) {
-    const params = req.query;
-
-    if (params.cityId) {
+const getListingCount = async function (cityId) {
+    if (cityId) {
         try {
-            const response = await cityRepo.getCities({ id: params.cityId });
+            const response = await cityRepo.getCities({ id: cityId });
             if (response.length === 0) {
-                return next(
-                    new AppError(`Invalid City '${params.cityId}' given`, 404)
-                );
+                throw new AppError(`Invalid City '${cityId}' given`, 404);
             }
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
-        const response = await categoryRepo.getCategoryListingCountForCity(params.cityId);
-        res.status(200).json({
-            status: "success",
-            data: response
-        });
+        const response = await categoryRepo.getCategoryListingCountForCity(cityId);
+        return response;
     } else {
         try {
             const response = await categoryRepo.getCategoryListingCount();
-            res.status(200).json({
-                status: "success",
-                data: response
-            });
+            return response;
         } catch (err) {
-            return next(new AppError(err));
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
     }
 }
 
-const getSubCategories = async function (req, res, next) {
-    const categoryId = req.params.id;
+const getSubCategories = async function (categoryId) {
     try {
-        const data = await categoryRepo.getSubCategoriesForCategoryId(categoryId);
-        res.status(200).json({
-            status: "success",
-            data,
-        });
+        return await categoryRepo.getSubCategoriesForCategoryId(categoryId);
     } catch (err) {
-        return next(new AppError(err));
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
