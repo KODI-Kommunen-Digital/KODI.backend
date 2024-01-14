@@ -37,7 +37,10 @@ const getAllUsersSwagger = {
                             },
                             data: {
                                 type: "array",
-                                items: UserResponseSchema,
+                                items: {
+                                    type: "object",
+                                    properties: UserResponseSchema,
+                                },
                             },
                         },
                     },

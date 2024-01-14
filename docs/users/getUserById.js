@@ -49,7 +49,13 @@ const getUserByIdDoc = {
                                 example: "success",
                                 description: "The status of the response",
                             },
-                            data: UserResponseSchema,
+                            data: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: UserResponseSchema,
+                                },
+                            },
                         },
                     },
                 },
