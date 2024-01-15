@@ -40,7 +40,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "start": "nodemon index.js",
     "deploy": "pm2 start index.js --name \"API\"",
     "lint:fix": "eslint --fix --ext .js,.jsx .",
@@ -56,5 +56,8 @@
   "bugs": {
     "url": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend/issues"
   },
-  "homepage": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend#readme"
+  "homepage": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
 }

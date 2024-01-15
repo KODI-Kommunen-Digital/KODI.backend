@@ -145,7 +145,6 @@ const register = async function (payload) {
                         `Unsupported social media '${socialMedia}'`,
                         400
                     )
-
                 }
 
                 if (
