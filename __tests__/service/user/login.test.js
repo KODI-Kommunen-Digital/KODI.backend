@@ -3,8 +3,6 @@ const userRepo = require('../../../repository/users');
 const tokenRepo = require('../../../repository/auth');
 const AppError = require('../../../utils/appError');
 const bcrypt = require("bcrypt");
-const database = require('../../../utils/database');
-const sendMail = require('../../../utils/sendMail');
 
 jest.mock('../../../repository/users');
 jest.mock('../../../repository/auth');
