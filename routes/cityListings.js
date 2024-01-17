@@ -20,6 +20,7 @@ const getDateInFormate = require("../utils/getDateInFormate")
 const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
+const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const getPdfImage = require("../utils/getPdfImage");
 
 // const radiusSearch = require('../services/handler')
@@ -555,13 +556,7 @@ router.post("/", authentication, async function (req, res, next) {
 
 
         if(hasDefaultImage){
-            const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
-            const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
-            const categoryImage = await database.callQuery(query);
-            const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
-            const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
-            const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
-            addDefaultImage(cityId,listingId,imageName);
+            addDefaultImage(cityId,listingId,payload.categoryId);
         }
 
         res.status(200).json({
@@ -763,13 +758,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
     const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
     if(hasDefaultImage){
-        const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
-        const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
-        const categoryImage = await database.callQuery(query);
-        const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
-        const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
-        const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
-        addDefaultImage(cityId,id,imageName);
+        addDefaultImage(cityId,id,payload.categoryId);
     }
 
     database
@@ -928,13 +917,10 @@ router.post(
                 new AppError(`Pdf is present in listing So can not upload image.`, 403)
             );
         }
-        const { image } = req.files;
 
-        if (!image) {
-            next(new AppError(`Image not uploaded`, 400));
-            return;
-        }
-        const imageArr = image.length > 1 ? image : [image];
+        const image = req.files?.image;
+        const imageArr = image ? image.length > 1 ? image : [image] : [];
+
         const hasIncorrectMime = imageArr.some(
             (i) => !i.mimetype.includes("image/")
         );
@@ -942,16 +928,61 @@ router.post(
             return next(new AppError(`Invalid Image type`, 403));
         }
 
-        try {
-            await database.deleteData(
-                tables.LISTINGS_IMAGES_TABLE,
-                { listingId },
-                cityId
-            );
+        let imageOrder = 0;
+        response = await database.get(
+            tables.LISTINGS_IMAGES_TABLE,
+            { listingId },
+            null,
+            cityId
+        );
+        
+        if (response.rows && response.rows.length > 0) {
 
-            await imageArr.map(async (individualImage, index) => {
-                const imageOrder = index + 1;
-                const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${imageOrder}`;
+            if (response.rows[0].logo.startsWith("admin/")) {
+                await database.deleteData(
+                    tables.LISTINGS_IMAGES_TABLE,
+                    { listingId },
+                    cityId
+                );
+
+            } else {
+
+                const existingImages = response.rows;
+                const imagesToRetain = existingImages.filter(value => (req.body.image || []).includes(value.logo));
+                const imagesToDelete = existingImages.filter(value => !imagesToRetain.map(i2r => i2r.logo).includes(value.logo));
+    
+                if (imagesToDelete && imagesToDelete.length > 0) {
+                    await imageDeleteAsync.deleteMultiple(imagesToDelete.map(i => i.logo))
+                    await database.deleteData(
+                        tables.LISTINGS_IMAGES_TABLE,
+                        { id: imagesToDelete.map(i => i.id)},
+                        cityId
+                    );
+                }
+    
+    
+                if (imagesToRetain && imagesToRetain.length > 0) {
+                    for (const imageToRetain of imagesToRetain) {
+                        await database.update(
+                            tables.LISTINGS_IMAGES_TABLE,
+                            { imageOrder: ++imageOrder },
+                            { id: imageToRetain.id },
+                            cityId
+                        );
+                    }
+                }
+                if(imagesToRetain.length === 0 && imageArr.length === 0) {
+                    await addDefaultImage(cityId, listingId, currentListingData.categoryId)
+                }
+                
+            }
+        }
+
+        try
+        {
+            for (const individualImage of imageArr) {
+                imageOrder++;
+                const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${imageOrder}_${Date.now()}`;
                 const { uploadStatus, objectKey } = await imageUpload(
                     individualImage,
                     filePath
@@ -969,7 +1000,7 @@ router.post(
                 } else {
                     return next(new AppError("Image Upload failed"));
                 }
-            });
+            }
             return res.status(200).json({
                 status: "success",
             });
@@ -1061,7 +1092,7 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
     }
 
     try {
-        const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
+        const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${Date.now()}_PDF.pdf`;
         const { uploadStatus, objectKey } = await pdfUpload(
             pdf,
             filePath
@@ -1193,6 +1224,7 @@ router.delete(
                     { listingId: id },
                     cityId
                 );
+                await addDefaultImage(cityId, id, currentListingData.categoryId)
                 return res.status(200).json({
                     status: "success",
                 });
@@ -1304,8 +1336,14 @@ router.delete(
     }
 );
 
-async function addDefaultImage(cityId,listingId,imageName){
+async function addDefaultImage(cityId,listingId,categoryId){
     const imageOrder = 1;
+    const categoryName = Object.keys(categories).find(key => categories[key] === +categoryId);
+    const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+    const categoryImage = await database.callQuery(query);
+    const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
+    const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+    const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
     return await database.create(
         tables.LISTINGS_IMAGES_TABLE,
         {

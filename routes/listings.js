@@ -134,12 +134,12 @@ router.get("/", async function (req, res, next) {
     city.id
 } as cityId FROM heidi_city_${city.id}${
     city.inCityServer ? "_" : "."
-}listings L 
+}listings L
             LEFT JOIN 
             (
                 SELECT 
                     listingId,
-                    MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
+                    MIN(logo) as logo,
                     COUNT(listingId) as logoCount
                 FROM heidi_city_${city.id}.listing_images
                 GROUP BY listingId
