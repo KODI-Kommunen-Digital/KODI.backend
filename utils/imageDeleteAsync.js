@@ -48,10 +48,10 @@ async function deleteMultiple(paths) {
             const params = {
                 Bucket: process.env.BUCKET_NAME,
                 Quiet: false,
-                Key: paths.map((path) => ({ Key: path }))
+                Objects: paths.map((path) => ({ Key: path }))
             }
 
-            obsClient.deleteObject(params, (err, result) => {
+            obsClient.deleteObjects(params, (err, result) => {
                 if (!err && result.CommonMsg.Status < 300) {
                     resolve(result);
                 } else {

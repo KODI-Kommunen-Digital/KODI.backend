@@ -556,13 +556,7 @@ router.post("/", authentication, async function (req, res, next) {
 
 
         if(hasDefaultImage){
-            const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
-            const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
-            const categoryImage = await database.callQuery(query);
-            const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
-            const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
-            const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
-            addDefaultImage(cityId,listingId,imageName);
+            addDefaultImage(cityId,listingId,payload.categoryId);
         }
 
         res.status(200).json({
@@ -764,13 +758,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
     const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
     if(hasDefaultImage){
-        const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
-        const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
-        const categoryImage = await database.callQuery(query);
-        const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
-        const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
-        const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
-        addDefaultImage(cityId,id,imageName);
+        addDefaultImage(cityId,id,payload.categoryId);
     }
 
     database
@@ -983,6 +971,10 @@ router.post(
                         );
                     }
                 }
+                if(imagesToRetain.length === 0 && imageArr.length === 0) {
+                    await addDefaultImage(cityId, listingId, currentListingData.categoryId)
+                }
+                
             }
         }
 
@@ -1232,6 +1224,7 @@ router.delete(
                     { listingId: id },
                     cityId
                 );
+                await addDefaultImage(cityId, id, currentListingData.categoryId)
                 return res.status(200).json({
                     status: "success",
                 });
@@ -1343,8 +1336,14 @@ router.delete(
     }
 );
 
-async function addDefaultImage(cityId,listingId,imageName){
+async function addDefaultImage(cityId,listingId,categoryId){
     const imageOrder = 1;
+    const categoryName = Object.keys(categories).find(key => categories[key] === +categoryId);
+    const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+    const categoryImage = await database.callQuery(query);
+    const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
+    const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+    const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
     return await database.create(
         tables.LISTINGS_IMAGES_TABLE,
         {
