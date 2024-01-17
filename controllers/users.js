@@ -1,7 +1,6 @@
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const userService = require("../services/users");
-const tokenRepo = require("../repository/auth");
 
 const register = async function (req, res, next) {
     const payload = req.body;
@@ -103,12 +102,8 @@ const refreshAuthToken = async function (req, res, next) {
             status: "success",
             data
         });
-    } catch (error) {
-        if (error.name === "TokenExpiredError") {
-            await tokenRepo.deleteRefreshTokenByRefreshToken(req.body.refreshToken);
-            return next(new AppError(`Unauthorized! Refresh Token was expired!`, 401));
-        }
-        return next(error);
+    } catch (err) {
+        return next(err);
     }
 }
 
