@@ -10,23 +10,20 @@ async function deleteImage(path) {
     });
 
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
         
-            const params = {
-                Bucket: process.env.BUCKET_NAME,
-                Quiet: false,
-                Key: path
-            }
+        const params = {
+            Bucket: process.env.BUCKET_NAME,
+            Quiet: false,
+            Key: path
+        }
 
-            obsClient.deleteObject(params, (err, result) => {
-                if (!err && result.CommonMsg.Status < 300) {
-                    resolve(result);
-                } else {
-                    reject(err)
-                }
+        obsClient.deleteObject(params, (err, result) => {
+            if (!err && result.CommonMsg.Status < 300) {
+                resolve(result);
+            } else {
+                reject(err)
             }
-            );
-        }, 2000)
+        });
     })
 }
 async function deleteMultiple(paths) {
@@ -39,27 +36,24 @@ async function deleteMultiple(paths) {
     });
 
     return new Promise((resolve, reject) => {
-        setTimeout(() => {
         
-            if (paths.length === 0) {
-                resolve();
-            }
+        if (paths.length === 0) {
+            resolve();
+        }
 
-            const params = {
-                Bucket: process.env.BUCKET_NAME,
-                Quiet: false,
-                Key: paths.map((path) => ({ Key: path }))
-            }
+        const params = {
+            Bucket: process.env.BUCKET_NAME,
+            Quiet: false,
+            Objects: paths.map((path) => ({ Key: path }))
+        }
 
-            obsClient.deleteObject(params, (err, result) => {
-                if (!err && result.CommonMsg.Status < 300) {
-                    resolve(result);
-                } else {
-                    reject(err)
-                }
+        obsClient.deleteObjects(params, (err, result) => {
+            if (!err && result.CommonMsg.Status < 300) {
+                resolve(result);
+            } else {
+                reject(err)
             }
-            );
-        }, 2000)
+        });
     })
 }
 
