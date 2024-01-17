@@ -100,6 +100,63 @@ const getCityUserMapping = async function (cityId, userId) {
     return response.rows[0];
 }
 
+const getCountByCategory = async function (cityId, categoryName) {
+    const query = `SELECT COUNT(LI.id) AS LICount FROM heidi_city_${cityId}.listing_images LI WHERE LI.logo LIKE '%${categoryName}%'`;
+    const result = await this.database.callQuery(query);
+    return result.rows.length > 0 ? result.rows[0].LICount : 0;
+}
+
+const createListingImage = async function (cityId, listingId, imageOrder, logo) {
+    const data = { listingId, imageOrder, logo };
+    return await this.database.create(tables.LISTINGS_IMAGES_TABLE, data, cityId);
+}
+
+const deleteListingImage = async function (listingId, cityId) {
+    await database.deleteData(
+        tables.LISTINGS_IMAGES_TABLE,
+        { listingId },
+        cityId,
+    );
+}
+
+const deleteListingImageWithTransaction = async function (listingId, transaction) {
+    await database.deleteDataWithTransaction(
+        tables.LISTINGS_IMAGES_TABLE,
+        { listingId },
+        transaction,
+    );
+}
+
+const deleteListingImageById = async function (id, cityId) {
+    await database.deleteData(
+        tables.LISTINGS_IMAGES_TABLE,
+        { id },
+        cityId,
+    );
+}
+
+const getListingImages = async function (listingId, cityId) {
+    const response = await database.get(
+        tables.LISTINGS_IMAGES_TABLE,
+        { listingId },
+        null,
+        cityId
+    );
+    if (!response || !response.rows || response.rows.length === 0) {
+        return null;
+    }
+    return response.rows;
+}
+
+const updateListingImage = async function (id, payload, cityId) {
+    return await database.update(
+        tables.LISTINGS_IMAGES_TABLE,
+        payload,
+        { id },
+        cityId
+    );
+}
+
 const updateCityListing = async function (listingId, payload, cityId) {
     return await database.update(
         tables.LISTINGS_TABLE,
@@ -123,4 +180,11 @@ module.exports = {
     updateCityListing,
     deleteCityListing,
     getSubCategoryWithFilter,
+    getCountByCategory,
+    deleteListingImage,
+    createListingImage,
+    getListingImages,
+    deleteListingImageById,
+    updateListingImage,
+    deleteListingImageWithTransaction,
 }

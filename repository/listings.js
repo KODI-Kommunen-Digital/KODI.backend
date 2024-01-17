@@ -25,6 +25,19 @@ const getCityListingWithId = async function (id, cityId) {
     return response.rows[0];
 }
 
+const getCityListingImage = async function (listingId, cityId) {
+    const response = await database.get(
+        tables.LISTINGS_IMAGES_TABLE,
+        { listingId },
+        null,
+        cityId
+    )
+    if (!response || !response.rows || response.rows.length === 0) {
+        return null;
+    }
+    return response.rows;
+}
+
 const getAllListingsWithFilters = async function (filters, cityId, pageNo, pageSize) {
     const response = await database.get(
         tables.LISTINGS_TABLE,
@@ -45,8 +58,17 @@ const getCityListingsWithFiltersAndPagination = async function (filters, pageNo,
     for (const city of cities) {
         // if the city database is present in the city's server, then we create a federated table in the format
         // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-        let query = `SELECT L.*, U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${city.id} as cityId 
+        let query = `SELECT L.*, 
+        IFNULL(sub.logo, '') as logo,
+        IFNULL(sub.logoCount, 0) as logoCount,
+        U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${city.id} as cityId 
         FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L 
+        LEFT JOIN
+        (
+            SELECT listingId, MIN(logo) as logo, COUNT(listingId) as logoCount
+            FROM heidi_city_${city.id}.listing_images
+            GROUP BY listingId
+        ) sub ON L.id = sub.listingId
         inner join user_cityuser_mapping UM 
         on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
         inner join users U 
@@ -63,6 +85,7 @@ const getCityListingsWithFiltersAndPagination = async function (filters, pageNo,
                 query += `L.statusId = ${filters.statusId} AND `;
             }
             query = query.slice(0, -4);
+            query += `GROUP BY L.id,sub.logo, sub.logoCount,U.username, U.firstname, U.lastname, U.image`;
         }
         individualQueries.push(query);
     }
@@ -92,6 +115,7 @@ module.exports = {
     createListingWithTransaction,
     createUserListingMappingWithTransaction,
     getCityListingWithId,
+    getCityListingImage,
     getAllListingsWithFilters,
     getCityListingsWithFiltersAndPagination,
     deleteListingForUserWithTransaction,

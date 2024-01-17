@@ -707,13 +707,15 @@ const deleteLoginDevices = async function (paramId, queryId) {
 
 const uploadUserProfileImage = async function (id, image) {
     try {
+        const imagePath = `user_${id}/profilePic_${Date.now()}`
+
         const { uploadStatus } = await imageUpload(
             image,
-            `user_${id}/profilePic`
+            imagePath,
         );
         if (uploadStatus === "Success") {
             const updationData = {};
-            updationData.image = `user_${id}/profilePic`;
+            updationData.image = imagePath;
             await userRepo.updateUserById(id, updationData);
             return updationData;
         }
@@ -725,6 +727,12 @@ const uploadUserProfileImage = async function (id, image) {
 
 const deleteUserProfileImage = async function (userId) {
     try {
+
+        const user = await userRepo.getUserDataById(userId);
+        if (!user) {
+            throw new AppError(`User ${userId} does not exist`, 404);
+        }
+
         const onSuccess = async () => {
             const updationData = {};
             updationData.image = "";
@@ -736,7 +744,7 @@ const deleteUserProfileImage = async function (userId) {
                 new AppError("Image Delete failed with Error Code: " + err)
             );
         };
-        await objectDelete(`user_${userId}/profilePic`, onSuccess, onFail);
+        await objectDelete(user.image, onSuccess, onFail);
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -814,6 +822,9 @@ const deleteUser = async function (id) {
                 let cityTransaction;
                 try {
                     cityTransaction = await database.createTransaction(cityUser.cityId);
+
+                    const listingData = await listingsRepo.getCityListingWithId(id, cityUser.cityUserId);
+                    await cityListings.deleteListingImageWithTransaction(listingData.id, cityTransaction);
                     await listingsRepo.deleteListingForUserWithTransaction(cityUser.cityUserId, cityTransaction)
                     await userRepo.deleteUser(cityUser.cityUserId, cityUser.cityId)
                     await database.commitTransaction(cityTransaction);
