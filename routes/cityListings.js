@@ -1091,6 +1091,27 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
         return next(new AppError(`Invalid Pdf type`, 403));
     }
 
+    response = await database.get(
+        tables.LISTINGS_IMAGES_TABLE,
+        { listingId },
+        null,
+        cityId
+    );
+    
+    if (response.rows && response.rows.length > 0) {
+
+        const imagesToDelete = response.rows;
+
+        if (imagesToDelete && imagesToDelete.length > 0) {
+            await imageDeleteAsync.deleteMultiple(imagesToDelete.map(i => i.logo).filter(i => !i.startsWith("admin/")))
+            await database.deleteData(
+                tables.LISTINGS_IMAGES_TABLE,
+                { id: imagesToDelete.map(i => i.id)},
+                cityId
+            );
+        } 
+    }
+
     try {
         const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${Date.now()}_PDF.pdf`;
         const { uploadStatus, objectKey } = await pdfUpload(
