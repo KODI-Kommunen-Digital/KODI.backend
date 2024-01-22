@@ -13,10 +13,11 @@ const axios = require("axios");
 const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
-const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 const errorCodes = require('../constants/errorCodes');
 const getDateInFormate = require("../utils/getDateInFormate")
+const imageDeleteAsync = require("../utils/imageDeleteAsync");
+const storedProcedures = require("../constants/storedProcedures");
 
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
@@ -531,28 +532,28 @@ router.patch("/:id", authentication, async function (req, res, next) {
 });
 
 router.delete("/:id", authentication, async function (req, res, next) {
-    const id = parseInt(req.params.id);
+    const userId = parseInt(req.params.id);
 
-    if (isNaN(Number(id)) || Number(id) <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        next(new AppError(`Invalid UserId ${userId}`, 404));
         return;
     }
 
-    if (id !== req.userId) {
+    if (userId !== req.userId) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
     }
 
     try {
-        let response = await database.get(tables.USER_TABLE, { id });
+        let response = await database.get(tables.USER_TABLE, { id: userId });
         const data = response.rows;
         if (data && data.length === 0) {
-            return next(new AppError(`User with id ${id} does not exist`, 404));
+            return next(new AppError(`User with id ${userId} does not exist`, 404));
         }
 
         response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-            userId: id,
+            userId,
         });
         const cityUsers = response.rows;
 
@@ -563,71 +564,19 @@ router.delete("/:id", authentication, async function (req, res, next) {
             parser.xml2json(imageList.data, { compact: true, spaces: 4 })
         );
         const userImageList = imageList.ListBucketResult.Contents.filter(
-            (obj) => obj.Key._text.includes("user_" + id)
+            (obj) => obj.Key._text.includes("user_" + userId)
         );
 
-        const onSucccess = async () => {
-            for (const cityUser of cityUsers) {
-                database.get(tables.LISTINGS_TABLE, { id }, null, cityUser.cityUserId)
-                    .then(async (response) => {
-                        const data = response.rows;
-                        if (!data || data.length === 0) {
-                            return next(new AppError(`Listings with id ${id} does not exist`, 404));
-                        }
-                        await database.deleteData(
-                            tables.LISTINGS_IMAGES_TABLE,
-                            { listingId: id },
-                            null,
-                            cityUser.cityId
-                        );
-                    })
-                    .catch((err) => {
-                        return next(new AppError(err));
-                    });
-                await database.deleteData(
-                    tables.LISTINGS_TABLE,
-                    { userId: cityUser.cityUserId },
-                    cityUser.cityId
-                );
-                await database.deleteData(
-                    tables.USER_TABLE,
-                    { id: cityUser.cityUserId },
-                    cityUser.cityId
-                );
-            }
-            await database.deleteData(tables.USER_CITYUSER_MAPPING_TABLE, {
-                userId: id,
-            });
-            await database.deleteData(tables.USER_LISTING_MAPPING_TABLE, {
-                userId: id,
-            });
-            await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                userId: id,
-            });
-            await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
-                userId: id,
-            });
-            await database.deleteData(tables.VERIFICATION_TOKENS_TABLE, {
-                userId: id,
-            });
-            await database.deleteData(tables.FAVORITES_TABLE, { userId: id });
-            await database.deleteData(tables.USER_TABLE, { id });
+        await imageDeleteAsync.deleteMultiple(userImageList.map((image) => ({ Key: image.Key._text })))
 
-            return res.status(200).json({
-                status: "success",
-            });
-        };
+        for (const cityUser of cityUsers) {
+            await database.callStoredProcedure(storedProcedures.DELETE_CITY_USER, [ cityUser.cityUserId ], cityUser.cityId);
+        }
+        await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [ userId ]);
 
-        const onFail = (err) => {
-            return next(
-                new AppError("Image Delete failed with Error Code: " + err)
-            );
-        };
-        await imageDeleteMultiple(
-            userImageList.map((image) => ({ Key: image.Key._text })),
-            onSucccess,
-            onFail
-        );
+        return res.status(200).json({
+            status: "success",
+        });
     } catch (err) {
         return next(new AppError(err));
     }
