@@ -11,7 +11,7 @@ const createCityListing = async function (req, res, next) {
         const listing = await cityListingService.createCityListing(payload, cityId, userId, roleId, hasDefaultImage);
         res.status(200).json({
             status: "success",
-            data: listing,
+            id: listing,
         });
     } catch (err) {
         return next(err);

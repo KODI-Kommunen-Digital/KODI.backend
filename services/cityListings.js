@@ -224,7 +224,7 @@ const createCityListing = async function (payload, cityId, userId, roleId, hasDe
             const listingId = response.id;
             await listingRepo.createUserListingMappingWithTransaction(cityId, userId, listingId, heidiTransaction);
             if (hasDefaultImage) {
-                await addDefaultImage(cityId, listingId, payload.categoryId);
+                await addDefaultImageWithTransaction(cityId, listingId, payload.categoryId, transaction);
             }
 
             // commit both the transactions together to ensure atomicity
@@ -274,7 +274,7 @@ const getCityListingWithId = async function (id, cityId) {
         const listingImageList = await listingRepo.getCityListingImage(id, cityId);
         const logo = listingImageList ? listingImageList[0].logo : null;
 
-        return { ...data[0], logo, otherlogos: listingImageList };
+        return { ...data, logo, otherlogos: listingImageList };
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -953,6 +953,18 @@ async function addDefaultImage(cityId, listingId, categoryId) {
     return await cityListingRepo.createListingImage(cityId, listingId, imageOrder, imageName);
 }
 
+async function addDefaultImageWithTransaction(cityId, listingId, categoryId, transaction) {
+    const imageOrder = 1;
+    const categoryName = Object.keys(categories).find((key) => categories[key] === +categoryId);
+
+    const categoryCount = await cityListingRepo.getCountByCategory(cityId, categoryName);
+    const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+    const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+
+    // Create listing image
+    return await cityListingRepo.createListingImageWithTransaction(listingId, imageOrder, imageName, transaction);
+}
+
 
 
 module.exports = {
@@ -965,4 +977,5 @@ module.exports = {
     deleteImageForCityListing,
     deletePDFForCityListing,
     deleteCityListing,
+    addDefaultImageWithTransaction
 }

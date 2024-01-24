@@ -102,13 +102,18 @@ const getCityUserMapping = async function (cityId, userId) {
 
 const getCountByCategory = async function (cityId, categoryName) {
     const query = `SELECT COUNT(LI.id) AS LICount FROM heidi_city_${cityId}.listing_images LI WHERE LI.logo LIKE '%${categoryName}%'`;
-    const result = await this.database.callQuery(query);
+    const result = await database.callQuery(query);
     return result.rows.length > 0 ? result.rows[0].LICount : 0;
 }
 
 const createListingImage = async function (cityId, listingId, imageOrder, logo) {
     const data = { listingId, imageOrder, logo };
-    return await this.database.create(tables.LISTINGS_IMAGES_TABLE, data, cityId);
+    return await database.create(tables.LISTINGS_IMAGES_TABLE, data, cityId);
+}
+
+const createListingImageWithTransaction = async function (listingId, imageOrder, logo, transaction) {
+    const data = { listingId, imageOrder, logo };
+    return await database.createWithTransaction(tables.LISTINGS_IMAGES_TABLE, data, transaction);
 }
 
 const deleteListingImage = async function (listingId, cityId) {
@@ -187,4 +192,5 @@ module.exports = {
     deleteListingImageById,
     updateListingImage,
     deleteListingImageWithTransaction,
+    createListingImageWithTransaction,
 }
