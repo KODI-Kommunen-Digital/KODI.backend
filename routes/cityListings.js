@@ -488,6 +488,9 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.zipcode){
         insertionData.zipcode = payload.zipcode;
     }
+    if (payload.expiryDate){
+        insertionData.expiryDate = payload.expiryDate;
+    }
     try {
         if (parseInt(payload.categoryId) === categories.Events) {
 
@@ -602,6 +605,49 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
     const currentListingData = response.rows[0];
 
+    if (payload.categoryId){
+        try {
+            const response = await database.get(
+                tables.CATEGORIES_TABLE,
+                { id: payload.categoryId },
+                null,
+                cityId
+            );
+
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Category '${payload.categoryId}' given`, 400)
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        updationData.categoryId = payload.categoryId;
+    }
+    if (payload.subcategoryId){
+        try {
+            const response = await database.get(
+                tables.SUBCATEGORIES_TABLE,
+                { id: payload.subcategoryId },
+                null,
+                cityId
+            );
+
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(
+                        `Invalid Sub Category '${payload.subcategoryId}' given`,
+                        400
+                    )
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        updationData.subcategoryId = payload.subcategoryId;
+    }
     if (currentListingData.userId !== cityUserId && req.roleId !== roles.Admin) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
@@ -739,7 +785,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.latitude) {
         updationData.latitude = payload.latitude;
     }
-
+    if (payload.expiryDate){
+        updationData.expiryDate = payload.expiryDate;
+    }
     try {
         if (payload.startDate) {
             updationData.startDate = getDateInFormate(new Date(payload.startDate));
