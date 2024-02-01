@@ -366,6 +366,7 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.media) {
         insertionData.media = payload.media;
     }
+    let subcategory = false;
     if (!payload.categoryId) {
         return next(new AppError(`Category is not present`, 400));
     } else {
@@ -383,6 +384,8 @@ router.post("/", authentication, async function (req, res, next) {
                     new AppError(`Invalid Category '${payload.categoryId}' given`, 400)
                 );
             }
+            if(data[0].noOfSubcategories>0)
+                subcategory = true;
         } catch (err) {
             return next(new AppError(err));
         }
@@ -390,6 +393,14 @@ router.post("/", authentication, async function (req, res, next) {
     }
 
     if (payload.subcategoryId) {
+        if(!subcategory){
+            return next(
+                new AppError(
+                    `Invalid Sub Category. Category Id = '${payload.categoryId}' doesn't have a subcategory.`,
+                    400
+                )
+            );
+        }
         try {
             const response = await database.get(
                 tables.SUBCATEGORIES_TABLE,
@@ -604,7 +615,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
     const currentListingData = response.rows[0];
-
+    let subcategory = false;
     if (payload.categoryId){
         try {
             const response = await database.get(
@@ -620,12 +631,26 @@ router.patch("/:id", authentication, async function (req, res, next) {
                     new AppError(`Invalid Category '${payload.categoryId}' given`, 400)
                 );
             }
+            if(data[0].noOfSubcategories > 0){
+                subcategory = true;
+            } else {
+                updationData.subcategoryId = null;
+                delete payload.subcategoryId;
+            }
         } catch (err) {
             return next(new AppError(err));
         }
         updationData.categoryId = payload.categoryId;
     }
     if (payload.subcategoryId){
+        if(!subcategory){
+            return next(
+                new AppError(
+                    `Invalid Sub Category. Category Id = '${payload.categoryId}' doesn't have a subcategory.`,
+                    400
+                )
+            );
+        }
         try {
             const response = await database.get(
                 tables.SUBCATEGORIES_TABLE,
