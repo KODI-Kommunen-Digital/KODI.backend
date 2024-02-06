@@ -4,7 +4,6 @@ const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
-
 const subcategories = require("../constants/subcategories");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
@@ -22,6 +21,7 @@ const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const getPdfImage = require("../utils/getPdfImage");
+const sendPushNotification = require("../services/sendPushNotification")
 
 // const radiusSearch = require('../services/handler')
 
@@ -568,11 +568,15 @@ router.post("/", authentication, async function (req, res, next) {
             listingId,
         });
 
-
         if(hasDefaultImage){
             addDefaultImage(cityId,listingId,payload.categoryId);
         }
 
+        const sourceAddress = req.headers["x-forwarded-for"]
+            ? req.headers["x-forwarded-for"].split(",").shift()
+            : req.socket.remoteAddress;
+        const listing = await database.get(tables.LISTINGS_TABLE, {id: listingId}, null, cityId);
+        sendPushNotification(userId, sourceAddress, "New Listing Added", listing.rows[0].title, null, next)
         res.status(200).json({
             status: "success",
             id: listingId,
@@ -810,14 +814,16 @@ router.patch("/:id", authentication, async function (req, res, next) {
     if (payload.latitude) {
         updationData.latitude = payload.latitude;
     }
+  
     if (payload.expiryDate){
         updationData.expiryDate = payload.expiryDate;
     }
+  
     try {
         if (payload.startDate) {
-            updationData.startDate = getDateInFormate(new Date(payload.startDate));
+            updationData.startDate = getDateInFormate(new Date(payload.startDate))
         }
-        
+    
         if (payload.endDate) {
             if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
                 return next(new AppError(`Timeless News should not have an end date.`, 400));
@@ -828,8 +834,13 @@ router.patch("/:id", authentication, async function (req, res, next) {
     } catch (error) {
         return next(new AppError(`Invalid time format ${error}`, 400));
     }
+    updationData.updatedAt = new Date()
+        .toISOString()
+        .slice(0, 19)
+    
+        .replace("T", " ");
+    const hasDefaultImage = payload.logo === null || payload.otherlogos.length === 0 ? true : false;
 
-    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
     if(hasDefaultImage){
         addDefaultImage(cityId,id,payload.categoryId);
     }
@@ -1138,12 +1149,12 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
         );
     }
 
-    if (currentListingData.logo && currentListingData.logo.length > 0) {
+    if(currentListingData.logo && currentListingData.logo.length > 0) {
         return next(
             new AppError(`Image is present in listing So can not upload pdf.`, 403)
         );
     }
-    const { pdf } = req.files;
+    const { pdf } = req.files ? req.files : false;
 
     if (!pdf) {
         next(new AppError(`Pdf not uploaded`, 400));
