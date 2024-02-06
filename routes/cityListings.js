@@ -499,8 +499,15 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.zipcode){
         insertionData.zipcode = payload.zipcode;
     }
+
+    insertionData.createdAt = getDateInFormate(new Date());
+
     if (payload.expiryDate){
         insertionData.expiryDate = payload.expiryDate;
+    } else {
+        if (parseInt(payload.categoryId) === categories.News) {
+            insertionData.expiryDate = getDateInFormate(new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 15);
+        }
     }
     try {
         if (parseInt(payload.categoryId) === categories.Events) {
@@ -518,7 +525,6 @@ router.post("/", authentication, async function (req, res, next) {
                 insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
             }
         }
-        insertionData.createdAt = getDateInFormate(new Date());
     } catch (error) {
         return next(new AppError(`Invalid time format ${error}`, 400));
     }
