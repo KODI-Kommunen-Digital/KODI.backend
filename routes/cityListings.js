@@ -502,14 +502,15 @@ router.post("/", authentication, async function (req, res, next) {
 
     insertionData.createdAt = getDateInFormate(new Date());
 
-    if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
-        if (payload.expiryDate){
-            insertionData.expiryDate = payload.expiryDate;
-        } else {
-            insertionData.expiryDate = getDateInFormate(new Date(new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 14));
-        }
-    }
     try {
+        if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
+            if (payload.expiryDate){
+                insertionData.expiryDate = payload.expiryDate;
+            } else {
+                insertionData.expiryDate = getDateInFormate(new Date(new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 14));
+            }
+        }
+
         if (parseInt(payload.categoryId) === categories.Events) {
 
             if (payload.startDate) {
@@ -622,6 +623,12 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
     const currentListingData = response.rows[0];
     let subcategory = false;
+
+    updationData.updatedAt = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+
     if (payload.categoryId){
         try {
             const response = await database.get(
@@ -647,6 +654,38 @@ router.patch("/:id", authentication, async function (req, res, next) {
             return next(new AppError(err));
         }
         updationData.categoryId = payload.categoryId;
+
+        try {
+            if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
+                if (payload.expiryDate){
+                    updationData.expiryDate = payload.expiryDate;
+                } else {
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(updationData.updatedAt).getTime() + 1000 * 60 * 60 * 24 * 14));
+                }
+            }
+            
+            else if (parseInt(payload.categoryId) === categories.Events) {
+
+                if (payload.startDate) {
+                    updationData.startDate = getDateInFormate(new Date(payload.startDate));
+                } else {
+                    return next(new AppError(`Start date is not present`, 400));
+                }
+
+                if (payload.endDate) {
+                    updationData.endDate = getDateInFormate(new Date(payload.endDate));
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+                } else {
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
+                }
+            } else {
+                updationData.expiryDate = ''
+            }
+
+        } catch (error) {
+            return next(new AppError(`Invalid time format ${error}`, 400));
+        }
+
     }
     if (payload.subcategoryId){
         if(!subcategory){
@@ -750,15 +789,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 400
             )
         );
-    }
-
-    if (payload.removeImage) {
-    // await database.deleteData(
-    //     tables.LISTINGS_IMAGES_TABLE,
-    //     { listingId: id },
-    //     cityId
-    // );
-    // updationData.logo = null;
     }
 
     if (payload.pdf && payload.removePdf) {
