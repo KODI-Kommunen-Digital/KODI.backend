@@ -506,7 +506,7 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.expiryDate = payload.expiryDate;
     } else {
         if (parseInt(payload.categoryId) === categories.News) {
-            insertionData.expiryDate = getDateInFormate(new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 15);
+            insertionData.expiryDate = getDateInFormate(new Date(new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 14));
         }
     }
     try {
