@@ -686,6 +686,29 @@ router.patch("/:id", authentication, async function (req, res, next) {
             return next(new AppError(`Invalid time format ${error}`, 400));
         }
 
+        try {
+            const response = await database.get(
+                tables.LISTINGS_IMAGES_TABLE,
+                { listingId: id },
+                null,
+                cityId
+            );
+
+            const hasDefaultImage = response && response.rows && response.rows.length === 1 && response.rows[0].startsWith("admin");
+
+            if (hasDefaultImage) {
+                await database.deleteData(
+                    tables.LISTINGS_IMAGES_TABLE,
+                    { id : response.rows[0].id },
+                    null,
+                    cityId
+                );
+                await addDefaultImage(cityId,id,payload.categoryId);
+            }
+
+        } catch (err) {
+            return next(new AppError(err));
+        }
     }
     if (payload.subcategoryId){
         if(!subcategory){
@@ -863,11 +886,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
         }
     } catch (error) {
         return next(new AppError(`Invalid time format ${error}`, 400));
-    }
-
-    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
-    if(hasDefaultImage){
-        addDefaultImage(cityId,id,payload.categoryId);
     }
 
     database
