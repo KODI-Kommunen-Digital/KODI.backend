@@ -4,7 +4,6 @@ const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
-const subcategories = require("../constants/subcategories");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
@@ -662,7 +661,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         try {
             if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
                 if (payload.expiryDate){
-                    updationData.expiryDate = payload.expiryDate;
+                    updationData.expiryDate = getDateInFormate(new Date(payload.expiryDate));
                 } else {
                     updationData.expiryDate = getDateInFormate(new Date(new Date(updationData.updatedAt).getTime() + 1000 * 60 * 60 * 24 * 14));
                 }
@@ -872,26 +871,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
     if (payload.latitude) {
         updationData.latitude = payload.latitude;
-    }
-  
-    if (payload.expiryDate){
-        updationData.expiryDate = payload.expiryDate;
-    }
-  
-    try {
-        if (payload.startDate) {
-            updationData.startDate = getDateInFormate(new Date(payload.startDate))
-        }
-    
-        if (payload.endDate) {
-            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
-                return next(new AppError(`Timeless News should not have an end date.`, 400));
-            }
-            updationData.endDate = getDateInFormate(new Date(payload.endDate));
-            updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
-        }
-    } catch (error) {
-        return next(new AppError(`Invalid time format ${error}`, 400));
     }
 
     database
