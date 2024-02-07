@@ -698,7 +698,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 await database.deleteData(
                     tables.LISTINGS_IMAGES_TABLE,
                     { id : response.rows[0].id },
-                    null,
                     cityId
                 );
                 await addDefaultImage(cityId,id,payload.categoryId);
