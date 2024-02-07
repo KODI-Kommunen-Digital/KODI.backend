@@ -502,10 +502,10 @@ router.post("/", authentication, async function (req, res, next) {
 
     insertionData.createdAt = getDateInFormate(new Date());
 
-    if (payload.expiryDate){
-        insertionData.expiryDate = payload.expiryDate;
-    } else {
-        if (parseInt(payload.categoryId) === categories.News) {
+    if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
+        if (payload.expiryDate){
+            insertionData.expiryDate = payload.expiryDate;
+        } else {
             insertionData.expiryDate = getDateInFormate(new Date(new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 14));
         }
     }
