@@ -698,7 +698,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 cityId
             );
 
-            const hasDefaultImage = response && response.rows && response.rows.length === 1 && response.rows[0].startsWith("admin");
+            const hasDefaultImage = response && response.rows && response.rows.length === 1 && response.rows[0].logo.startsWith("admin");
 
             if (hasDefaultImage) {
                 await database.deleteData(
