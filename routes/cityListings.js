@@ -21,7 +21,7 @@ const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const getPdfImage = require("../utils/getPdfImage");
-const sendPushNotification = require("../services/sendPushNotification")
+const {sendPushNotifications} = require("../services/sendPushNotification")
 
 // const radiusSearch = require('../services/handler')
 
@@ -563,12 +563,11 @@ router.post("/", authentication, async function (req, res, next) {
             const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
             addDefaultImage(cityId,listingId,imageName);
         }
-
-        const sourceAddress = req.headers["x-forwarded-for"]
-            ? req.headers["x-forwarded-for"].split(",").shift()
-            : req.socket.remoteAddress;
         const listing = await database.get(tables.LISTINGS_TABLE, {id: listingId}, null, cityId);
-        sendPushNotification(userId, sourceAddress, "New Listing Added", listing.rows[0].title, null, next)
+        if(listing.rows[0].categoryId ===  1 && listing.rows[0].subcategoryId === 1) {
+            sendPushNotifications(userId, "Breaking News", listing.rows[0].title, null, next)
+        }
+        
         res.status(200).json({
             status: "success",
             id: listingId,

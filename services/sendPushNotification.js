@@ -1,7 +1,7 @@
 const admin = require("firebase-admin");
 const database = require("./database");
 const tables = require("../constants/tableNames");
-const serviceAccount = require("./config/privateKey.json");
+const serviceAccount = JSON.parse(process.env.FIREBASE_PRIVATE);
 
 async function sendPushNotification(userId, sourceAddress, title="New Notification", body="Check it out", imageUrl, next) {
 
@@ -33,4 +33,28 @@ async function sendPushNotification(userId, sourceAddress, title="New Notificati
     return true
 }
 
-module.exports = sendPushNotification
+
+async function sendPushNotifications(userId, title="BreakingNews", body="Check it out", imageUrl, next) {
+
+    const firebaseAdmin = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    }, "Test");
+
+    const response = await database.get(tables.FIREBASE_TOKEN);
+    if(!response || response.rows?.length === 0) {
+        return false
+    }
+    response.rows.map(async (token) => {
+        const message = {
+            token:token.firebaseToken,
+            notification: {
+                title: title,
+                body: body
+            }
+        }
+        await firebaseAdmin.messaging().send(message)
+    })
+    return true
+}
+
+module.exports = {sendPushNotification, sendPushNotifications}
