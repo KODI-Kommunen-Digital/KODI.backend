@@ -1401,7 +1401,7 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
         if (data && data.length === 0) {
             return next(new AppError(`UserId ${userId} does not exist`, 400));
         }
-        response = await database.get(tables.FIREBASE_TOKEN, { deviceAddress: sourceAddress, userId: userId });
+        response = await database.get(tables.FIREBASE_TOKEN, { deviceAddress: sourceAddress, userId });
         data = response.rows;
         if (data && data.length === 0) {
             const insertionData = {}
@@ -1420,7 +1420,7 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
             await database.update(
                 tables.FIREBASE_TOKEN,
                 updationData,
-                { userId: userId }
+                { userId }
             );
         }
         res.status(200).json({
