@@ -831,11 +831,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.pdf = null;
     }
 
-    if (payload.statusId !== currentListingData.statusId) {
-        if (req.roleId !== roles.Admin)
-            return next(
-                new AppError("You dont have access to change this option", 403)
-            );
+    if (payload.statusId !== currentListingData.statusId && req.roleId === roles.Admin) {
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -857,13 +853,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-
-        if (parseInt(req.roleId) === roles.Admin)
-            updationData.statusId = payload.statusId;
-        else
-            return next(
-                new AppError("You dont have access to change this option", 403)
-            );
     }
     if (payload.longitude) {
         updationData.longitude = payload.longitude;
