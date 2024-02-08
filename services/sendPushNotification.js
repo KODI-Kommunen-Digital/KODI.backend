@@ -1,7 +1,7 @@
 const admin = require("firebase-admin");
 const database = require("./database");
 const tables = require("../constants/tableNames");
-const serviceAccount = JSON.parse(process.env.FIREBASE_PRIVATE);
+const serviceAccount = JSON.parse(process.env.FIREBASE_PRIVATE || "{}");
 
 async function sendPushNotificationToAll(topic="warnings", title="New Notification", body="Check it out", data=null) {
 
