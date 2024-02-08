@@ -21,7 +21,7 @@ const axios = require("axios");
 const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const getPdfImage = require("../utils/getPdfImage");
-const {sendPushNotifications} = require("../services/sendPushNotification")
+const sendPushNotification = require("../services/sendPushNotification")
 
 // const radiusSearch = require('../services/handler')
 
@@ -563,12 +563,12 @@ router.post("/", authentication, async function (req, res, next) {
             const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
             addDefaultImage(cityId,listingId,imageName);
         }
-        const listing = await database.get(tables.LISTINGS_TABLE, {id: listingId}, null, cityId);
-        if(listing.rows[0].categoryId ===  1 && listing.rows[0].subcategoryId === 1) {
-            sendPushNotifications(userId, "Breaking News", listing.rows[0].title, null, next)
+
+        if (parseInt(payload.categoryId) === categories.News && parseInt(payload.subcategoryId) === subcategories.newsflash && payload.status === status.Active && req.roleId === roles.Admin) {
+            await sendPushNotification.sendPushNotificationToAll("warnings", "Breaking News", insertionData.title, { cityId, "id": listingId })
         }
-        
-        res.status(200).json({
+
+        return res.status(200).json({
             status: "success",
             id: listingId,
         });
@@ -765,28 +765,29 @@ router.patch("/:id", authentication, async function (req, res, next) {
         return next(new AppError(`Invalid time format ${error}`, 400));
     }
 
-    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
-    if(hasDefaultImage){
-        const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
-        const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
-        const categoryImage = await database.callQuery(query);
-        const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
-        const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
-        const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
-        addDefaultImage(cityId,id,imageName);
-    }
+    try {
+        const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
+        if(hasDefaultImage){
+            const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
+            const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+            const categoryImage = await database.callQuery(query);
+            const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
+            const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+            const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+            addDefaultImage(cityId,id,imageName);
+        }
 
-    database
-        .update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
-        .then((response) => {
-            res.status(200).json({
-                status: "success",
-                id,
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
+        await database.update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
+        if (parseInt(payload.categoryId) === categories.News && parseInt(payload.subcategoryId) === subcategories.newsflash && payload.status === status.Active && req.roleId === roles.Admin) {
+            await sendPushNotification.sendPushNotificationToAll("warnings", "Breaking News", updationData.title || currentListingData.title , { cityId, id })
+        }
+        return res.status(200).json({
+            status: "success",
+            id,
         });
+    } catch (error) {
+        return next(new AppError(error));
+    }
 });
 
 router.delete("/:id", authentication, async function (req, res, next) {

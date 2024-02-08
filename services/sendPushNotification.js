@@ -3,26 +3,19 @@ const database = require("./database");
 const tables = require("../constants/tableNames");
 const serviceAccount = JSON.parse(process.env.FIREBASE_PRIVATE);
 
-async function sendPushNotification(userId, sourceAddress, title="New Notification", body="Check it out", imageUrl, next) {
+async function sendPushNotificationToAll(topic="warnings", title="New Notification", body="Check it out", data=null) {
 
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     });
 
-    const response = await database.get(tables.FIREBASE_TOKEN, { deviceAddress: sourceAddress, userId: userId });
-    if(!response || response.rows?.length === 0) {
-        return false
-    }
-    const token = response.rows[0].firebaseToken
     const message = {
-        token:token,
+        topic,
         notification: {
-            title: title,
-            body: body
-        }
-    }
-    if(imageUrl && imageUrl.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g)) {
-        message.notification.imageUrl = imageUrl
+            title,
+            body
+        },
+        data
     }
     
     try {
@@ -34,13 +27,13 @@ async function sendPushNotification(userId, sourceAddress, title="New Notificati
 }
 
 
-async function sendPushNotifications(userId, title="BreakingNews", body="Check it out", imageUrl, next) {
+async function sendPushNotificationsToUser(userId, title="BreakingNews", body="Check it out", data=null) {
 
     const firebaseAdmin = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     }, "Test");
 
-    const response = await database.get(tables.FIREBASE_TOKEN);
+    const response = await database.get(tables.FIREBASE_TOKEN, { userId });
     if(!response || response.rows?.length === 0) {
         return false
     }
@@ -48,13 +41,14 @@ async function sendPushNotifications(userId, title="BreakingNews", body="Check i
         const message = {
             token:token.firebaseToken,
             notification: {
-                title: title,
-                body: body
-            }
+                title,
+                body
+            },
+            data
         }
         await firebaseAdmin.messaging().send(message)
     })
     return true
 }
 
-module.exports = {sendPushNotification, sendPushNotifications}
+module.exports = { sendPushNotificationToAll, sendPushNotificationsToUser }
