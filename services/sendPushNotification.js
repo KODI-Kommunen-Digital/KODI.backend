@@ -5,25 +5,25 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_PRIVATE);
 
 async function sendPushNotificationToAll(topic="warnings", title="New Notification", body="Check it out", data=null) {
 
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-
-    const message = {
-        topic,
-        notification: {
-            title,
-            body
-        },
-        data
-    }
-    
     try {
-        await admin.messaging().send(message)
+        // const appName = `${topic}_${Date.now()}`
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+    
+        const message = {
+            topic,
+            notification: {
+                title,
+                body
+            },
+            data
+        }
+        const response = await admin.messaging().send(message)
+        return response
     } catch (err) {
         return false
     }
-    return true
 }
 
 
