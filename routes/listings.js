@@ -122,8 +122,8 @@ router.get("/", async function (req, res, next) {
         return next(new AppError(err));
     }
 
-    if (params.showExternalListings) {
-        filters.showExternalListings = params.showExternalListings;
+    if (params.showExternalListings === 'true') {
+        filters.showExternalListings = true;
     }
 
     try {
