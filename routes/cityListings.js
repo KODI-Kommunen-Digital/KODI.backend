@@ -22,7 +22,6 @@ const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const getPdfImage = require("../utils/getPdfImage");
-const sendPushNotification = require("../services/sendPushNotification");
 
 // const radiusSearch = require('../services/handler')
 
@@ -560,11 +559,7 @@ router.post("/", authentication, async function (req, res, next) {
             addDefaultImage(cityId,listingId,payload.categoryId);
         }
 
-        if (parseInt(insertionData.categoryId) === categories.News && parseInt(insertionData.subcategoryId) === subcategories.newsflash && insertionData.statusId === status.Active && req.roleId === roles.Admin) {
-            await sendPushNotification.sendPushNotificationToAll("warnings", "Breaking News", insertionData.title, { cityId: cityId.toString(), "id": listingId.toString() })
-        }
-
-        return res.status(200).json({
+        res.status(200).json({
             status: "success",
             id: listingId,
         });
