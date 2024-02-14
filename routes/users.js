@@ -518,6 +518,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
             await database.update(tables.USER_TABLE, updationData, { id });
             const safeUpdationData = { ...updationData, coreuserId: id };
             delete safeUpdationData.password;
+            delete safeUpdationData.socialMedia;
     
             for (const element of cityUserResponse.rows) {
                 await database.update(tables.USER_TABLE, safeUpdationData, { id: element.cityUserId }, element.cityId);
