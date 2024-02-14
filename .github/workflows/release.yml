@@ -1,0 +1,23 @@
+name: Deploy Draft Release on Production
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Current path
+        run: pwd
+
+      - name: copy file via ssh on server 2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 159.69.198.110
+          username: root
+          password: cicd1904
+          source: "*"
+          target: /home/my-app/
