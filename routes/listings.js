@@ -122,6 +122,10 @@ router.get("/", async function (req, res, next) {
         return next(new AppError(err));
     }
 
+    if (params.showExternalListings) {
+        filters.showExternalListings = params.showExternalListings;
+    }
+
     try {
         const individualQueries = [];
         for (const city of cities) {
@@ -130,11 +134,8 @@ router.get("/", async function (req, res, next) {
             let query = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
-            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
-    city.id
-} as cityId FROM heidi_city_${city.id}${
-    city.inCityServer ? "_" : "."
-}listings L
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${city.id} as cityId 
+            FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
             LEFT JOIN 
             (
                 SELECT 
@@ -147,7 +148,7 @@ router.get("/", async function (req, res, next) {
 			inner join
             user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
 			inner join users U on U.id = UM.userId `;
-            if (filters.categoryId || filters.statusId) {
+            if (filters) {
                 query += " WHERE ";
                 if (filters.categoryId) {
                     query += `L.categoryId = ${params.categoryId} AND `;
@@ -158,8 +159,11 @@ router.get("/", async function (req, res, next) {
                 if (filters.statusId) {
                     query += `L.statusId = ${params.statusId} AND `;
                 }
+                if (!filters.showExternalListings) {
+                    query += `L.sourceId = 1 AND `;
+                }
                 query = query.slice(0, -4);
-                query += `GROUP BY L.id,sub.logo, sub.logoCount,U.username, U.firstname, U.lastname, U.image`;
+                query += `GROUP BY L.id,sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
             }
             individualQueries.push(query);
         }
