@@ -1,16 +1,18 @@
 const admin = require("firebase-admin");
 const database = require("./database");
 const tables = require("../constants/tableNames");
-const serviceAccount = JSON.parse(process.env.FIREBASE_PRIVATE);
+const serviceAccount = process.env.FIREBASE_PRIVATE ? JSON.parse(process.env.FIREBASE_PRIVATE) : {};
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
 
 async function sendPushNotificationToAll(topic="warnings", title="New Notification", body="Check it out", data=null) {
 
     try {
-        // const appName = `${topic}_${Date.now()}`
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
-        });
-    
+
+        if (!serviceAccount)
+            return false
+
         const message = {
             topic,
             notification: {
