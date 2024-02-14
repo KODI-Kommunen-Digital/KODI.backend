@@ -16,7 +16,7 @@ const objectDelete = require("../utils/imageDelete");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const roles = require("../constants/roles");
 const errorCodes = require('../constants/errorCodes');
-const getDateInFormate = require("../utils/getDateInFormate")
+const getDateInFormate = require("../utils/getDateInFormate");
 
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
@@ -511,18 +511,24 @@ router.patch("/:id", authentication, async function (req, res, next) {
         });
         updationData.socialMedia = JSON.stringify(socialMediaList);
     }
-
+    
     if (Object.keys(updationData).length > 0) {
-        database
-            .update(tables.USER_TABLE, updationData, { id })
-            .then((response) => {
-                res.status(200).json({
-                    status: "success",
-                });
-            })
-            .catch((err) => {
-                return next(new AppError(err));
+        const cityUserResponse = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
+        try {
+            await database.update(tables.USER_TABLE, updationData, { id });
+            const safeUpdationData = { ...updationData, coreuserId: id };
+            delete safeUpdationData.password;
+    
+            for (const element of cityUserResponse.rows) {
+                await database.update(tables.USER_TABLE, safeUpdationData, { id: element.cityUserId }, element.cityId);
+            }
+    
+            res.status(200).json({
+                status: "success",
             });
+        } catch (err) {
+            return next(new AppError(err));
+        }
     } else {
         return res.status(200).json({
             status: "success",
