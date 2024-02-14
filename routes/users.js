@@ -516,12 +516,12 @@ router.patch("/:id", authentication, async function (req, res, next) {
         const cityUserResponse = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
         try {
             await database.update(tables.USER_TABLE, updationData, { id });
-            const safeUpdationData = { ...updationData, coreuserId: id };
-            delete safeUpdationData.password;
-            delete safeUpdationData.socialMedia;
+            const cityUserUpdationData = { ...updationData, coreuserId: id };
+            delete cityUserUpdationData.password;
+            delete cityUserUpdationData.socialMedia;
     
             for (const element of cityUserResponse.rows) {
-                await database.update(tables.USER_TABLE, safeUpdationData, { id: element.cityUserId }, element.cityId);
+                await database.update(tables.USER_TABLE, cityUserUpdationData, { id: element.cityUserId }, element.cityId);
             }
     
             res.status(200).json({
