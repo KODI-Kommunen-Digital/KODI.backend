@@ -1,8 +1,9 @@
-name: Deploy Draft Release on Production
+name: Create Draft Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -11,10 +12,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-      
-      - name: Current path
-        run: pwd
-  
+
   create_release_draft:
     runs-on: ubuntu-latest
     needs: deploy
@@ -26,3 +24,9 @@ jobs:
         uses: release-drafter/release-drafter@v6
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        
+      - name: Debug Draft Release
+        run: |
+          echo "Current Draft Release URL: ${{ steps.get_draft_release.outputs.html_url }}"
+          echo "Draft Release ID: ${{ steps.create-new-release.outputs.id }}"
+          echo "Draft Release HTML URL: ${{ steps.create-new-release.outputs.html_url }}"
