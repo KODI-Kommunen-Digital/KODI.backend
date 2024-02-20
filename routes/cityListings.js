@@ -581,7 +581,7 @@ router.post("/", authentication, async function (req, res, next) {
         }
 
         if (parseInt(insertionData.categoryId) === categories.News && parseInt(insertionData.subcategoryId) === subcategories.newsflash && insertionData.statusId === status.Active && req.roleId === roles.Admin) {
-            await sendPushNotification.sendPushNotificationToAll("warnings", "Breaking News", insertionData.title, { cityId: cityId.toString(), "id": listingId.toString() })
+            await sendPushNotification.sendPushNotificationToAll("warnings", "Eilmeldung", insertionData.title, { cityId: cityId.toString(), "id": listingId.toString() })
         }
 
         return res.status(200).json({
@@ -892,7 +892,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
         await database.update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
         if (parseInt(payload.categoryId) === categories.News && parseInt(payload.subcategoryId) === subcategories.newsflash && payload.status === status.Active && req.roleId === roles.Admin) {
-            await sendPushNotification.sendPushNotificationToAll("warnings", "Breaking News", updationData.title || currentListingData.title , { cityId, id })
+            await sendPushNotification.sendPushNotificationToAll("warnings", "Eilmeldung", updationData.title || currentListingData.title , { cityId, id })
         }
         return res.status(200).json({
             status: "success",
