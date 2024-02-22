@@ -3,9 +3,8 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
-const defaultImageCount = require("../constants/defaultImagesInBucketCount");
-
 const subcategories = require("../constants/subcategories");
+const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
@@ -22,6 +21,7 @@ const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const getPdfImage = require("../utils/getPdfImage");
+const sendPushNotification = require("../services/sendPushNotification");
 
 // const radiusSearch = require('../services/handler')
 
@@ -366,6 +366,7 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.media) {
         insertionData.media = payload.media;
     }
+    let subcategory = false;
     if (!payload.categoryId) {
         return next(new AppError(`Category is not present`, 400));
     } else {
@@ -383,6 +384,8 @@ router.post("/", authentication, async function (req, res, next) {
                     new AppError(`Invalid Category '${payload.categoryId}' given`, 400)
                 );
             }
+            if(data[0].noOfSubcategories>0)
+                subcategory = true;
         } catch (err) {
             return next(new AppError(err));
         }
@@ -390,6 +393,14 @@ router.post("/", authentication, async function (req, res, next) {
     }
 
     if (payload.subcategoryId) {
+        if(!subcategory){
+            return next(
+                new AppError(
+                    `Invalid Sub Category. Category Id = '${payload.categoryId}' doesn't have a subcategory.`,
+                    400
+                )
+            );
+        }
         try {
             const response = await database.get(
                 tables.SUBCATEGORIES_TABLE,
@@ -488,7 +499,18 @@ router.post("/", authentication, async function (req, res, next) {
     if (payload.zipcode){
         insertionData.zipcode = payload.zipcode;
     }
+
+    insertionData.createdAt = getDateInFormate(new Date());
+
     try {
+        if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
+            if (payload.expiryDate){
+                insertionData.expiryDate = payload.expiryDate;
+            } else {
+                insertionData.expiryDate = getDateInFormate(new Date(new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 14));
+            }
+        }
+
         if (parseInt(payload.categoryId) === categories.Events) {
 
             if (payload.startDate) {
@@ -504,7 +526,6 @@ router.post("/", authentication, async function (req, res, next) {
                 insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
             }
         }
-        insertionData.createdAt = getDateInFormate(new Date());
     } catch (error) {
         return next(new AppError(`Invalid time format ${error}`, 400));
     }
@@ -526,7 +547,6 @@ router.post("/", authentication, async function (req, res, next) {
                 delete user.password;
                 delete user.socialMedia;
                 delete user.emailVerified;
-                delete user.socialMedia;
                 response = await database.create(tables.USER_TABLE, user, cityId);
 
                 const cityUserId = response.id;
@@ -559,7 +579,11 @@ router.post("/", authentication, async function (req, res, next) {
             addDefaultImage(cityId,listingId,payload.categoryId);
         }
 
-        res.status(200).json({
+        if (parseInt(insertionData.categoryId) === categories.News && parseInt(insertionData.subcategoryId) === subcategories.newsflash && insertionData.statusId === status.Active && req.roleId === roles.Admin) {
+            await sendPushNotification.sendPushNotificationToAll("warnings", "Breaking News", insertionData.title, { cityId: cityId.toString(), "id": listingId.toString() })
+        }
+
+        return res.status(200).json({
             status: "success",
             id: listingId,
         });
@@ -601,7 +625,124 @@ router.patch("/:id", authentication, async function (req, res, next) {
         return next(new AppError(`Listing with id ${id} does not exist`, 404));
     }
     const currentListingData = response.rows[0];
+    let subcategory = false;
 
+    updationData.updatedAt = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+
+    if (payload.categoryId){
+        try {
+            const response = await database.get(
+                tables.CATEGORIES_TABLE,
+                { id: payload.categoryId },
+                null,
+                cityId
+            );
+
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Category '${payload.categoryId}' given`, 400)
+                );
+            }
+            if(data[0].noOfSubcategories > 0){
+                subcategory = true;
+            } else {
+                updationData.subcategoryId = null;
+                delete payload.subcategoryId;
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        updationData.categoryId = payload.categoryId;
+
+        try {
+            if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
+                if (payload.expiryDate){
+                    updationData.expiryDate = getDateInFormate(new Date(payload.expiryDate));
+                } else {
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(updationData.updatedAt).getTime() + 1000 * 60 * 60 * 24 * 14));
+                }
+            }
+            
+            else if (parseInt(payload.categoryId) === categories.Events) {
+
+                if (payload.startDate) {
+                    updationData.startDate = getDateInFormate(new Date(payload.startDate));
+                } else {
+                    return next(new AppError(`Start date is not present`, 400));
+                }
+
+                if (payload.endDate) {
+                    updationData.endDate = getDateInFormate(new Date(payload.endDate));
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+                } else {
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
+                }
+            } else {
+                updationData.expiryDate = null
+            }
+
+        } catch (error) {
+            return next(new AppError(`Invalid time format ${error}`, 400));
+        }
+
+        try {
+            const response = await database.get(
+                tables.LISTINGS_IMAGES_TABLE,
+                { listingId: id },
+                null,
+                cityId
+            );
+
+            const hasDefaultImage = response && response.rows && response.rows.length === 1 && response.rows[0].logo.startsWith("admin");
+
+            if (hasDefaultImage) {
+                await database.deleteData(
+                    tables.LISTINGS_IMAGES_TABLE,
+                    { id : response.rows[0].id },
+                    cityId
+                );
+                await addDefaultImage(cityId,id,payload.categoryId);
+            }
+
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    }
+    if (payload.subcategoryId){
+        if(!subcategory){
+            return next(
+                new AppError(
+                    `Invalid Sub Category. Category Id = '${payload.categoryId}' doesn't have a subcategory.`,
+                    400
+                )
+            );
+        }
+        try {
+            const response = await database.get(
+                tables.SUBCATEGORIES_TABLE,
+                { id: payload.subcategoryId },
+                null,
+                cityId
+            );
+
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(
+                        `Invalid Sub Category '${payload.subcategoryId}' given`,
+                        400
+                    )
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        updationData.subcategoryId = payload.subcategoryId;
+    }
     if (currentListingData.userId !== cityUserId && req.roleId !== roles.Admin) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
@@ -675,15 +816,6 @@ router.patch("/:id", authentication, async function (req, res, next) {
         );
     }
 
-    if (payload.removeImage) {
-    // await database.deleteData(
-    //     tables.LISTINGS_IMAGES_TABLE,
-    //     { listingId: id },
-    //     cityId
-    // );
-    // updationData.logo = null;
-    }
-
     if (payload.pdf && payload.removePdf) {
         return next(
             new AppError(
@@ -699,11 +831,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.pdf = null;
     }
 
-    if (payload.statusId !== currentListingData.statusId) {
-        if (req.roleId !== roles.Admin)
-            return next(
-                new AppError("You dont have access to change this option", 403)
-            );
+    if (payload.statusId !== currentListingData.statusId && req.roleId === roles.Admin) {
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -725,40 +853,12 @@ router.patch("/:id", authentication, async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-
-        if (parseInt(req.roleId) === roles.Admin)
-            updationData.statusId = payload.statusId;
-        else
-            return next(
-                new AppError("You dont have access to change this option", 403)
-            );
     }
     if (payload.longitude) {
         updationData.longitude = payload.longitude;
     }
     if (payload.latitude) {
         updationData.latitude = payload.latitude;
-    }
-
-    try {
-        if (payload.startDate) {
-            updationData.startDate = getDateInFormate(new Date(payload.startDate));
-        }
-        
-        if (payload.endDate) {
-            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
-                return next(new AppError(`Timeless News should not have an end date.`, 400));
-            }
-            updationData.endDate = getDateInFormate(new Date(payload.endDate));
-            updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
-        }
-    } catch (error) {
-        return next(new AppError(`Invalid time format ${error}`, 400));
-    }
-
-    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
-    if(hasDefaultImage){
-        addDefaultImage(cityId,id,payload.categoryId);
     }
 
     database
