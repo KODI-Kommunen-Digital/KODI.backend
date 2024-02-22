@@ -580,7 +580,7 @@ router.post("/", authentication, async function (req, res, next) {
         }
 
         if (parseInt(insertionData.categoryId) === categories.News && parseInt(insertionData.subcategoryId) === subcategories.newsflash && insertionData.statusId === status.Active && req.roleId === roles.Admin) {
-            await sendPushNotification.sendPushNotificationToAll("warnings", "Breaking News", insertionData.title, { cityId: cityId.toString(), "id": listingId.toString() })
+            await sendPushNotification.sendPushNotificationToAll("warnings", "Eilmeldung", insertionData.title, { cityId: cityId.toString(), "id": listingId.toString() })
         }
 
         return res.status(200).json({
