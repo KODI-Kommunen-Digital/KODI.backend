@@ -543,6 +543,7 @@ router.post("/", authentication, async function (req, res, next) {
             });
 
             if (!response.rows || response.rows.length === 0) {
+                user.coreUserId = userId;
                 delete user.id;
                 delete user.password;
                 delete user.socialMedia;
