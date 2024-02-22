@@ -23,5 +23,4 @@ router.delete("/:id/imageDelete", authentication, cityListingController.deleteIm
 
 router.delete("/:id/pdfDelete", authentication, cityListingController.deletePDFForCityListing);
 
-
 module.exports = router;

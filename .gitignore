@@ -2,3 +2,4 @@
 /images
 .env
 /coverage
+/services/config

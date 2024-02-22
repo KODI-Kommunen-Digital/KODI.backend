@@ -58,7 +58,7 @@ const apiDocumentation = {
     },
     servers: [
         {
-            url: 'http://localhost:3001',
+            url: process.env.BASE_URL,
             description: 'Local Server',
         }
     ],

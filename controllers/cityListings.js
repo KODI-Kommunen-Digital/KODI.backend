@@ -5,12 +5,13 @@ const createCityListing = async function (req, res, next) {
     const cityId = req.cityId;
     const userId = req.userId;
     const roleId = req.roleId;
+    const hasDefaultImage = (payload.logo !== undefined && payload.logo !== null) || payload.hasAttachment ? false : true;
 
     try {
-        const listing = await cityListingService.createCityListing(payload, cityId, userId, roleId);
+        const listing = await cityListingService.createCityListing(payload, cityId, userId, roleId, hasDefaultImage);
         res.status(200).json({
             status: "success",
-            data: listing,
+            id: listing,
         });
     } catch (err) {
         return next(err);
@@ -48,7 +49,7 @@ const getAllCityListings = async function (req, res, next) {
 }
 
 const updateCityListing = async function (req, res, next) {
-    const id = req.params.id;
+    const id = +req.params.id;
     const cityId = req.cityId;
     const payload = req.body;
     const userId = req.userId;
@@ -58,6 +59,7 @@ const updateCityListing = async function (req, res, next) {
         await cityListingService.updateCityListing(id, cityId, payload, userId, roleId);
         res.status(200).json({
             status: "success",
+            id,
         });
     } catch (err) {
         return next(err);
@@ -103,7 +105,7 @@ const deleteImageForCityListing = async function (req, res, next) {
     const cityId = req.cityId;
     const userId = req.userId;
     const roleId = req.roleId;
-    
+
     try {
         await cityListingService.deleteImageForCityListing(id, cityId, userId, roleId);
         return res.status(200).json({

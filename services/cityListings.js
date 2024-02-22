@@ -4,7 +4,6 @@ const categories = require("../constants/categories");
 const AppError = require("../utils/appError");
 const getDateInFormate = require("../utils/getDateInFormate")
 const databaseUtil = require("../utils/database");
-// const tables = require("../constants/tableNames");
 const subcategories = require("../constants/subcategories");
 const roles = require("../constants/roles");
 const userRepo = require("../repository/users");
@@ -15,11 +14,17 @@ const imageUpload = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload")
 const objectDelete = require("../utils/imageDelete");
-
 const deepl = require("deepl-node");
 const supportedLanguages = require("../constants/supportedLanguages");
+const defaultImageCount = require("../constants/defaultImagesInBucketCount");
+const bucketClient = require("../utils/bucketClient");
+const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
+const imageDeleteAsync = require("../utils/imageDeleteAsync");
 
-const createCityListing = async function (payload, cityId, userId, roleId) {
+
+const DEFAULTIMAGE = "Defaultimage";
+
+const createCityListing = async function (payload, cityId, userId, roleId, hasDefaultImage) {
     try {
         const insertionData = {};
         let user = {};
@@ -180,10 +185,7 @@ const createCityListing = async function (payload, cityId, userId, roleId) {
                     insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                     insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
                 } else {
-                    insertionData.expiryDate = new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
-                        .toISOString()
-                        .slice(0, 19)
-                        .replace("T", " ");
+                    insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
                 }
             }
             insertionData.createdAt = getDateInFormate(new Date());
@@ -221,12 +223,15 @@ const createCityListing = async function (payload, cityId, userId, roleId) {
             response = await listingRepo.createListingWithTransaction(insertionData, transaction);
             const listingId = response.id;
             await listingRepo.createUserListingMappingWithTransaction(cityId, userId, listingId, heidiTransaction);
+            if (hasDefaultImage) {
+                await addDefaultImageWithTransaction(cityId, listingId, payload.categoryId, transaction);
+            }
 
             // commit both the transactions together to ensure atomicity
             await databaseUtil.commitTransaction(transaction);
             await databaseUtil.commitTransaction(heidiTransaction);
 
-            return listingId
+            return listingId;
         } catch (err) {
             await databaseUtil.rollbackTransaction(transaction);
             await databaseUtil.rollbackTransaction(heidiTransaction);
@@ -265,7 +270,11 @@ const getCityListingWithId = async function (id, cityId) {
         if (!data) {
             throw new AppError(`Listings with id ${id} does not exist`, 404);
         }
-        return data;
+
+        const listingImageList = await listingRepo.getCityListingImage(id, cityId);
+        const logo = listingImageList ? listingImageList[0].logo : null;
+
+        return { ...data, logo, otherlogos: listingImageList };
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -513,7 +522,12 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         updationData.logo = payload.logo;
     }
     if (payload.removeImage) {
-        updationData.logo = null;
+        // await database.deleteData(
+        //     tables.LISTINGS_IMAGES_TABLE,
+        //     { listingId: id },
+        //     cityId
+        // );
+        // updationData.logo = null;
     }
     if (payload.categoryId) {
         updationData.categoryId = payload.categoryId;
@@ -576,6 +590,11 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         throw new AppError(`Invalid time format ${err}`, 400);
     }
 
+    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 || payload.hasAttachment ? false : true;
+    if (hasDefaultImage) {
+        await addDefaultImage(cityId, id, payload.categoryId);
+    }
+
     try {
         await cityListingRepo.updateCityListing(id, updationData, cityId);
     } catch (err) {
@@ -621,27 +640,54 @@ const uploadImageForCityListing = async function (listingId, cityId, userId, rol
         throw new AppError(`Pdf is present in listing So can not upload image.`, 403);
     }
 
+    if (!image) {
+        throw new AppError(`Image not uploaded`, 400);
+    }
+    const imageArr = image ? image.length > 1 ? image : [image] : [];
+    const hasIncorrectMime = imageArr.some(
+        (i) => !i.mimetype.includes("image/")
+    );
+    if (hasIncorrectMime) {
+        throw new AppError(`Invalid Image type`, 403);
+    }
+
+    let imageOrder = 0;
+    const listingImages = await cityListingRepo.getListingImages(listingId, cityId);
+    if (listingImages[0].logo.startsWith("admin/")) {
+        await cityListingRepo.deleteListingImage(listingId, cityId);
+    } else {
+        const imagesToRetain = listingImages.filter(value => (image || []).includes(value.logo));
+        const imagesToDelete = listingImages.filter(value => !imagesToRetain.map(i2r => i2r.logo).includes(value.logo));
+
+        if (imagesToDelete && imagesToDelete.length > 0) {
+            await imageDeleteAsync.deleteMultiple(imagesToDelete.map(i => i.logo))
+            await cityListingRepo.deleteListingImageById(imagesToDelete.map(i => i.id), cityId);
+        }
+
+
+        if (imagesToRetain && imagesToRetain.length > 0) {
+            for (const imageToRetain of imagesToRetain) {
+                await cityListingRepo.updateListingImage(imageToRetain.id, { imageOrder: ++imageOrder }, cityId);
+            }
+        }
+        if (imagesToRetain.length === 0 && imageArr.length === 0) {
+            await addDefaultImage(cityId, listingId, currentListingData.categoryId)
+        }
+    }
+
     try {
-        if (!image) {
-            throw new AppError(`Image not uploaded`, 400);
-        }
-
-        if (!image.mimetype.includes("image/")) {
-            throw new AppError(`Invalid Image type`, 403);
-        }
-
-        const filePath = `user_${userId}/city_${cityId}_listing_${listingId}`;
-
-        const { uploadStatus, objectKey } = await imageUpload(
-            image,
-            filePath
-        );
-        const updationData = { logo: objectKey };
-
-        if (uploadStatus === "Success") {
-            await cityListingRepo.updateCityListing(listingId, updationData, cityId);
-        } else {
-            throw new AppError("Image Upload failed");
+        for (const individualImage of imageArr) {
+            imageOrder++;
+            const filePath = `user_${userId}/city_${cityId}_listing_${listingId}_${imageOrder}_${Date.now()}`;
+            const { uploadStatus, objectKey } = await imageUpload(
+                individualImage,
+                filePath
+            );
+            if (uploadStatus === "Success") {
+                await cityListingRepo.createListingImage(cityId, listingId, imageOrder, objectKey);
+            } else {
+                throw new AppError("Image Upload failed");
+            }
         }
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -717,7 +763,8 @@ const uploadPDFForCityListing = async function (listingId, cityId, userId, roleI
         if (pdfUploadStatus === "Success") {
             // create image
             const pdfFilePath = `${pdfBucketPath}/${filePath}`;
-            const imagePath = `user_${userId}/city_${cityId}_listing_${listingId}`;
+            const imageOrder = 1;
+            const imagePath = `user_${userId}/city_${cityId}_listing_${listingId}_${imageOrder}`;
             const pdfImageBuffer = await getPdfImage(pdfFilePath);
             const { uploadStatus, objectKey } = await imageUpload(
                 pdfImageBuffer,
@@ -726,7 +773,7 @@ const uploadPDFForCityListing = async function (listingId, cityId, userId, roleI
 
             if (uploadStatus === "Success") {
                 // update logo
-                updationData.logo = objectKey;
+                await cityListingRepo.createListingImage(cityId, listingId, imageOrder, objectKey);
             }
 
             await cityListingRepo.updateCityListing(listingId, updationData, cityId);
@@ -776,19 +823,16 @@ const deleteImageForCityListing = async function (id, cityId, userId, roleId) {
     }
     try {
         const onSucccess = async () => {
-            const updationData = {};
-            updationData.logo = "";
+            await cityListingRepo.deleteListingImage(id, cityId);
+            await addDefaultImage(cityId, id, currentListingData.categoryId);
 
-            await cityListingRepo.updateCityListing(id, updationData, cityId);
         };
         const onFail = (err) => {
             throw new AppError("Image Delete failed with Error Code: " + err);
         };
-        await objectDelete(
-            `user_${userId}/city_${cityId}_listing_${id}`,
-            onSucccess,
-            onFail
-        );
+
+        const userImageList = await bucketClient.fetchUserImages(userId, cityId, id);
+        await imageDeleteMultiple(userImageList.map((image) => ({ Key: image.Key._text })), onSucccess, onFail);
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -871,6 +915,8 @@ const deleteCityListing = async function (id, cityId, userId, roleId) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
     }
 
+    const userImageList = await bucketClient.fetchUserImages(userId, cityId, id);
+
     const response = await userRepo.getCityUserCityMapping(cityId, userId);
     const cityUserId = response ? response.cityUserId : null;
     if (
@@ -881,13 +927,44 @@ const deleteCityListing = async function (id, cityId, userId, roleId) {
     }
 
     const onSucccess = async () => {
+        await cityListingRepo.deleteListingImage(id, cityId);
         await cityListingRepo.deleteCityListing(id, cityId);
     };
     const onFail = (err) => {
         throw new AppError("Image Delete failed with Error Code: " + err);
     };
-    await objectDelete(currentListingData.logo, onSucccess, onFail);
+
+    await imageDeleteMultiple(
+        userImageList.map((image) => ({ Key: image.Key._text })),
+        onSucccess,
+        onFail
+    );
 }
+
+async function addDefaultImage(cityId, listingId, categoryId) {
+    const imageOrder = 1;
+    const categoryName = Object.keys(categories).find((key) => categories[key] === +categoryId);
+
+    const categoryCount = await cityListingRepo.getCountByCategory(cityId, categoryName);
+    const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+    const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+
+    // Create listing image
+    return await cityListingRepo.createListingImage(cityId, listingId, imageOrder, imageName);
+}
+
+async function addDefaultImageWithTransaction(cityId, listingId, categoryId, transaction) {
+    const imageOrder = 1;
+    const categoryName = Object.keys(categories).find((key) => categories[key] === +categoryId);
+
+    const categoryCount = await cityListingRepo.getCountByCategory(cityId, categoryName);
+    const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+    const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+
+    // Create listing image
+    return await cityListingRepo.createListingImageWithTransaction(listingId, imageOrder, imageName, transaction);
+}
+
 
 
 module.exports = {
@@ -900,4 +977,5 @@ module.exports = {
     deleteImageForCityListing,
     deletePDFForCityListing,
     deleteCityListing,
+    addDefaultImageWithTransaction
 }
