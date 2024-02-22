@@ -3,6 +3,7 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
+const subcategories = require("../constants/subcategories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
