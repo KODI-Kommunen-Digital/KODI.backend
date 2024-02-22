@@ -1,7 +1,7 @@
 const { getConnection } = require("./mysql");
 
 // In all these functions, if cityId is given, we connect to that city's database. Else, we connect to the core database
-async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, descending, joinFilterBy="AND") {
+async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, descending, joinFilterBy = "AND") {
     const connection = await getConnection(cityId);
     let query = `SELECT ${columns ? columns : "*"} FROM ${table} `;
     const queryParams = [];
@@ -86,11 +86,58 @@ async function callQuery(query, params, cityId) {
     return { rows, fields };
 }
 
+async function createTransaction(cityId) {
+    const connection = await getConnection(cityId);
+    await connection.beginTransaction();
+    return connection;
+}
+
+async function commitTransaction(connection) {
+    await connection.commit();
+    connection.release();
+}
+
+async function rollbackTransaction(connection) {
+    await connection.rollback();
+    connection.release();
+}
+
+async function createWithTransaction(table, data, connection) {
+    const query = `INSERT INTO ${table} SET ?`;
+    const response = await connection.query(query, data);
+    return { id: response[0].insertId };
+}
+
+async function updateWithTransaction(table, data, conditions, connection) {
+    const query = `UPDATE ${table} SET ? WHERE ?`;
+    await connection.query(query, [data, conditions]);
+}
+
+async function deleteDataWithTransaction(table, filter, connection) {
+    let query = `DELETE FROM ${table} `;
+    const queryParams = [];
+    if (filter) {
+        query += "WHERE ";
+        for (const key in filter) {
+            query += `${key} = ? AND `;
+            queryParams.push(filter[key]);
+        }
+        query = query.slice(0, -4);
+    }
+    await connection.query(query, queryParams);
+}
+
 module.exports = {
     get,
     create,
     update,
     deleteData,
     callStoredProcedure,
-    callQuery
+    callQuery,
+    createTransaction,
+    commitTransaction,
+    rollbackTransaction,
+    createWithTransaction,
+    updateWithTransaction,
+    deleteDataWithTransaction,
 };

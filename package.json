@@ -30,6 +30,8 @@
     "nodemon": "^2.0.20",
     "pm2": "^5.3.0",
     "prettier-eslint": "^15.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
     "xml-js": "^1.6.11",
     "xml2js": "^0.4.17"
   },
@@ -39,7 +41,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "start": "nodemon index.js",
     "deploy": "pm2 start index.js --name \"API\"",
     "lint:fix": "eslint --fix --ext .js,.jsx .",
@@ -55,5 +57,8 @@
   "bugs": {
     "url": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend/issues"
   },
-  "homepage": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend#readme"
+  "homepage": "https://gitlab.com/heidi-heimat-digital/smart-region-m.backend#readme",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
 }

@@ -11,6 +11,9 @@
     "parserOptions": {
         "ecmaVersion": "latest"
     },
+    "ignorePatterns": [
+        "__tests__/"
+    ],
     "rules": {
         "no-var": "error",
         "camelcase": [
