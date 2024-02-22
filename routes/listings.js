@@ -10,7 +10,7 @@ router.get("/", async function (req, res, next) {
     const params = req.query;
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 9;
-    const filters = {};
+    const filters = [];
     let sortByStartDate = false;
     let cities = [];
 
@@ -59,7 +59,7 @@ router.get("/", async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.statusId = params.statusId;
+        filters.push(`L.statusId = ${params.statusId} `);
     }
 
     if (params.categoryId) {
@@ -92,13 +92,13 @@ router.get("/", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.subcategoryId = params.subcategoryId;
+                    filters.push(`L.subcategoryId = ${params.subcategoryId} `);
                 }
             }
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.categoryId = params.categoryId;
+        filters.push(`L.categoryId = ${params.categoryId} `);
     }
 
     try {
@@ -122,6 +122,10 @@ router.get("/", async function (req, res, next) {
         return next(new AppError(err));
     }
 
+    if (params.showExternalListings !== 'true') {
+        filters.push(`L.sourceId = 1 `);
+    }
+
     try {
         const individualQueries = [];
         for (const city of cities) {
@@ -130,11 +134,8 @@ router.get("/", async function (req, res, next) {
             let query = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
-            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${
-    city.id
-} as cityId FROM heidi_city_${city.id}${
-    city.inCityServer ? "_" : "."
-}listings L
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${city.id} as cityId 
+            FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
             LEFT JOIN 
             (
                 SELECT 
@@ -147,19 +148,10 @@ router.get("/", async function (req, res, next) {
 			inner join
             user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
 			inner join users U on U.id = UM.userId `;
-            if (filters.categoryId || filters.statusId) {
-                query += " WHERE ";
-                if (filters.categoryId) {
-                    query += `L.categoryId = ${params.categoryId} AND `;
-                }
-                if (filters.subcategoryId) {
-                    query += `L.subcategoryId = ${params.subcategoryId} AND `;
-                }
-                if (filters.statusId) {
-                    query += `L.statusId = ${params.statusId} AND `;
-                }
-                query = query.slice(0, -4);
-                query += `GROUP BY L.id,sub.logo, sub.logoCount,U.username, U.firstname, U.lastname, U.image`;
+            if (filters && filters.length > 0) {
+                query += "WHERE "
+                query += filters.join("AND ");
+                query += `GROUP BY L.id,sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
             }
             individualQueries.push(query);
         }
