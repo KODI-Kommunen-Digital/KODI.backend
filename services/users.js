@@ -412,7 +412,17 @@ const updateUser = async function (id, payload) {
 
     if (Object.keys(updationData).length > 0) {
         try {
+
+            const cityUserResponse = await userRepo.getuserCityMappings(id);
             await userRepo.updateUserById(id, updationData);
+
+            const cityUserUpdationData = { ...updationData, coreuserId: id };
+            delete cityUserUpdationData.password;
+            delete cityUserUpdationData.socialMedia;
+
+            for (const element of cityUserResponse.rows) {
+                await userRepo.updateCityUserById(element.cityUserId, cityUserUpdationData, element.cityId);
+            }
         } catch (err) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
@@ -823,6 +833,7 @@ const deleteUser = async function (id) {
                     cityTransaction = await database.createTransaction(cityUser.cityId);
 
                     const listingData = await listingsRepo.getCityListingWithId(id, cityUser.cityUserId);
+                    if(!listingData) throw new AppError(`Listing with id ${id} does not exist`, 404);
                     await cityListings.deleteListingImageWithTransaction(listingData.id, cityTransaction);
                     await listingsRepo.deleteListingForUserWithTransaction(cityUser.cityUserId, cityTransaction)
                     await userRepo.deleteUser(cityUser.cityUserId, cityUser.cityId)

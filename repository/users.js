@@ -108,7 +108,10 @@ const getUserDataById = async function (userId) {
 
 const updateUserById = async function (userId, payload) {
     await database.update(tables.USER_TABLE, payload, { id: userId });
+}
 
+const updateCityUserById = async function (cityUserId, payload, cityId) {
+    await database.update(tables.USER_TABLE, payload, { id: cityUserId }, cityId);
 }
 
 const deleteForgotTokenForUserWithConnection = async function (userId, connection) {
@@ -245,6 +248,7 @@ module.exports = {
     getCityUser,
     getUserDataById,
     updateUserById,
+    updateCityUserById,
     deleteForgotTokenForUserWithConnection,
     addForgotPasswordTokenWithConnection,
     getAllUsers,
