@@ -548,7 +548,6 @@ router.post("/", authentication, async function (req, res, next) {
                 delete user.password;
                 delete user.socialMedia;
                 delete user.emailVerified;
-                delete user.socialMedia;
                 response = await database.create(tables.USER_TABLE, user, cityId);
 
                 const cityUserId = response.id;
