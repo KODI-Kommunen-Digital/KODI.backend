@@ -41,12 +41,12 @@
     "lint": "eslint",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "deploy": "pm2 start index.js --name \"API\"",
+    "deploy": "pm2 start index.js --name \"API\" --watch",
     "lint:fix": "eslint --fix --ext .js,.jsx .",
     "prepare": "husky install && bash -c 'chmod ug+x .husky/*'"
   },
   "repository": {
-    "type": "git",
+    "type": "git", 
     "url": "git+https://gitlab.com/heidi-heimat-digital/smart-region-m.backend.git"
   },
   "keywords": [],
