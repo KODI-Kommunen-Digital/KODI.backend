@@ -31,7 +31,5 @@ jobs:
           username: ${{ secrets.TEST_HOST_1_USERNAME}}
           password: ${{ secrets.TEST_HOST_1_PASSWORD}}
           script: |
-            cd /root/Testing/KODI.backend/
-            which npm
-            export PATH="$PATH:$(which npm)"
-            npm install
+            cd /root/deployscript/testing/
+            sh backend.sh
