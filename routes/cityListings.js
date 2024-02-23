@@ -392,7 +392,7 @@ router.post("/", authentication, async function (req, res, next) {
         insertionData.categoryId = payload.categoryId;
     }
 
-    if (payload.subcategoryId) {
+    if (payload.subcategoryId && subcategory) {
         if(!subcategory){
             return next(
                 new AppError(
@@ -712,7 +712,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-    if (payload.subcategoryId){
+    if (payload.subcategoryId && subcategory){
         if(!subcategory){
             return next(
                 new AppError(
