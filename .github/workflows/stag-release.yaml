@@ -20,6 +20,6 @@ jobs:
           host: ${{ secrets.TEST_HOST_1 }}
           username: ${{ secrets.TEST_HOST_1_USERNAME}}
           port: 22
-          key: ${{ secrets.TEST_HOST_1_PASSWORD}}
+          password: ${{ secrets.TEST_HOST_1_PASSWORD}}
           source: "*"
           target: /root/cicdtest
