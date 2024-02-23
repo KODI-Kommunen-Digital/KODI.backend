@@ -23,7 +23,7 @@ jobs:
           source: "*"
           target: /root/cicdtest
 
-      - name: SSH to Server and run commands
+      - name: SSH to Prod Server and run commands
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.TEST_HOST_1 }}
