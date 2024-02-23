@@ -22,3 +22,15 @@ jobs:
           password: ${{ secrets.TEST_HOST_1_PASSWORD}}
           source: "*"
           target: /root/cicdtest
+
+      - name: SSH to Server and run commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.TEST_HOST_1 }}
+          username: ${{ secrets.TEST_HOST_1_USERNAME}}
+          password: ${{ secrets.TEST_HOST_1_PASSWORD}}
+          script: |
+            cd /root/cicdtest/
+            which npm
+            export PATH="$PATH:$(which npm)"
+            npm install
