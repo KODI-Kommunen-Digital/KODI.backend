@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.TEST_HOST_1_USERNAME}}
           password: ${{ secrets.TEST_HOST_1_PASSWORD}}
           source: "*"
-          target: /root/cicdtest
+          target: /root/Testing/KODI.backend
 
       - name: SSH to Prod Server and run commands
         uses: appleboy/ssh-action@master
@@ -30,7 +30,7 @@ jobs:
           username: ${{ secrets.TEST_HOST_1_USERNAME}}
           password: ${{ secrets.TEST_HOST_1_PASSWORD}}
           script: |
-            cd /root/cicdtest/
+            cd /root/Testing/KODI.backend/
             which npm
             export PATH="$PATH:$(which npm)"
             npm install
