@@ -13,12 +13,10 @@ const tokenRepo = require("../repository/auth");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const cityListings = require("../repository/cityListing");
-const listingsRepo = require("../repository/listings");
-const authRepo = require("../repository/auth");
-const cityRepo = require("../repository/cities");
-const favoriteRepo = require("../repository/favorites");
 const tokenUtil = require("../utils/token");
-const { getUserImages, deleteImage } = require("../repository/image");
+const { getUserImages } = require("../repository/image");
+const imageDeleteAsync = require("../utils/imageDeleteAsync");
+const storedProcedures = require("../constants/storedProcedures");
 
 const register = async function (payload) {
     const insertionData = {};
@@ -412,7 +410,17 @@ const updateUser = async function (id, payload) {
 
     if (Object.keys(updationData).length > 0) {
         try {
+
+            const cityUserResponse = await userRepo.getuserCityMappings(id);
             await userRepo.updateUserById(id, updationData);
+
+            const cityUserUpdationData = { ...updationData, coreuserId: id };
+            delete cityUserUpdationData.password;
+            delete cityUserUpdationData.socialMedia;
+
+            for (const element of cityUserResponse.rows) {
+                await userRepo.updateCityUserById(element.cityUserId, cityUserUpdationData, element.cityId);
+            }
         } catch (err) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
@@ -805,70 +813,23 @@ const getUserListings = async function (userId, pageNo, pageSize, statusId, cate
     }
 }
 
-const deleteUser = async function (id) {
+const deleteUser = async function (userId) {
     try {
-        const userData = await userRepo.getUserDataById(id);
+        const userData = await userRepo.getUserDataById(userId);
         if (!userData) {
-            throw new AppError(`User with id ${id} does not exist`, 404);
+            throw new AppError(`User with id ${userId} does not exist`, 404);
         }
 
-        const cityUsers = await userRepo.getuserCityMappings(id);
+        const cityUsers = await userRepo.getuserCityMappings(userId);
 
-        const userImageList = await getUserImages(id);
+        const userImageList = await getUserImages(userId);
 
-        const onSuccess = async () => {
-            for (const cityUser of cityUsers) {
-                let cityTransaction;
-                try {
-                    cityTransaction = await database.createTransaction(cityUser.cityId);
+        await imageDeleteAsync.deleteMultiple(userImageList.map((image) => ({ Key: image.Key._text })))
+        for (const cityUser of cityUsers) {
+            await database.callStoredProcedure(storedProcedures.DELETE_CITY_USER, [cityUser.cityUserId], cityUser.cityId);
+        }
+        await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [userId]);
 
-                    const listingData = await listingsRepo.getCityListingWithId(id, cityUser.cityUserId);
-                    await cityListings.deleteListingImageWithTransaction(listingData.id, cityTransaction);
-                    await listingsRepo.deleteListingForUserWithTransaction(cityUser.cityUserId, cityTransaction)
-                    await userRepo.deleteUser(cityUser.cityUserId, cityUser.cityId)
-                    await database.commitTransaction(cityTransaction);
-                } catch (err) {
-                    if (err instanceof AppError) throw err;
-                    if (cityTransaction) {
-                        await database.rollbackTransaction(cityTransaction);
-                    }
-                    throw new AppError(err);
-                }
-            }
-
-            let transaction;
-            try {
-                transaction = await database.createTransaction(null);
-                await cityRepo.deleteCityUserCityMappingWithTransaction(id, transaction);
-
-                await listingsRepo.deleteUserListingMappingWithTransaction(id, transaction);
-
-                await authRepo.deleteRefreshTokenWithTransaction(id, transaction);
-
-                await authRepo.deleteForgotPasswordTokenWithTransaction(id, transaction);
-
-                await authRepo.deleteVerificationTokenWithTransaction(id, transaction);
-
-                await favoriteRepo.deleteFavoriteforUserWithTransaction(id, transaction);
-
-                await userRepo.deleteUserWithTransaction(id, transaction);
-
-                await database.commitTransaction(transaction);
-            } catch (err) {
-                if (transaction) {
-                    await database.rollbackTransaction(transaction);
-                }
-                if (err instanceof AppError) throw err;
-                throw new AppError(err);
-            }
-
-        };
-
-        const onFail = (err) => {
-            throw new AppError("Image Delete failed with Error Code: " + err);
-        };
-
-        await deleteImage(userImageList, onSuccess, onFail)
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);

@@ -1,0 +1,23 @@
+name: Deploy Draft Release on Production
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Current path
+        run: pwd
+
+      - name: Copy files via SSH on Server 1
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.TEST_HOST_1 }}
+          username: ${{ secrets.TEST_HOST_1_USERNAME}}
+          password: ${{ secrets.TEST_HOST_1_PASSWORD}}
+          source: "*"
+          target: /root/cicdtest

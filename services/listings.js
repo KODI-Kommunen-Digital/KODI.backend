@@ -5,8 +5,8 @@ const listingRepo = require("../repository/listings");
 const cityRepo = require("../repository/cities");
 const cityListingRepo = require("../repository/cityListing");
 
-const getAllListings = async function (pageNo, pageSize, reqSortByStartDate, reqStatusId, reqSubcategoryId, reqCategoryId, reqCityId, reqTranslate) {
-    const filters = {};
+const getAllListings = async function (pageNo, pageSize, reqSortByStartDate, reqStatusId, reqSubcategoryId, reqCategoryId, reqCityId, reqTranslate, reqShowExternalListings) {
+    const filters = [];
     let sortByStartDate = false;
     let cities = [];
 
@@ -47,7 +47,7 @@ const getAllListings = async function (pageNo, pageSize, reqSortByStartDate, req
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        filters.statusId = reqStatusId;
+        filters.push(`L.statusId = ${reqStatusId} `);
     }
 
     if (reqCategoryId) {
@@ -67,14 +67,14 @@ const getAllListings = async function (pageNo, pageSize, reqSortByStartDate, req
                         if (err instanceof AppError) throw err;
                         throw new AppError(err);
                     }
-                    filters.subcategoryId = reqSubcategoryId;
+                    filters.push(`L.subcategoryId = ${reqSubcategoryId} `);
                 }
             }
         } catch (err) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        filters.categoryId = reqCategoryId;
+        filters.push(`L.categoryId = ${reqCategoryId} `);
     }
 
     try {
@@ -92,6 +92,9 @@ const getAllListings = async function (pageNo, pageSize, reqSortByStartDate, req
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
+    }
+    if (reqShowExternalListings !== 'true') {
+        filters.push(`L.sourceId = 1 `);
     }
 
     try {

@@ -20,6 +20,7 @@ const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const bucketClient = require("../utils/bucketClient");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
+const sendPushNotification = require("../services/sendPushNotification");
 
 
 const DEFAULTIMAGE = "Defaultimage";
@@ -87,6 +88,7 @@ const createCityListing = async function (payload, cityId, userId, roleId, hasDe
             insertionData.media = payload.media;
         }
 
+        let subcategory = false;
         if (!payload.categoryId) {
             throw new AppError(`Category is not present`, 400);
         } else {
@@ -95,11 +97,18 @@ const createCityListing = async function (payload, cityId, userId, roleId, hasDe
                 throw new AppError(`Invalid Category '${payload.categoryId}' given`, 400);
             }
             insertionData.categoryId = payload.categoryId;
+            if (category.noOfSubcategories > 0) subcategory = true;
         }
 
         if (payload.subcategoryId) {
-            const subcategory = await cityListingRepo.getSubCategoryById(payload.subcategoryId, cityId);
             if (!subcategory) {
+                throw new AppError(
+                    `Invalid Sub Category. Category Id = '${payload.categoryId}' doesn't have a subcategory.`,
+                    400
+                );
+            }
+            const subcategoryData = await cityListingRepo.getSubCategoryById(payload.subcategoryId, cityId);
+            if (!subcategoryData) {
                 throw new AppError(`Invalid Sub Category '${payload.subcategoryId}' given`, 400);
             }
             insertionData.subcategoryId = payload.subcategoryId;
@@ -167,8 +176,19 @@ const createCityListing = async function (payload, cityId, userId, roleId, hasDe
         if (payload.zipcode) {
             insertionData.zipcode = payload.zipcode;
         }
-
+        insertionData.createdAt = getDateInFormate(new Date());
         try {
+            if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
+                if (payload.expiryDate) {
+                    insertionData.expiryDate = payload.expiryDate;
+                } else {
+                    insertionData.expiryDate = getDateInFormate(
+                        new Date(
+                            new Date(insertionData.createdAt).getTime() + 1000 * 60 * 60 * 24 * 14
+                        )
+                    );
+                }
+            }
             if (parseInt(payload.categoryId) === categories.Events) {
                 if (payload.startDate) {
                     insertionData.startDate = getDateInFormate(new Date(payload.startDate));
@@ -176,11 +196,6 @@ const createCityListing = async function (payload, cityId, userId, roleId, hasDe
                     throw new AppError(`Start date is not present`, 400);
                 }
 
-                if (
-                    parseInt(payload.subcategoryId) === subcategories.timelessNews
-                ) {
-                    throw new AppError(`Timeless News should not have an end date.`, 400);
-                }
                 if (payload.endDate) {
                     insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                     insertionData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
@@ -209,7 +224,6 @@ const createCityListing = async function (payload, cityId, userId, roleId, hasDe
                     delete user.password;
                     delete user.socialMedia;
                     delete user.emailVerified;
-                    delete user.socialMedia;
 
                     response = await userRepo.createCityUserWithTransaction(user, transaction);
 
@@ -227,6 +241,15 @@ const createCityListing = async function (payload, cityId, userId, roleId, hasDe
                 await addDefaultImageWithTransaction(cityId, listingId, payload.categoryId, transaction);
             }
 
+            if (parseInt(insertionData.categoryId) === categories.News &&
+                parseInt(insertionData.subcategoryId) === subcategories.newsflash &&
+                insertionData.statusId === status.Active &&
+                roleId === roles.Admin) {
+                await sendPushNotification.sendPushNotificationToAll("warnings", "Eilmeldung",
+                    insertionData.title,
+                    { cityId: cityId.toString(), "id": listingId.toString() }
+                )
+            }
             // commit both the transactions together to ensure atomicity
             await databaseUtil.commitTransaction(transaction);
             await databaseUtil.commitTransaction(heidiTransaction);
@@ -456,11 +479,89 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
     if (!currentListingData) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
     }
+    let subcategory = false;
+    updationData.updatedAt = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+    if (payload.categoryId) {
+        try {
+            const data = await cityListingRepo.getCategoryById(payload.categoryId, cityId);
+            if (!data) {
+                throw new AppError(`Invalid Category '${payload.categoryId}' given`, 400);
+            }
+            if (data.noOfSubcategories > 0) {
+                subcategory = true;
+            } else {
+                updationData.subcategoryId = null;
+                delete payload.subcategoryId;
+            }
+        } catch (err) {
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
+        }
+        updationData.categoryId = payload.categoryId;
+        try {
+            if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
+                if (payload.expiryDate) {
+                    updationData.expiryDate = getDateInFormate(new Date(payload.expiryDate));
+                } else {
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(updationData.updatedAt).getTime() + 1000 * 60 * 60 * 24 * 14));
+                }
+            }
 
-    if (
-        currentListingData.userId !== cityUserId &&
-        roleId !== roles.Admin
-    ) {
+            else if (parseInt(payload.categoryId) === categories.Events) {
+                if (payload.startDate) {
+                    updationData.startDate = getDateInFormate(new Date(payload.startDate));
+                } else {
+                    throw new AppError(`Start date is not present`, 400);
+                }
+                if (payload.endDate) {
+                    updationData.endDate = getDateInFormate(new Date(payload.endDate));
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+                } else {
+                    updationData.expiryDate = getDateInFormate(new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24));
+                }
+            } else {
+                updationData.expiryDate = null
+            }
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(`Invalid time format ${error}`, 400);
+        }
+        try {
+            const response = await listingRepo.getCityListingImage(id, cityId);
+            const hasDefaultImage = response && response.logo.startsWith("admin");
+            if (hasDefaultImage) {
+
+                await listingRepo.deleteListingImage(id, cityId);
+                await addDefaultImage(cityId, id, payload.categoryId);
+            }
+        } catch (err) {
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
+        }
+    }
+    if (payload.subcategoryId) {
+        if (!subcategory) {
+            throw new AppError(
+                `Invalid Sub Category. Category Id = '${payload.categoryId}' doesn't have a subcategory.`,
+                400
+            );
+        }
+        try {
+            const subcategory = await cityListingRepo.getSubCategoryById(payload.subcategoryId, cityId);
+            if (!subcategory) {
+                throw new AppError(`Invalid Sub Category '${payload.subcategoryId}' given`, 400);
+            }
+        } catch (err) {
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
+        }
+        updationData.subcategoryId = payload.subcategoryId;
+    }
+
+    if (currentListingData.userId !== cityUserId && roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
     if (payload.title) {
@@ -518,23 +619,6 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
     if (payload.logo && payload.removeImage) {
         throw new AppError(`Invalid Input, logo and removeImage both fields present`, 400);
     }
-    if (payload.logo) {
-        updationData.logo = payload.logo;
-    }
-    if (payload.removeImage) {
-        // await database.deleteData(
-        //     tables.LISTINGS_IMAGES_TABLE,
-        //     { listingId: id },
-        //     cityId
-        // );
-        // updationData.logo = null;
-    }
-    if (payload.categoryId) {
-        updationData.categoryId = payload.categoryId;
-    }
-    if (payload.subcategoryId) {
-        updationData.subcategoryId = payload.subcategoryId;
-    }
 
     if (payload.pdf && payload.removePdf) {
         throw new AppError(`Invalid Input, pdf and removePdf both fields present`, 400);
@@ -546,9 +630,7 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         updationData.pdf = null;
     }
 
-    if (payload.statusId !== currentListingData.statusId) {
-        if (roleId !== roles.Admin)
-            throw new AppError("You dont have access to change this option", 403);
+    if (payload.statusId !== currentListingData.statusId && roleId === roles.Admin) {
         try {
             const status = await cityListingRepo.getStatusById(payload.statusId, cityId);
             if (!status) {
@@ -559,40 +641,12 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-
-        if (parseInt(roleId) === roles.Admin)
-            updationData.statusId = payload.statusId;
-        else
-            throw new AppError("You dont have access to change this option", 403);
-
     }
     if (payload.longitude) {
         updationData.longitude = payload.longitude;
     }
     if (payload.latitude) {
         updationData.latitude = payload.latitude;
-    }
-
-    try {
-        if (payload.startDate) {
-            updationData.startDate = getDateInFormate(new Date(payload.startDate));
-        }
-
-        if (payload.endDate) {
-            if (parseInt(payload.subcategoryId) === subcategories.timelessNews) {
-                throw new AppError(`Timeless News should not have an end date.`, 400);
-            }
-            updationData.endDate = getDateInFormate(new Date(payload.endDate));
-            updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
-        }
-    } catch (err) {
-        if (err instanceof AppError) throw err;
-        throw new AppError(`Invalid time format ${err}`, 400);
-    }
-
-    const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 || payload.hasAttachment ? false : true;
-    if (hasDefaultImage) {
-        await addDefaultImage(cityId, id, payload.categoryId);
     }
 
     try {
@@ -749,7 +803,7 @@ const uploadPDFForCityListing = async function (listingId, cityId, userId, roleI
     }
 
     try {
-        const filePath = `user_${userId}/city_${cityId}_listing_${listingId}_PDF.pdf`;
+        const filePath = `user_${userId}/city_${cityId}_listing_${listingId}_${Date.now()}_PDF.pdf`;
         const { uploadStatus, objectKey } = await pdfUpload(
             pdf,
             filePath
@@ -864,6 +918,9 @@ const deletePDFForCityListing = async function (id, cityId, userId, roleId) {
     // The current user might not be in the city db
     const cityUserId = response ? response.cityUserId : null;
     const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
+    if (!currentListingData) {
+        throw new AppError(`Listing with id ${id} does not exist`, 404)
+    }
 
     if (
         currentListingData.userId !== cityUserId &&

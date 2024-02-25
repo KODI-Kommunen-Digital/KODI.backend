@@ -38,6 +38,19 @@ const getCityListingImage = async function (listingId, cityId) {
     return response.rows;
 }
 
+const deleteListingImage = async function (listingId, cityId) {
+    return await database.deleteData(tables.LISTINGS_IMAGES_TABLE,
+        { listingId },
+        cityId);
+}
+
+const deleteListingImageWithTransaction = async function (listingId, transaction) {
+    return await database.deleteDataWithTransaction(tables.LISTINGS_IMAGES_TABLE,
+        { listingId },
+        transaction
+    );
+}
+
 const getAllListingsWithFilters = async function (filters, cityId, pageNo, pageSize) {
     const response = await database.get(
         tables.LISTINGS_TABLE,
@@ -73,19 +86,10 @@ const getCityListingsWithFiltersAndPagination = async function (filters, pageNo,
         on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
         inner join users U 
         on U.id = UM.userId `;
-        if (filters.categoryId || filters.statusId) {
-            query += " WHERE ";
-            if (filters.categoryId) {
-                query += `L.categoryId = ${filters.categoryId} AND `;
-            }
-            if (filters.subcategoryId) {
-                query += `L.subcategoryId = ${filters.subcategoryId} AND `;
-            }
-            if (filters.statusId) {
-                query += `L.statusId = ${filters.statusId} AND `;
-            }
-            query = query.slice(0, -4);
-            query += `GROUP BY L.id,sub.logo, sub.logoCount,U.username, U.firstname, U.lastname, U.image`;
+        if (filters && filters.length > 0) {
+            query += "WHERE "
+            query += filters.join("AND ");
+            query += `GROUP BY L.id,sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
         }
         individualQueries.push(query);
     }
@@ -119,5 +123,7 @@ module.exports = {
     getAllListingsWithFilters,
     getCityListingsWithFiltersAndPagination,
     deleteListingForUserWithTransaction,
-    deleteUserListingMappingWithTransaction
+    deleteUserListingMappingWithTransaction,
+    deleteListingImage,
+    deleteListingImageWithTransaction,
 }

@@ -10,6 +10,7 @@ const getAllListings = async function (req, res, next) {
     const reqCategoryId = params.categoryId;
     const reqCityId = params.cityId;
     const reqTranslate = params.translate;
+    const reqShowExternalListings = params.showExternalListings;
     try {
         const listings = await listingService.getAllListings(
             pageNo,
@@ -19,7 +20,8 @@ const getAllListings = async function (req, res, next) {
             reqSubcategoryId,
             reqCategoryId,
             reqCityId,
-            reqTranslate
+            reqTranslate,
+            reqShowExternalListings
         );
         return res.status(200).json({
             status: "success",

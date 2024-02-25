@@ -370,15 +370,15 @@ const getUserListings = async function (req, res, next) {
 }
 
 const deleteUser = async function (req, res, next) {
-    const id = parseInt(req.params.id);
+    const userId = parseInt(req.params.id);
     try {
-        if (isNaN(Number(id)) || Number(id) <= 0) {
-            throw new AppError(`Invalid UserId ${id}`, 404);
+        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+            throw new AppError(`Invalid UserId ${userId}`, 404);
         }
-        if (id !== req.userId) {
+        if (userId !== req.userId) {
             throw new AppError(`You are not allowed to access this resource`, 403);
         }
-        await userService.deleteUser(id);
+        await userService.deleteUser(userId);
         res.status(200).json({
             status: "success",
         });
