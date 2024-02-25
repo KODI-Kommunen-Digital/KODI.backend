@@ -1,5 +1,5 @@
 const uncaughtException = require(`../emailTemplates/uncaughtException`);
-const database = require('../services/database');
+const database = require('../utils/database');
 const tables = require('../constants/tableNames');
 const axios = require("axios");
 const getDateInFormate = require("./getDateInFormate")

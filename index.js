@@ -18,6 +18,8 @@ const citizenServicesRouter = require("./routes/citizenServices");
 const contactUsRouter = require("./routes/contactUs");
 const moreInfoRouter = require("./routes/moreInfo");
 const fileUpload = require("express-fileupload");
+const swaggerUi = require('swagger-ui-express');
+const apiDocumentation = require('./docs/docRoot');
 
 // defining the Express app
 const app = express();
@@ -102,6 +104,9 @@ app.use(
     },
     cityListingsRouter
 );
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(apiDocumentation));
+
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
