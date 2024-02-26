@@ -35,3 +35,4 @@ jobs:
             cd ~/Testing/Backend
             npm install --production
             npm run lint .
+            pm2 restart API
