@@ -14,23 +14,44 @@ jobs:
       - name: Current path
         run: pwd
 
-      - name: Copy files via SSH on Server 1
+      - name: Copy files via SSH on Waldi Server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.TEST_HOST_1 }}
-          username: ${{ secrets.TEST_HOST_1_USERNAME}}
-          password: ${{ secrets.TEST_HOST_1_PASSWORD}}
+          host: ${{ secrets.WALDI_HOST_NAME }}
+          username: ${{ secrets.WALDI_USERNAME }}
+          password: ${{ secrets.WALDI_PASSWORD }}
           source: "*"
-          target: /root/Testing/KODI.backend
+          target: ${{ secrets.WALDI_APPDIR }}
 
-      - name: SSH to Prod Server and run commands
+      - name: SSH to Waldi Server and run commands
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.TEST_HOST_1 }}
-          username: ${{ secrets.TEST_HOST_1_USERNAME}}
-          password: ${{ secrets.TEST_HOST_1_PASSWORD}}
+          host: ${{ secrets.WALDI_HOST_NAME }}
+          username: ${{ secrets.secrets.WALDI_USERNAME }}
+          password: ${{ secrets.WALDI_PASSWORD }}
           script: |
-            cd /root/Testing/KODI.backend/
-            which npm
-            export PATH="$PATH:$(which npm)"
-            npm install
+            cd ${{ secrets.WALDI_APPDIR }}
+            npm install --production
+            npm run lint .
+            pm2 restart API
+
+      - name: Copy files via SSH on SmartRegionAuf Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SMART_HOST_NAME }}
+          username: ${{ secrets.SMART_USERNAME }}
+          password: ${{ secrets.SMART_PASSWORD }}
+          source: "*"
+          target: ${{ secrets.SMART_APPDIR }}
+
+      - name: SSH to SmartRegionAuf Server and run commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SMART_HOST_NAME }}
+          username: ${{ secrets.secrets.SMART_USERNAME }}
+          password: ${{ secrets.SMART_PASSWORD }}
+          script: |
+            cd ${{ secrets.SMART_APPDIR }}
+            npm install --production
+            npm run lint .
+            pm2 restart API
