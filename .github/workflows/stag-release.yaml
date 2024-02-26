@@ -22,7 +22,7 @@ jobs:
           port: 22
           password: ${{ secrets.TEST_HOST_1_PASSWORD}}
           source: "*"
-          target: ${{ secrets.TEST_HOST_APPDIR }}
+          target: ${{ secrets.TEST_HOST_1_APPDIR }}
 
       - name: Run commands on Server 1
         uses: appleboy/ssh-action@master
