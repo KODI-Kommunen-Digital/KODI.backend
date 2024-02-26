@@ -24,12 +24,15 @@ jobs:
           source: "*"
           target: /root/Testing/KODI.backend/
 
-      - name: SSH to Stag Server and run commands
+      - name: Run commands on Server 1
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.TEST_HOST_1 }}
-          username: ${{ secrets.TEST_HOST_1_USERNAME}}
-          password: ${{ secrets.TEST_HOST_1_PASSWORD}}
+          username: ${{ secrets.TEST_HOST_1_USERNAME }}
+          password: ${{ secrets.TEST_HOST_1_PASSWORD }}
+          port: 22
           script: |
-            cd /root/deployscript/testing/
-            sh backend.sh
+            cd ~/Testing/Backend
+            npm install --production
+            npm run lint .
+            pm2 restart API
