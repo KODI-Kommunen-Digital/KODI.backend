@@ -54,7 +54,7 @@ jobs:
             cd ${{ secrets.SMART_APPDIR }}
             npm install --production
             npm run lint .
-            pm2 restart API
+            pm2 restart SmaraufBackend
 
       - name: Copy files via SSH on Geseke Server
         uses: appleboy/scp-action@v0.1.7
