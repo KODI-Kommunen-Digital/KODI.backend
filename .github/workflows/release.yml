@@ -27,7 +27,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.WALDI_HOST_NAME }}
-          username: ${{ secrets.secrets.WALDI_USERNAME }}
+          username: ${{ secrets.WALDI_USERNAME }}
           password: ${{ secrets.WALDI_PASSWORD }}
           script: |
             cd ${{ secrets.WALDI_APPDIR }}
@@ -48,7 +48,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SMART_HOST_NAME }}
-          username: ${{ secrets.secrets.SMART_USERNAME }}
+          username: ${{ secrets.SMART_USERNAME }}
           password: ${{ secrets.SMART_PASSWORD }}
           script: |
             cd ${{ secrets.SMART_APPDIR }}
