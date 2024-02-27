@@ -72,7 +72,5 @@ jobs:
           username: ${{ secrets.GESEKE_USERNAME }}
           key: ${{ secrets.GESEKE_SSHKEY }}
           script: |
-            cd ${{ secrets.GESEKE_APPDIR }}
-            npm install --production
-            npm run lint .
-            pm2 restart API
+            cd /root/deployscript
+            sh backend.sh
