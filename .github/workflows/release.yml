@@ -55,3 +55,24 @@ jobs:
             npm install --production
             npm run lint .
             pm2 restart API
+
+      - name: Copy files via SSH on Geseke Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.GESEKE_HOST_NAME }}
+          username: ${{ secrets.GESEKE_USERNAME }}
+          key: ${{ secrets.GESEKE_SSHKEY }}
+          source: "*"
+          target: ${{ secrets.GESEKE_APPDIR }}
+    
+      - name: SSH to Geseke Server and run commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.GESEKE_HOST_NAME }}
+          username: ${{ secrets.GESEKE_USERNAME }}
+          key: ${{ secrets.GESEKE_SSHKEY }}
+          script: |
+            cd ${{ secrets.GESEKE_APPDIR }}
+            npm install --production
+            npm run lint .
+            pm2 restart API
