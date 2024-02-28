@@ -73,10 +73,6 @@ jobs:
           key: ${{ secrets.GESEKE_SSHKEY }}
           script: |
             cd ${{ secrets.GESEKE_APPDIR }}
-            NPM_PATH=$(command -v npm)
-            PM2_PATH=$(command -v pm2)
-            echo $NPM_PATH
-            echo $PM2_PATH
-            $NPM_PATH install --production
-            $NPM_PATH run lint .
-            $PM2_PATH restart API
+            /root/.nvm/versions/node/v18.18.2/bin/npm install --production
+            /root/.nvm/versions/node/v18.18.2/bin/npm run lint .
+            /root/.nvm/versions/node/v18.18.2/bin/pm2 restart API
