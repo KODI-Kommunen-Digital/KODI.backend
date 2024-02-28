@@ -5,7 +5,8 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 
 router.get("/", async function (req, res, next) {
-    database.get(tables.CITIZEN_SERVICES_TABLE)
+    const id = req.query.id;
+    database.get(tables.CITIZEN_SERVICES_TABLE, id?{ id }:null)
         .then((response) => {
             const data = response.rows;
             res.status(200).json({
