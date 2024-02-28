@@ -73,6 +73,8 @@ jobs:
           key: ${{ secrets.GESEKE_SSHKEY }}
           script: |
             cd ${{ secrets.GESEKE_APPDIR }}
-            npm install --production
-            npm run lint .
-            pm2 restart API
+            NPM_PATH=$(which npm)
+            PM2_PATH=$(which pm2)
+            $NPM_PATH install --production
+            $NPM_PATH run lint .
+            $PM2_PATH restart API
