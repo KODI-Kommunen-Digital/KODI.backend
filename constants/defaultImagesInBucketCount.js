@@ -16,7 +16,7 @@ if (process.env.APPLICATION === "WALDI") {
         Surveys: 0,
         Weather: 0,
         Offers: 9,
-        eatOrDrink:1
+        EatOrDrink:1
     };
 } else {
     module.exports = {
@@ -35,6 +35,6 @@ if (process.env.APPLICATION === "WALDI") {
         Surveys: 0,
         Weather: 0,
         Offers: 9,
-        eatOrDrink:1
+        EatOrDrink:1
     };
 }
