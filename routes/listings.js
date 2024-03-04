@@ -205,4 +205,115 @@ router.get("/", async function (req, res, next) {
     }
 });
 
+router.get("/search", async function (req, res, next) {
+    const params = req.query;
+    const filters = {};
+    let cityId;
+    const searchQuery = params.searchQuery;
+    let allListings = [];
+    if (params.cityId) {
+        cityId = params.cityId;
+        if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+            return next(new AppError(`Invalid City '${cityId}' given`, 404));
+        } else {
+            try {
+                const response = await database.get(tables.CITIES_TABLE, {
+                    id: cityId,
+                });
+                if (response.rows && response.rows.length === 0) {
+                    return next(new AppError(`Invalid City '${cityId}' given`, 404));
+                }
+            } catch (err) {
+                return next(new AppError(err));
+            }
+        }
+    }
+    if (params.statusId) {
+        try {
+            const response = await database.get(
+                tables.STATUS_TABLE,
+                { id: params.statusId }
+            );
+
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Status '${params.statusId}' given`, 400)
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.statusId = params.statusId;
+    }
+    if (params.categoryId) {
+        try {
+            const response = await database.get(
+                tables.CATEGORIES_TABLE,
+                { id: params.categoryId }
+            );
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.categoryId = params.categoryId;
+    }
+    let callQuery = `SELECT listings.*, 
+                GROUP_CONCAT(listing_images.logo ORDER BY listing_images.imageOrder) AS images
+                FROM listings 
+                LEFT JOIN listing_images ON listings.id = listing_images.listingId
+                WHERE (listings.title LIKE ? OR listings.description LIKE ?)`;
+    if (Object.keys(filters).length > 0) {
+        for (const key in filters) {
+            callQuery += ` AND listings.${key} = ${filters[key]}`
+        }
+    }
+    callQuery += ` GROUP BY listings.id;`;
+    if (!cityId) {
+        let cityNumber;
+        try {
+            const response = await database.get(tables.CITIES_TABLE);
+            cityNumber = response.rows.length;
+            for (let cityID = 1; cityID <= cityNumber; cityID++) {
+                const resp = await database.callQuery(callQuery, [`%${searchQuery}%`, `%${searchQuery}%`], cityID)
+                const rows = resp.rows;
+                const results = rows.map(row => {
+                    return {
+                        ...row,
+                        logo: row.images ? row.images.split(',')[0] : [],
+                        cityId: cityID
+                    };
+                });
+                allListings = allListings.concat(results);
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+    } else {
+        try {
+            const resp = await database.callQuery(callQuery, [`%${searchQuery}%`, `%${searchQuery}%`], cityId);
+            const rows = resp.rows;
+            const results = rows.map(row => {
+                return {
+                    ...row,
+                    logo: row.images ? row.images.split(',')[0] : [],
+                    cityId
+                };
+            });
+            allListings = allListings.concat(results);
+        } catch (error) {
+            return next(new AppError(error));
+        }
+    }
+    res.status(200).json({
+        status: "success",
+        data: allListings,
+    });
+});
+
 module.exports = router;
