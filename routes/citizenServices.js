@@ -5,7 +5,8 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 
 router.get("/", async function (req, res, next) {
-    database.get(tables.CITIZEN_SERVICES_TABLE)
+    const id = req.query.id;
+    database.get(tables.CITIZEN_SERVICES_TABLE, id?{ id }:null)
         .then((response) => {
             const data = response.rows;
             res.status(200).json({
@@ -18,8 +19,11 @@ router.get("/", async function (req, res, next) {
         });
 });
 
-router.get("/digitalManagement", async function (req, res, next) {
+router.get("/citizenServiceData", async function (req, res, next) {
     const cityId = req.query.cityId || null;
+    let citizenServiceId;
+    if(req.query.citizenServiceId)
+        citizenServiceId = req.query.citizenServiceId;
     let promise = null;
     if (cityId) {
         if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
@@ -34,9 +38,9 @@ router.get("/digitalManagement", async function (req, res, next) {
                 return next(new AppError(err));
             }
         }
-        promise = database.get(tables.DIGITAL_MANAGEMENT_TABLE, { cityId });
+        promise = database.get(tables.CITIZEN_SERVICES_DATA_TABLE, { cityId, citizenServiceId });
     } else {
-        promise = database.get(tables.DIGITAL_MANAGEMENT_TABLE);
+        promise = database.get(tables.CITIZEN_SERVICES_DATA_TABLE, {citizenServiceId} );
     }
 
     promise
