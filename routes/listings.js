@@ -285,7 +285,7 @@ router.get("/search", async function (req, res, next) {
                 const results = rows.map(row => {
                     return {
                         ...row,
-                        images: row.images ? row.images.split(',')[0] : [],
+                        logo: row.images ? row.images.split(',')[0] : [],
                         cityId: cityID
                     };
                 });
@@ -301,7 +301,7 @@ router.get("/search", async function (req, res, next) {
             const results = rows.map(row => {
                 return {
                     ...row,
-                    images: row.images ? row.images.split(',')[0] : [],
+                    logo: row.images ? row.images.split(',')[0] : [],
                     cityId
                 };
             });
