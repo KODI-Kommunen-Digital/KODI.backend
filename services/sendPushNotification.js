@@ -1,7 +1,6 @@
 const admin = require("firebase-admin");
-const database = require("./database");
-const tables = require("../constants/tableNames");
 const serviceAccount = process.env.FIREBASE_PRIVATE ? JSON.parse(process.env.FIREBASE_PRIVATE) : {};
+const firebaseRepo = require("../repository/firebase");
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
@@ -35,13 +34,13 @@ async function sendPushNotificationsToUser(userId, title="BreakingNews", body="C
         credential: admin.credential.cert(serviceAccount)
     }, "Test");
 
-    const response = await database.get(tables.FIREBASE_TOKEN, { userId });
-    if(!response || response.rows?.length === 0) {
-        return false
+    const tokens = await firebaseRepo.getTokensForUser(userId);
+    if (!tokens) {
+        return false;
     }
-    response.rows.map(async (token) => {
+    tokens.map(async (token) => {
         const message = {
-            token:token.firebaseToken,
+            token,
             notification: {
                 title,
                 body
@@ -50,7 +49,7 @@ async function sendPushNotificationsToUser(userId, title="BreakingNews", body="C
         }
         await firebaseAdmin.messaging().send(message)
     })
-    return true
+    return true;
 }
 
 module.exports = { sendPushNotificationToAll, sendPushNotificationsToUser }
