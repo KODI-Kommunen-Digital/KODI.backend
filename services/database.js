@@ -1,7 +1,17 @@
 const { getConnection } = require("./mysql");
 
 // In all these functions, if cityId is given, we connect to that city's database. Else, we connect to the core database
-async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, descending, joinFilterBy="AND") {
+async function get(
+    table,
+    filter,
+    columns,
+    cityId,
+    pageNo,
+    pageSize,
+    orderBy,
+    descending,
+    joinFilterBy = "AND"
+) {
     const connection = await getConnection(cityId);
     let query = `SELECT ${columns ? columns : "*"} FROM ${table} `;
     const queryParams = [];
@@ -9,7 +19,9 @@ async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, de
         query += "WHERE ";
         for (const key in filter) {
             if (Array.isArray(filter[key])) {
-                query += `${key} IN (${filter[key].map(() => "?").join(",")}) ${joinFilterBy} `;
+                query += `${key} IN (${filter[key]
+                    .map(() => "?")
+                    .join(",")}) ${joinFilterBy} `;
                 queryParams.push(...filter[key]);
             } else {
                 query += `${key} = ? ${joinFilterBy} `;
@@ -19,9 +31,9 @@ async function get(table, filter, columns, cityId, pageNo, pageSize, orderBy, de
         query = query.slice(0, -4);
     }
     if (orderBy) {
-        query += `order by ${orderBy.join(', ')} `
+        query += `order by ${orderBy.join(", ")} `;
         if (descending) {
-            query += `desc `
+            query += `desc `;
         }
     }
 
@@ -48,25 +60,31 @@ async function update(table, data, conditions, cityId) {
     connection.release();
 }
 
-async function deleteData(table, filter, cityId, joinFilterBy="AND") {
-    const connection = await getConnection(cityId);
-    let query = `DELETE FROM ${table} `;
-    const queryParams = [];
-    if (filter && Object.keys(filter).length > 0) {
-        query += "WHERE ";
-        for (const key in filter) {
-            if (Array.isArray(filter[key])) {
-                query += `${key} IN (${filter[key].map(() => "?").join(",")}) ${joinFilterBy} `;
-                queryParams.push(...filter[key]);
-            } else {
-                query += `${key} = ? ${joinFilterBy} `;
-                queryParams.push(filter[key]);
+async function deleteData(table, filter, cityId, joinFilterBy = "AND") {
+    try {
+        const connection = await getConnection(cityId);
+        let query = `DELETE FROM ${table} `;
+        const queryParams = [];
+        if (filter && Object.keys(filter).length > 0) {
+            query += "WHERE ";
+            for (const key in filter) {
+                if (Array.isArray(filter[key])) {
+                    query += `${key} IN (${filter[key]
+                        .map(() => "?")
+                        .join(",")}) ${joinFilterBy} `;
+                    queryParams.push(...filter[key]);
+                } else {
+                    query += `${key} = ? ${joinFilterBy} `;
+                    queryParams.push(filter[key]);
+                }
             }
+            query = query.slice(0, -4);
         }
-        query = query.slice(0, -4);
+        await connection.query(query, queryParams);
+        connection.release();
+    } catch (err) {
+        console.error("Error deleting from table", err)
     }
-    await connection.query(query, queryParams);
-    connection.release();
 }
 
 async function callStoredProcedure(spName, parameters, cityId) {
@@ -92,5 +110,5 @@ module.exports = {
     update,
     deleteData,
     callStoredProcedure,
-    callQuery
+    callQuery,
 };
