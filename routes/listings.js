@@ -205,4 +205,139 @@ router.get("/", async function (req, res, next) {
     }
 });
 
+router.get("/search", async function (req, res, next) {
+    const params = req.query;
+    const pageNo = params.pageNo || 1;
+    const pageSize = params.pageSize || 9;
+    const filters = [];
+    let cities = [];
+    let sortByStartDate = false;
+    const searchQuery = params.searchQuery;
+
+    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
+        return next(
+            new AppError(`Please enter a positive integer for pageNo`, 400)
+        );
+    }
+    if (
+        isNaN(Number(pageSize)) ||
+    Number(pageSize) <= 0 ||
+    Number(pageSize) > 20
+    ) {
+        return next(
+            new AppError(
+                `Please enter a positive integer less than or equal to 20 for pageSize`,
+                400
+            )
+        );
+    }
+
+    try {
+        if (params.cityId) {
+            const response = await database.get(
+                tables.CITIES_TABLE,
+                { id: params.cityId },
+                null
+            );
+            cities = response.rows;
+            if (cities && cities.length === 0) {
+                return next(
+                    new AppError(`Invalid CityId '${params.cityId}' given`, 400)
+                );
+            }
+        } else {
+            const response = await database.get(tables.CITIES_TABLE);
+            cities = response.rows;
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+    if (params.sortByStartDate) {
+        const sortByStartDateString = params.sortByStartDate.toString()
+        if (sortByStartDateString !== 'true' && sortByStartDateString !== 'false') {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            sortByStartDate = sortByStartDateString === 'true';
+        }
+    }
+    if (params.statusId) {
+        try {
+            const response = await database.get(
+                tables.STATUS_TABLE,
+                { id: params.statusId }
+            );
+
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Status '${params.statusId}' given`, 400)
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.push(`L.statusId = ${params.statusId} `);
+    }
+    if (params.categoryId) {
+        try {
+            const response = await database.get(
+                tables.CATEGORIES_TABLE,
+                { id: params.categoryId }
+            );
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
+        filters.push(`L.categoryId = ${params.categoryId} `);
+    }
+
+    const individualQueries = cities.map(city => {
+        let query = `SELECT L.*, 
+        IFNULL(sub.logo, '') as logo,
+        IFNULL(sub.logoCount, 0) as logoCount,
+        ${city.id} as cityId 
+        FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
+        LEFT JOIN 
+        (
+            SELECT 
+                listingId,
+                MIN(logo) as logo,
+                COUNT(listingId) as logoCount
+            FROM heidi_city_${city.id}.listing_images
+            GROUP BY listingId
+        ) sub ON L.id = sub.listingId
+        WHERE (L.title LIKE '%${searchQuery}%' OR L.description LIKE '%${searchQuery}%')`;
+
+        // Add filters to the query
+        if (filters.length > 0) {
+            query += ` AND ${filters.join(" AND ")}`;
+        }
+        query += ` GROUP BY L.id, sub.logo, sub.logoCount`;
+        return query;
+    });
+
+    const combinedQuery = `SELECT * FROM (${individualQueries.join(" UNION ALL ")}) AS combined 
+                            ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} 
+                            LIMIT ${(pageNo - 1) * pageSize}, ${pageSize}`;
+
+    try {
+        const response = await database.callQuery(combinedQuery);
+        const listings = response.rows;
+
+        res.json({
+            status: "success",
+            data: listings,
+        });
+    } catch (error) {
+        next(new Error(`An error occurred while fetching listings: ${error.message}`));
+    }
+});
+
 module.exports = router;
