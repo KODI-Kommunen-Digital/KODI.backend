@@ -32,9 +32,8 @@ const DEFAULTIMAGE = "Defaultimage";
 const checkDesc = (desc) => {
     const turndownService = new TurndownService()
     const markdown = turndownService.turndown(desc)
-    const stripedMarkdown = markdown.replace("[", "").replace("]", "")
     const converter = new showdown.Converter()
-    const html      = converter.makeHtml(stripedMarkdown)
+    const html      = converter.makeHtml(markdown)
     return html
 }
 
