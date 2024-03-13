@@ -46,6 +46,11 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.statusId) {
+        if (!Number(params.statusId)){
+            return next(
+                new AppError(`Invalid Status '${params.statusId}' given`, 400)
+            );
+        }
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -66,6 +71,11 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.categoryId) {
+        if (!Number(params.categoryId)){
+            return next(
+                new AppError(`Invalid category '${params.categoryId}' given`, 400)
+            );
+        }
         try {
             let response = await database.get(
                 tables.CATEGORIES_TABLE,
@@ -81,6 +91,11 @@ router.get("/", async function (req, res, next) {
                 queryFilters += ` AND L.categoryId = ? `;
                 queryFilterParams.push(Number(params.categoryId));
                 if (params.subcategoryId) {
+                    if (!Number(params.subcategoryId)){
+                        return next(
+                            new AppError(`Invalid Subcategory '${params.subcategoryId}' given`, 400)
+                        );
+                    }
                     try {
                         response = database.get(tables.SUBCATEGORIES_TABLE, {
                             categoryId: params.categoryId,
@@ -108,6 +123,11 @@ router.get("/", async function (req, res, next) {
 
     try {
         if (params.cityId) {
+            if (!Number(params.cityId)){
+                return next(
+                    new AppError(`Invalid City '${params.cityId}' given`, 400)
+                );
+            }
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
