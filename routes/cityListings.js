@@ -24,8 +24,19 @@ const getPdfImage = require("../utils/getPdfImage");
 const sendPushNotification = require("../services/sendPushNotification");
 
 // const radiusSearch = require('../services/handler')
+const TurndownService = require('turndown')
+const showdown  = require('showdown')
 
 const DEFAULTIMAGE = "Defaultimage";
+
+const checkDesc = (desc) => {
+    const turndownService = new TurndownService()
+    const markdown = turndownService.turndown(desc)
+    const stripedMarkdown = markdown.replace("[", "").replace("]", "").replace("!", "")
+    const converter = new showdown.Converter()
+    const html      = converter.makeHtml(stripedMarkdown)
+    return html
+}
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -365,7 +376,8 @@ router.post("/", authentication, async function (req, res, next) {
             new AppError(`Length of Description cannot exceed 65535 characters`, 400)
         );
     } else {
-        insertionData.description = payload.description;
+        
+        insertionData.description = checkDesc(payload.description);
     }
     if (payload.media) {
         insertionData.media = payload.media;
