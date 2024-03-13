@@ -8,11 +8,13 @@ const deepl = require("deepl-node");
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
-    const pageNo = params.pageNo || 1;
-    const pageSize = params.pageSize || 9;
-    const filters = [];
+    const pageNo = Number(params.pageNo) || 1;
+    const pageSize = Number(params.pageSize) || 9;
+    // const filters = [];
     let sortByStartDate = false;
     let cities = [];
+    const queryFilterParams = [];
+    let queryFilters = '';
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
@@ -59,7 +61,8 @@ router.get("/", async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.push(`L.statusId = ${params.statusId} `);
+        queryFilters += ` AND L.statusId = ? `;
+        queryFilterParams.push(Number(params.statusId));
     }
 
     if (params.categoryId) {
@@ -75,6 +78,8 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid Category '${params.categoryId}' given`, 400)
                 );
             } else {
+                queryFilters += ` AND L.categoryId = ? `;
+                queryFilterParams.push(Number(params.categoryId));
                 if (params.subcategoryId) {
                     try {
                         response = database.get(tables.SUBCATEGORIES_TABLE, {
@@ -92,13 +97,13 @@ router.get("/", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.push(`L.subcategoryId = ${params.subcategoryId} `);
+                    queryFilters += ` AND L.subcategoryId = ? `;
+                    queryFilterParams.push(Number(params.subcategoryId));
                 }
             }
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.push(`L.categoryId = ${params.categoryId} `);
     }
 
     try {
@@ -123,18 +128,19 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.showExternalListings !== 'true') {
-        filters.push(`L.sourceId = 1 `);
+        queryFilters += ` AND L.sourceId = 1 `;
     }
 
     try {
         const individualQueries = [];
+        const queryParams = [];
         for (const city of cities) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT L.*, 
+            const cityQuery = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
-            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${city.id} as cityId 
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ? as cityId 
             FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
             LEFT JOIN 
             (
@@ -145,21 +151,18 @@ router.get("/", async function (req, res, next) {
                 FROM heidi_city_${city.id}.listing_images
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId 
-			inner join
-            user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
-			inner join users U on U.id = UM.userId `;
-            if (filters && filters.length > 0) {
-                query += "WHERE "
-                query += filters.join("AND ");
-                query += `GROUP BY L.id,sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
-            }
-            individualQueries.push(query);
+            inner join user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ?
+            inner join users U on U.id = UM.userId
+            WHERE 1=1 ${queryFilters}
+            GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
+            individualQueries.push(cityQuery);
+            queryParams.push(city.id, city.id , ...queryFilterParams);
         }
-
-        const query = `select * from (
-                ${individualQueries.join(" union all ")}
-            ) a order by ${sortByStartDate ?  "startDate, createdAt" : "createdAt desc"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
-        const response = await database.callQuery(query); 
+        const paginationParams = [((pageNo - 1) * pageSize), pageSize];
+        const fullQuery = `select * from (${individualQueries.join(" union all ")}) AS combined 
+        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt desc"} LIMIT ?, ?;`;
+        const finalQueryParams = queryParams.concat(paginationParams);
+        const response = await database.callQuery(fullQuery, finalQueryParams);
         const listings = response.rows;
         const noOfListings = listings.length;
 
