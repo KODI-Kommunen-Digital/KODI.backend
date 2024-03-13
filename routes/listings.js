@@ -8,11 +8,13 @@ const deepl = require("deepl-node");
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
-    const pageNo = params.pageNo || 1;
-    const pageSize = params.pageSize || 9;
-    const filters = [];
+    const pageNo = Number(params.pageNo) || 1;
+    const pageSize = Number(params.pageSize) || 9;
+    // const filters = [];
     let sortByStartDate = false;
     let cities = [];
+    const queryFilterParams = [];
+    let queryFilters = '';
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
@@ -44,6 +46,11 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.statusId) {
+        if (!Number(params.statusId)){
+            return next(
+                new AppError(`Invalid Status '${params.statusId}' given`, 400)
+            );
+        }
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -59,10 +66,16 @@ router.get("/", async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.push(`L.statusId = ${params.statusId} `);
+        queryFilters += ` AND L.statusId = ? `;
+        queryFilterParams.push(Number(params.statusId));
     }
 
     if (params.categoryId) {
+        if (!Number(params.categoryId)){
+            return next(
+                new AppError(`Invalid category '${params.categoryId}' given`, 400)
+            );
+        }
         try {
             let response = await database.get(
                 tables.CATEGORIES_TABLE,
@@ -75,7 +88,14 @@ router.get("/", async function (req, res, next) {
                     new AppError(`Invalid Category '${params.categoryId}' given`, 400)
                 );
             } else {
+                queryFilters += ` AND L.categoryId = ? `;
+                queryFilterParams.push(Number(params.categoryId));
                 if (params.subcategoryId) {
+                    if (!Number(params.subcategoryId)){
+                        return next(
+                            new AppError(`Invalid Subcategory '${params.subcategoryId}' given`, 400)
+                        );
+                    }
                     try {
                         response = database.get(tables.SUBCATEGORIES_TABLE, {
                             categoryId: params.categoryId,
@@ -92,17 +112,22 @@ router.get("/", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.push(`L.subcategoryId = ${params.subcategoryId} `);
+                    queryFilters += ` AND L.subcategoryId = ? `;
+                    queryFilterParams.push(Number(params.subcategoryId));
                 }
             }
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.push(`L.categoryId = ${params.categoryId} `);
     }
 
     try {
         if (params.cityId) {
+            if (!Number(params.cityId)){
+                return next(
+                    new AppError(`Invalid City '${params.cityId}' given`, 400)
+                );
+            }
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
@@ -123,18 +148,19 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.showExternalListings !== 'true') {
-        filters.push(`L.sourceId = 1 `);
+        queryFilters += ` AND L.sourceId = 1 `;
     }
 
     try {
         const individualQueries = [];
+        const queryParams = [];
         for (const city of cities) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            let query = `SELECT L.*, 
+            const cityQuery = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
-            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${city.id} as cityId 
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ? as cityId 
             FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
             LEFT JOIN 
             (
@@ -145,21 +171,18 @@ router.get("/", async function (req, res, next) {
                 FROM heidi_city_${city.id}.listing_images
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId 
-			inner join
-            user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${city.id}
-			inner join users U on U.id = UM.userId `;
-            if (filters && filters.length > 0) {
-                query += "WHERE "
-                query += filters.join("AND ");
-                query += `GROUP BY L.id,sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
-            }
-            individualQueries.push(query);
+            inner join user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ?
+            inner join users U on U.id = UM.userId
+            WHERE 1=1 ${queryFilters}
+            GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
+            individualQueries.push(cityQuery);
+            queryParams.push(city.id, city.id , ...queryFilterParams);
         }
-
-        const query = `select * from (
-                ${individualQueries.join(" union all ")}
-            ) a order by ${sortByStartDate ?  "startDate, createdAt" : "createdAt desc"} LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
-        const response = await database.callQuery(query); 
+        const paginationParams = [((pageNo - 1) * pageSize), pageSize];
+        const fullQuery = `select * from (${individualQueries.join(" union all ")}) AS combined 
+        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt desc"} LIMIT ?, ?;`;
+        const finalQueryParams = queryParams.concat(paginationParams);
+        const response = await database.callQuery(fullQuery, finalQueryParams);
         const listings = response.rows;
         const noOfListings = listings.length;
 
@@ -207,25 +230,59 @@ router.get("/", async function (req, res, next) {
 
 router.get("/search", async function (req, res, next) {
     const params = req.query;
-    const filters = {};
-    let cityId;
+    const pageNo = params.pageNo || 1;
+    const pageSize = params.pageSize || 9;
+    const filters = [];
+    let cities = [];
+    let sortByStartDate = false;
     const searchQuery = params.searchQuery;
-    let allListings = [];
-    if (params.cityId) {
-        cityId = params.cityId;
-        if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-            return next(new AppError(`Invalid City '${cityId}' given`, 404));
-        } else {
-            try {
-                const response = await database.get(tables.CITIES_TABLE, {
-                    id: cityId,
-                });
-                if (response.rows && response.rows.length === 0) {
-                    return next(new AppError(`Invalid City '${cityId}' given`, 404));
-                }
-            } catch (err) {
-                return next(new AppError(err));
+
+    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
+        return next(
+            new AppError(`Please enter a positive integer for pageNo`, 400)
+        );
+    }
+    if (
+        isNaN(Number(pageSize)) ||
+    Number(pageSize) <= 0 ||
+    Number(pageSize) > 20
+    ) {
+        return next(
+            new AppError(
+                `Please enter a positive integer less than or equal to 20 for pageSize`,
+                400
+            )
+        );
+    }
+
+    try {
+        if (params.cityId) {
+            const response = await database.get(
+                tables.CITIES_TABLE,
+                { id: params.cityId },
+                null
+            );
+            cities = response.rows;
+            if (cities && cities.length === 0) {
+                return next(
+                    new AppError(`Invalid CityId '${params.cityId}' given`, 400)
+                );
             }
+        } else {
+            const response = await database.get(tables.CITIES_TABLE);
+            cities = response.rows;
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+    if (params.sortByStartDate) {
+        const sortByStartDateString = params.sortByStartDate.toString()
+        if (sortByStartDateString !== 'true' && sortByStartDateString !== 'false') {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            sortByStartDate = sortByStartDateString === 'true';
         }
     }
     if (params.statusId) {
@@ -244,7 +301,7 @@ router.get("/search", async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.statusId = params.statusId;
+        filters.push(`L.statusId = ${params.statusId} `);
     }
     if (params.categoryId) {
         try {
@@ -261,59 +318,49 @@ router.get("/search", async function (req, res, next) {
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.categoryId = params.categoryId;
+        filters.push(`L.categoryId = ${params.categoryId} `);
     }
-    let callQuery = `SELECT listings.*, 
-                GROUP_CONCAT(listing_images.logo ORDER BY listing_images.imageOrder) AS images
-                FROM listings 
-                LEFT JOIN listing_images ON listings.id = listing_images.listingId
-                WHERE (listings.title LIKE ? OR listings.description LIKE ?)`;
-    if (Object.keys(filters).length > 0) {
-        for (const key in filters) {
-            callQuery += ` AND listings.${key} = ${filters[key]}`
+
+    const individualQueries = cities.map(city => {
+        let query = `SELECT L.*, 
+        IFNULL(sub.logo, '') as logo,
+        IFNULL(sub.logoCount, 0) as logoCount,
+        ${city.id} as cityId 
+        FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
+        LEFT JOIN 
+        (
+            SELECT 
+                listingId,
+                MIN(logo) as logo,
+                COUNT(listingId) as logoCount
+            FROM heidi_city_${city.id}.listing_images
+            GROUP BY listingId
+        ) sub ON L.id = sub.listingId
+        WHERE (L.title LIKE '%${searchQuery}%' OR L.description LIKE '%${searchQuery}%')`;
+
+        // Add filters to the query
+        if (filters.length > 0) {
+            query += ` AND ${filters.join(" AND ")}`;
         }
-    }
-    callQuery += ` GROUP BY listings.id;`;
-    if (!cityId) {
-        let cityNumber;
-        try {
-            const response = await database.get(tables.CITIES_TABLE);
-            cityNumber = response.rows.length;
-            for (let cityID = 1; cityID <= cityNumber; cityID++) {
-                const resp = await database.callQuery(callQuery, [`%${searchQuery}%`, `%${searchQuery}%`], cityID)
-                const rows = resp.rows;
-                const results = rows.map(row => {
-                    return {
-                        ...row,
-                        logo: row.images ? row.images.split(',')[0] : [],
-                        cityId: cityID
-                    };
-                });
-                allListings = allListings.concat(results);
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-    } else {
-        try {
-            const resp = await database.callQuery(callQuery, [`%${searchQuery}%`, `%${searchQuery}%`], cityId);
-            const rows = resp.rows;
-            const results = rows.map(row => {
-                return {
-                    ...row,
-                    logo: row.images ? row.images.split(',')[0] : [],
-                    cityId
-                };
-            });
-            allListings = allListings.concat(results);
-        } catch (error) {
-            return next(new AppError(error));
-        }
-    }
-    res.status(200).json({
-        status: "success",
-        data: allListings,
+        query += ` GROUP BY L.id, sub.logo, sub.logoCount`;
+        return query;
     });
+
+    const combinedQuery = `SELECT * FROM (${individualQueries.join(" UNION ALL ")}) AS combined 
+                            ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} 
+                            LIMIT ${(pageNo - 1) * pageSize}, ${pageSize}`;
+
+    try {
+        const response = await database.callQuery(combinedQuery);
+        const listings = response.rows;
+
+        res.json({
+            status: "success",
+            data: listings,
+        });
+    } catch (error) {
+        next(new Error(`An error occurred while fetching listings: ${error.message}`));
+    }
 });
 
 module.exports = router;
