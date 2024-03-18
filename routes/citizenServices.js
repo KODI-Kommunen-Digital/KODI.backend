@@ -38,9 +38,9 @@ router.get("/citizenServiceData", async function (req, res, next) {
                 return next(new AppError(err));
             }
         }
-        promise = database.get(tables.CITIZEN_SERVICES_DATA_TABLE, { cityId, citizenServiceId });
+        promise = database.get(tables.CITIZEN_SERVICES_DATA_TABLE, { cityId, citizenServiceId },null, null, null, null, ["title"]);
     } else {
-        promise = database.get(tables.CITIZEN_SERVICES_DATA_TABLE, {citizenServiceId} );
+        promise = database.get(tables.CITIZEN_SERVICES_DATA_TABLE, {citizenServiceId},null, null, null, null, ["title"]);
     }
 
     promise
