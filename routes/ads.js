@@ -14,14 +14,16 @@ router.get("/", async function (req, res, next) {
                 return next(new AppError("Invalid CityID given"));
             }
         }
-        const query = `SELECT * FROM ${tables.ADVERTISEMENTS} WHERE cityId IS NULL`
-        const response = await database.callQuery(query)
-        let data = response.rows
+        let data
         
         if(filter.cityId){
-            const data2 = await database
-                .get(tables.ADVERTISEMENTS, filter)
-            data = [...data, ...data2.rows]
+            const query = `SELECT * FROM ${tables.ADVERTISEMENTS} WHERE cityId IS NULL OR cityId = ${filter.cityId}`
+            const response = await database.callQuery(query)
+            data = response.rows
+        } else {
+            const query = `SELECT * FROM ${tables.ADVERTISEMENTS} WHERE cityId IS NULL`
+            const response = await database.callQuery(query)
+            data = response.rows
         }
         const dataReturn = data[(Math.floor(Math.random() * data.length))]
         res.status(200).json({
