@@ -17,6 +17,7 @@ const statusRouter = require("./routes/status");
 const citizenServicesRouter = require("./routes/citizenServices");
 const contactUsRouter = require("./routes/contactUs");
 const moreInfoRouter = require("./routes/moreInfo");
+const advertisement = require("./routes/ads")
 const fileUpload = require("express-fileupload");
 
 // defining the Express app
@@ -102,6 +103,7 @@ app.use(
     },
     cityListingsRouter
 );
+app.use("/ads", advertisement)
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
