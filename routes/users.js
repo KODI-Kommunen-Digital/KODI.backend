@@ -318,6 +318,12 @@ router.get("/:id", async function (req, res, next) {
         if (!cityId) {
             return next(new AppError(`City id not given`, 400));
         }
+        
+        if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+            next(new AppError(`Invalid cityId ${cityId}`, 404));
+            return;
+        }
+        
         try {
             const { rows } = await database.get(tables.CITIES_TABLE, {
                 id: cityId,
