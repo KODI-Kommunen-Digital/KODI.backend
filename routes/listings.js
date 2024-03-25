@@ -46,11 +46,12 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.statusId) {
-        if (!Number(params.statusId)){
-            return next(
-                new AppError(`Invalid Status '${params.statusId}' given`, 400)
-            );
+
+        if (isNaN(Number(params.statusId)) || Number(params.statusId) <= 0) {
+            next(new AppError(`Invalid status ${params.statusId}`, 400));
+            return;
         }
+
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -71,11 +72,12 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.categoryId) {
-        if (!Number(params.categoryId)){
-            return next(
-                new AppError(`Invalid category '${params.categoryId}' given`, 400)
-            );
+
+        if (isNaN(Number(params.categoryId)) || Number(params.categoryId) <= 0) {
+            next(new AppError(`Invalid category ${params.categoryId}`, 400));
+            return;
         }
+
         try {
             let response = await database.get(
                 tables.CATEGORIES_TABLE,
@@ -123,11 +125,13 @@ router.get("/", async function (req, res, next) {
 
     try {
         if (params.cityId) {
-            if (!Number(params.cityId)){
+
+            if (isNaN(Number(params.cityId)) || Number(params.cityId) <= 0) {
                 return next(
                     new AppError(`Invalid City '${params.cityId}' given`, 400)
                 );
             }
+
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: params.cityId },
