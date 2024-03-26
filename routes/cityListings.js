@@ -610,7 +610,7 @@ router.post("/", authentication, async function (req, res, next) {
             await sendPushNotification.sendPushNotificationToAll(
                 "warnings",
                 "Eilmeldung",
-                insertionData.title,
+                city.name + " - "+insertionData.title,
                 { cityId: cityId.toString(), id: listingId.toString() }
             );
         }
