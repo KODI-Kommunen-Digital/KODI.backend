@@ -16,12 +16,12 @@ router.get("/", async function (req, res, next) {
         }
         let data
         
-        if(filter.cityId){
-            const query = `SELECT * FROM ${tables.ADVERTISEMENTS} WHERE cityId IS NULL OR cityId = ${filter.cityId}`
-            const response = await database.callQuery(query)
+        if(filter.cityId && Number(filter.cityId) && !isNaN(Number(filter.cityId))){
+            const query = `SELECT id, cityId, image, link, createdAt FROM ${tables.ADVERTISEMENTS} WHERE (cityId IS NULL OR cityId = ?) AND enabled = True`
+            const response = await database.callQuery(query, [Number(filter.cityId)])
             data = response.rows
         } else {
-            const query = `SELECT * FROM ${tables.ADVERTISEMENTS} WHERE cityId IS NULL`
+            const query = `SELECT id, cityId, image, link, createdAt FROM ${tables.ADVERTISEMENTS} WHERE cityId IS NULL AND enabled = True`
             const response = await database.callQuery(query)
             data = response.rows
         }
