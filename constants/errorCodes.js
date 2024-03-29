@@ -13,6 +13,7 @@ module.exports = {
     USER_ALREADY_EXISTS: 2005,
     EMAIL_NOT_VERIFIED: 2006,
     EMAIL_ALREADY_EXISTS: 2007,
+    SAME_PASSWORD_GIVEN: 2008,
     DATABASE_ERROR: 5000
 
     // Add more custom error codes as needed

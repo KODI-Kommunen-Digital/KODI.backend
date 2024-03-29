@@ -433,18 +433,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 )
             );
         }
-        if (
-            !bcrypt.compare(payload.currentPassword, currentUserData.password)
-        ) {
-            return next(new AppError(`Incorrect current password given`, 401));
+        const currentPasswordCorrect = await bcrypt.compare(payload.currentPassword, currentUserData.password)
+        if (!currentPasswordCorrect) {
+            return next(new AppError(`Incorrect current password given`, 401, errorCodes.INVALID_PASSWORD));
         }
+
         const passwordCheck = await bcrypt.compare(
             payload.newPassword,
             currentUserData.password
         );
         if(passwordCheck){
-            return next(new AppError(`New password should not be same as the old password`, 400));
+            return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.SAME_PASSWORD_GIVEN));
         }
+
         updationData.password = await bcrypt.hash(
             payload.newPassword,
             Number(process.env.SALT)
@@ -1312,7 +1313,7 @@ router.post(
         const refreshToken = req.body.refreshToken;
         if (userId !== req.userId) {
             return next(
-                new AppError("You are not allowed to access this resource")
+                new AppError("You are not allowed to access this resource", 401)
             );
         }
         database
@@ -1339,6 +1340,11 @@ router.delete(
     async function (req, res, next) {
         const userId = parseInt(req.params.id);
         const id = req.query.id;
+        if (userId !== req.userId) {
+            return next(
+                new AppError("You are not allowed to access this resource", 401)
+            );
+        }
         if (!id) {
             database
                 .deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
