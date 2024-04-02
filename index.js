@@ -19,6 +19,7 @@ const contactUsRouter = require("./routes/contactUs");
 const moreInfoRouter = require("./routes/moreInfo");
 const advertisement = require("./routes/ads")
 const fileUpload = require("express-fileupload");
+const headers = require("./middlewares/headers")
 
 // defining the Express app
 const app = express();
@@ -39,6 +40,8 @@ app.use(cors());
 
 // adding morgan to log HTTP requests
 app.use(morgan("combined"));
+
+app.use(headers)
 
 app.use(
     fileUpload({

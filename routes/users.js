@@ -318,6 +318,12 @@ router.get("/:id", async function (req, res, next) {
         if (!cityId) {
             return next(new AppError(`City id not given`, 400));
         }
+        
+        if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+            next(new AppError(`Invalid cityId ${cityId}`, 404));
+            return;
+        }
+        
         try {
             const { rows } = await database.get(tables.CITIES_TABLE, {
                 id: cityId,
@@ -427,18 +433,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 )
             );
         }
-        if (
-            !bcrypt.compare(payload.currentPassword, currentUserData.password)
-        ) {
-            return next(new AppError(`Incorrect current password given`, 401));
+        const currentPasswordCorrect = await bcrypt.compare(payload.currentPassword, currentUserData.password)
+        if (!currentPasswordCorrect) {
+            return next(new AppError(`Incorrect current password given`, 401, errorCodes.INVALID_PASSWORD));
         }
+
         const passwordCheck = await bcrypt.compare(
             payload.newPassword,
             currentUserData.password
         );
         if(passwordCheck){
-            return next(new AppError(`New password should not be same as the old password`, 400));
+            return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.SAME_PASSWORD_GIVEN));
         }
+
         updationData.password = await bcrypt.hash(
             payload.newPassword,
             Number(process.env.SALT)
@@ -727,6 +734,14 @@ router.get("/:id/listings", async function (req, res, next) {
     }
 
     if (req.query.statusId) {
+        const statusId = req.query.statusId;
+        
+        // check status id is valid or not before passing it into the query
+        if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
+            next(new AppError(`Invalid status ${statusId}`, 400));
+            return;
+        }
+
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -749,35 +764,51 @@ router.get("/:id/listings", async function (req, res, next) {
     }
 
     if (req.query.categoryId) {
+
+        const categoryId = req.query.categoryId;
+        // check category id is valid or not before passing it into the query
+        if (isNaN(Number(categoryId)) || Number(categoryId) <= 0) {
+            next(new AppError(`Invalid category ${categoryId}`, 400));
+            return;
+        }
+
         try {
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: req.query.categoryId },
+                { id: categoryId },
                 null
             );
             const data = response.rows;
             if (data && data.length === 0) {
                 return next(
                     new AppError(
-                        `Invalid Category '${req.query.categoryId}' given`,
+                        `Invalid Category '${categoryId}' given`,
                         400
                     )
                 );
             } else {
                 if (req.query.subcategoryId) {
+
+                    const subcategoryId = req.query.subcategoryId;
+                    // check subcategory id is valid or not before passing it into the query
+                    if (isNaN(Number(subcategoryId)) || Number(subcategoryId) <= 0) {
+                        next(new AppError(`Invalid subcategory ${subcategoryId}`, 400));
+                        return;
+                    }
+
                     try {
                         const response = database.get(
                             tables.SUBCATEGORIES_TABLE,
                             {
-                                categoryId: req.query.categoryId,
-                                id: req.query.subcategoryId,
+                                categoryId,
+                                id: subcategoryId,
                             }
                         );
                         const data = response.rows;
                         if (data && data.length === 0) {
                             return next(
                                 new AppError(
-                                    `Invalid subCategory '${req.query.subcategoryId}' given`,
+                                    `Invalid subCategory '${subcategoryId}' given`,
                                     400
                                 )
                             );
@@ -785,13 +816,13 @@ router.get("/:id/listings", async function (req, res, next) {
                     } catch (err) {
                         return next(new AppError(err));
                     }
-                    filters.subcategoryId = req.query.subcategoryId;
+                    filters.subcategoryId = subcategoryId;
                 }
             }
         } catch (err) {
             return next(new AppError(err));
         }
-        filters.categoryId = req.query.categoryId;
+        filters.categoryId = categoryId;
     }
 
     try {
@@ -1283,7 +1314,7 @@ router.post(
         const refreshToken = req.body.refreshToken;
         if (userId !== req.userId) {
             return next(
-                new AppError("You are not allowed to access this resource")
+                new AppError("You are not allowed to access this resource", 401)
             );
         }
         database
@@ -1310,6 +1341,11 @@ router.delete(
     async function (req, res, next) {
         const userId = parseInt(req.params.id);
         const id = req.query.id;
+        if (userId !== req.userId) {
+            return next(
+                new AppError("You are not allowed to access this resource", 401)
+            );
+        }
         if (!id) {
             database
                 .deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
