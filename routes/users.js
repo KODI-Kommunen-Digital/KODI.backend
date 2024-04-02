@@ -735,7 +735,6 @@ router.get("/:id/listings", async function (req, res, next) {
     if (req.query.statusId) {
         const statusId = req.query.statusId;
         
-        // check status id is valid or not before passing it into the query
         if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
             next(new AppError(`Invalid status ${statusId}`, 400));
             return;
@@ -765,7 +764,6 @@ router.get("/:id/listings", async function (req, res, next) {
     if (req.query.categoryId) {
 
         const categoryId = req.query.categoryId;
-        // check category id is valid or not before passing it into the query
         if (isNaN(Number(categoryId)) || Number(categoryId) <= 0) {
             next(new AppError(`Invalid category ${categoryId}`, 400));
             return;
