@@ -153,7 +153,7 @@ router.get("/", async function (req, res, next) {
 
     if (params.appointmentId && JSON.parse(params.appointmentId) && Array.isArray(JSON.parse(params.appointmentId))) {
         queryFilters += ` AND L.appointmentId IN (?)`;
-        queryFilterParams.push(JSON.parse(params.appointmentId).toString())
+        queryFilterParams.push(JSON.parse(params.appointmentId).map(Number))
 
     }
 
