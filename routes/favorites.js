@@ -102,12 +102,26 @@ router.get("/listings", authentication, async function (req, res, next) {
         listings = [];
         for (const cityId in favDict) {
             listingFilter.id = favDict[cityId];
-            response = await database.get(
-                tables.LISTINGS_TABLE,
-                listingFilter,
-                null,
-                cityId
-            );
+
+            const query = `SELECT L.*, 
+            IFNULL(sub.logo, '') as logo,
+            IFNULL(sub.logoCount, 0) as logoCount,
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${cityId} as cityId 
+            FROM heidi_city_${cityId}.listings L
+            LEFT JOIN 
+            (
+                SELECT 
+                    listingId,
+                    MIN(logo) as logo,
+                    COUNT(listingId) as logoCount
+                FROM heidi_city_${cityId}.listing_images
+                GROUP BY listingId
+            ) sub ON L.id = sub.listingId 
+            inner join user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${cityId}
+            inner join users U on U.id = UM.userId
+            WHERE 1=1 AND L.id IN (${listingFilter.id.join()}) ${listingFilter.categoryId ? "AND L.categoryId = ? " : ""}
+            GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`
+            response = await database.callQuery(query, listingFilter.categoryId ? listingFilter.categoryId : null , null)
             response.rows.forEach((l) => (l.cityId = cityId));
             listings.push(...response.rows);
         }
