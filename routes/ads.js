@@ -31,7 +31,9 @@ router.get("/", async function (req, res, next) {
 
         const dataReturn = data[(Math.floor(Math.random() * data.length))]
 
-        await database.update(tables.ADVERTISEMENTS, { lastShown: currentDate}, { id: dataReturn.id })
+        if(dataReturn) {
+            await database.update(tables.ADVERTISEMENTS, { lastShown: currentDate}, { id: dataReturn.id })
+        }
         res.status(200).json({
             status: "success",
             data: dataReturn,
