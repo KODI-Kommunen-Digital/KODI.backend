@@ -119,9 +119,9 @@ router.get("/listings", authentication, async function (req, res, next) {
             ) sub ON L.id = sub.listingId 
             inner join user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${cityId}
             inner join users U on U.id = UM.userId
-            WHERE 1=1 AND L.id IN (${listingFilter.id.join()}) ${listingFilter.categoryId ? "AND L.categoryId = " + listingFilter.categoryId : ""}
+            WHERE 1=1 AND L.id IN (${listingFilter.id.join()}) ${listingFilter.categoryId ? "AND L.categoryId = ? " : ""}
             GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`
-            response = await database.callQuery(query, null , null)
+            response = await database.callQuery(query, listingFilter.categoryId ? listingFilter.categoryId : null , null)
             response.rows.forEach((l) => (l.cityId = cityId));
             listings.push(...response.rows);
         }
