@@ -155,6 +155,15 @@ router.get("/", async function (req, res, next) {
         queryFilters += ` AND L.sourceId = 1 `;
     }
 
+    if (params.appointmentId) {
+        if(!Number(params.appointmentId) || Number(params.appointmentId) <= 0) {
+            return next(new AppError("Invalid AppointmentId"));
+        }
+        queryFilters += ` AND L.appointmentId = ?`;
+        queryFilterParams.push(Number(params.appointmentId))
+
+    }
+
     try {
         const individualQueries = [];
         const queryParams = [];
