@@ -152,7 +152,7 @@ router.get("/", async function (req, res, next) {
     }
 
     if (params.appointmentId) {
-        if(!Number(params.appointmentId)) {
+        if(!Number(params.appointmentId) || Number(params.appointmentId) <= 0) {
             return next(new AppError("Invalid AppointmentId"));
         }
         queryFilters += ` AND L.appointmentId = ?`;
