@@ -32,7 +32,7 @@ router.get("/", async function (req, res, next) {
         const queryLisitngs = `SELECT id, createdAt FROM listings WHERE createdAt > ? AND length(description) > 650 AND categoryId IN (1,3) ORDER BY createdAt`
         const responseListings = await database.callQuery(queryLisitngs, [getDateInFormate(new Date(currentDate - (12 * 60 * 60 * 1000)))], Number(filter.cityId))
         const dataListnigs = responseListings.rows
-        if(!dataListnigs && dataListnigs.length <= 0 && dataListnigs[0].id !== Number(req.query.listingId)) {
+        if(!dataListnigs || dataListnigs.length <= 0 || dataListnigs[0].id !== Number(req.query.listingId)) {
             return res.status(200).json({
                 status: "success",
             });
