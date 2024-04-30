@@ -151,7 +151,10 @@ router.get("/", async function (req, res, next) {
         queryFilters += ` AND L.sourceId = 1 `;
     }
 
-    if (params.appointmentId && Number(params.appointmentId) {
+    if (params.appointmentId) {
+        if(!Number(params.appointmentId)) {
+            return next(new AppError("Invalid AppointmentId"));
+        }
         queryFilters += ` AND L.appointmentId = ?`;
         queryFilterParams.push(Number(params.appointmentId))
 
