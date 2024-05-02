@@ -29,7 +29,7 @@ router.get("/", async function (req, res, next) {
             return next(new AppError("CityID is not given"));
         }
         
-        const queryLisitngs = `SELECT id, createdAt FROM listings WHERE createdAt > ? AND length(description) > 650 AND categoryId IN (1,3) AND showExternal = false ORDER BY createdAt`
+        const queryLisitngs = `SELECT id, createdAt FROM listings WHERE createdAt > ? AND length(description) > 650 AND categoryId IN (1,3) AND showExternal = false ORDER BY createdAt LIMIT 1`
         const responseListings = await database.callQuery(queryLisitngs, [getDateInFormate(new Date(currentDate - (12 * 60 * 60 * 1000)))], Number(filter.cityId))
         const dataListings = responseListings.rows
         if(!dataListings || dataListings.length <= 0 || dataListings[0].id !== Number(req.query.listingId)) {
