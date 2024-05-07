@@ -250,10 +250,10 @@ router.get("/search", async function (req, res, next) {
     let sortByStartDate = false;
     const searchQuery = params.searchQuery;
 
-    if (pageNo <= 0) {
+    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(new AppError(`Please enter a positive integer for pageNo`, 400));
     }
-    if (pageSize <= 0 || pageSize > 20) {
+    if (isNaN(Number(pageSize)) || Number(pageSize) <= 0 || Number(pageSize) > 20) {
         return next(new AppError(`Please enter a positive integer less than or equal to 20 for pageSize`, 400));
     }
 
@@ -261,7 +261,7 @@ router.get("/search", async function (req, res, next) {
         if (params.cityId) {
             const response = await database.get(tables.CITIES_TABLE, { id: params.cityId }, null);
             cities = response.rows;
-            if (cities.length === 0) {
+            if (cities && cities.length === 0) {
                 return next(new AppError(`Invalid CityId '${params.cityId}' given`, 400));
             }
         } else {
@@ -273,17 +273,39 @@ router.get("/search", async function (req, res, next) {
     }
 
     if (params.sortByStartDate) {
-        sortByStartDate = params.sortByStartDate.toString() === 'true';
+        const sortByStartDateString = params.sortByStartDate.toString()
+        if (sortByStartDateString !== 'true' && sortByStartDateString !== 'false') {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            sortByStartDate = sortByStartDateString === 'true';
+        }
     }
 
     const queryParams = [];
     if (params.statusId) {
+        if (isNaN(Number(params.statusId)) || Number(params.statusId) <= 0) {
+            next(new AppError(`Invalid status ${params.statusId}`, 400));
+            return;
+        }
+        try {
+            const response = await database.get(
+                tables.STATUS_TABLE,
+                { id: params.statusId },
+                null
+            );
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Status '${params.statusId}' given`, 400)
+                );
+            }
+        } catch (err) {
+            return next(new AppError(err));
+        }
         filters.push(`L.statusId = ?`);
         queryParams.push(params.statusId);
-    }
-    if (params.categoryId) {
-        filters.push(`L.categoryId = ?`);
-        queryParams.push(params.categoryId);
     }
 
     const individualQueries = cities.map(city => {
