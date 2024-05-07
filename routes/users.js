@@ -745,7 +745,7 @@ router.get("/:id/listings", async function (req, res, next) {
 
     if (req.query.statusId) {
         const statusId = req.query.statusId;
-        
+        // check status id is valid or not before passing it into the query
         if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
             next(new AppError(`Invalid status ${statusId}`, 400));
             return;
@@ -775,6 +775,7 @@ router.get("/:id/listings", async function (req, res, next) {
     if (req.query.categoryId) {
 
         const categoryId = req.query.categoryId;
+        // check category id is valid or not before passing it into the query
         if (isNaN(Number(categoryId)) || Number(categoryId) <= 0) {
             next(new AppError(`Invalid category ${categoryId}`, 400));
             return;
@@ -843,6 +844,8 @@ router.get("/:id/listings", async function (req, res, next) {
         const queryParams = [];
     
         for (const cityMapping of cityMappings) {
+            // if the city database is present in the city's server, then we create a federated table in the format
+            // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
             const listingImageTableName = `heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listing_images LI_${cityMapping.cityId}`;
             const cityListAlias = `L_${cityMapping.cityId}`;
             let query = `SELECT  
