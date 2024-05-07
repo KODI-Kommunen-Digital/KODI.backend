@@ -19,6 +19,16 @@ const getDateInFormate = require("../utils/getDateInFormate")
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const storedProcedures = require("../constants/storedProcedures");
 
+const filterNonPostRequests = (req, res, next) => {
+    if (req.method !== 'POST') {
+        return res.status(405).send('Method Not Allowed'); // Return 405 Method Not Allowed for non-POST requests
+    }
+    next(); // Proceed to the next middleware
+};
+
+router.use("/login", filterNonPostRequests);
+router.use("/register", filterNonPostRequests);
+
 router.post("/login", async function (req, res, next) {
     const payload = req.body;
     const head = req.headers;
@@ -310,7 +320,7 @@ router.get("/:id", async function (req, res, next) {
     const cityUser = req.query.cityUser || false;
     const cityId = req.query.cityId;
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 404));
+        next(new AppError(`Invalid UserId ${userId}`, 400));
         return;
     }
 
@@ -320,7 +330,7 @@ router.get("/:id", async function (req, res, next) {
         }
         
         if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-            next(new AppError(`Invalid cityId ${cityId}`, 404));
+            next(new AppError(`Invalid cityId ${cityId}`, 400));
             return;
         }
         
@@ -391,7 +401,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     const updationData = {};
 
     if (isNaN(id) || id <= 0) {
-        next(new AppError(`Invalid UserId ${id}`, 404));
+        next(new AppError(`Invalid UserId ${id}`, 400));
         return;
     }
 
@@ -433,18 +443,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 )
             );
         }
-        if (
-            !bcrypt.compare(payload.currentPassword, currentUserData.password)
-        ) {
-            return next(new AppError(`Incorrect current password given`, 401));
+        const currentPasswordCorrect = await bcrypt.compare(payload.currentPassword, currentUserData.password)
+        if (!currentPasswordCorrect) {
+            return next(new AppError(`Incorrect current password given`, 401, errorCodes.INVALID_PASSWORD));
         }
+
         const passwordCheck = await bcrypt.compare(
             payload.newPassword,
             currentUserData.password
         );
         if(passwordCheck){
-            return next(new AppError(`New password should not be same as the old password`, 400));
+            return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.SAME_PASSWORD_GIVEN));
         }
+
         updationData.password = await bcrypt.hash(
             payload.newPassword,
             Number(process.env.SALT)
@@ -548,7 +559,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
     const userId = parseInt(req.params.id);
 
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        next(new AppError(`Invalid UserId ${userId}`, 404));
+        next(new AppError(`Invalid UserId ${userId}`, 400));
         return;
     }
 
@@ -602,7 +613,7 @@ router.delete(
         const id = req.params.id;
 
         if (isNaN(Number(id)) || Number(id) <= 0) {
-            next(new AppError(`Invalid UserId ${id}`, 404));
+            next(new AppError(`Invalid UserId ${id}`, 400));
             return;
         }
 
@@ -650,7 +661,7 @@ router.post(
         const id = parseInt(req.params.id);
 
         if (isNaN(Number(id)) || Number(id) <= 0) {
-            next(new AppError(`Invalid UserId ${id}`, 404));
+            next(new AppError(`Invalid UserId ${id}`, 400));
             return;
         }
         const { image } = req.files;
@@ -1313,7 +1324,7 @@ router.post(
         const refreshToken = req.body.refreshToken;
         if (userId !== req.userId) {
             return next(
-                new AppError("You are not allowed to access this resource")
+                new AppError("You are not allowed to access this resource", 401)
             );
         }
         database
@@ -1340,6 +1351,11 @@ router.delete(
     async function (req, res, next) {
         const userId = parseInt(req.params.id);
         const id = req.query.id;
+        if (userId !== req.userId) {
+            return next(
+                new AppError("You are not allowed to access this resource", 401)
+            );
+        }
         if (!id) {
             database
                 .deleteData(tables.REFRESH_TOKENS_TABLE, { userId })
