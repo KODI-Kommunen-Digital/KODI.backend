@@ -745,7 +745,6 @@ router.get("/:id/listings", async function (req, res, next) {
 
     if (req.query.statusId) {
         const statusId = req.query.statusId;
-        
         // check status id is valid or not before passing it into the query
         if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
             next(new AppError(`Invalid status ${statusId}`, 400));
@@ -807,7 +806,7 @@ router.get("/:id/listings", async function (req, res, next) {
                     }
 
                     try {
-                        const response = database.get(
+                        const response = await database.get(
                             tables.SUBCATEGORIES_TABLE,
                             {
                                 categoryId,
@@ -837,19 +836,18 @@ router.get("/:id/listings", async function (req, res, next) {
 
     try {
         let response = await database.callQuery(
-            "Select cityId, userId, cityUserId, inCityServer from cities c inner join user_cityuser_mapping m on c.id = m.cityId where userId = ?;",
+            "SELECT cityId, userId, cityUserId, inCityServer FROM cities c INNER JOIN user_cityuser_mapping m ON c.id = m.cityId WHERE userId = ?;",
             [userId]
         );
         const cityMappings = response.rows;
         const individualQueries = [];
+        const queryParams = [];
+    
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            const listingImageTableName = `heidi_city_${cityMapping.cityId}${
-                cityMapping.inCityServer ? "_" : "."
-            }listing_images LI_${cityMapping.cityId}`;
+            const listingImageTableName = `heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listing_images LI_${cityMapping.cityId}`;
             const cityListAlias = `L_${cityMapping.cityId}`;
-
             let query = `SELECT  
             sub.logo,
             sub.logoCount,
@@ -870,27 +868,33 @@ router.get("/:id/listings", async function (req, res, next) {
                 FROM ${listingImageTableName}
                 GROUP BY listingId
             ) other ON ${cityListAlias}.id = other.listingId
-            WHERE ${cityListAlias}.userId = ${cityMapping.cityUserId}`;
+            WHERE ${cityListAlias}.userId = ?`;
+            queryParams.push(cityMapping.cityUserId);
+    
+            // Handle filters with dynamic parameterization
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
-                    query += ` AND ${cityListAlias}.categoryId = ${filters.categoryId}`;
+                    query += ` AND ${cityListAlias}.categoryId = ?`;
+                    queryParams.push(filters.categoryId);
                 }
-                if (filters.subCategoryId) {
-                    query += ` AND ${cityListAlias}.subCategoryId = ${filters.subCategoryId}`;
+                if (filters.subcategoryId) {
+                    query += ` AND ${cityListAlias}.subcategoryId = ?`;
+                    queryParams.push(filters.subcategoryId);
                 }
                 if (filters.statusId) {
-                    query += ` AND ${cityListAlias}.statusId = ${filters.statusId}`;
+                    query += ` AND ${cityListAlias}.statusId = ?`;
+                    queryParams.push(filters.statusId);
                 }
             }
             individualQueries.push(query);
         }
-
-        if (individualQueries && individualQueries.length > 0) {
-            const query = `select * from (
-					${individualQueries.join(" union all ")}
-				) a order by createdAt desc LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};`;
-
-            response = await database.callQuery(query);
+    
+        if (individualQueries.length > 0) {
+            const unionQuery = individualQueries.join(" UNION ALL ");
+            const paginationQuery = `SELECT * FROM (${unionQuery}) a ORDER BY createdAt DESC LIMIT ?, ?;`;
+            queryParams.push((pageNo - 1) * pageSize, pageSize);
+    
+            response = await database.callQuery(paginationQuery, queryParams);
             return res.status(200).json({
                 status: "success",
                 data: response.rows,
