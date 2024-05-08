@@ -95,10 +95,8 @@ router.post("/login", async function (req, res, next) {
         if (refreshData.rows.length > 0) {
             const tokensToDelete = refreshData.rows.filter(token => 
                 token.sourceAddress === sourceAddress &&
-                token.browser === head.browsername &&
-                token.device === head.devicetype);
-            console.log("tokens to delete",tokensToDelete)
-            console.log("user details",sourceAddress, head.browsername, head.devicetype)
+                (token.browser === head.browsername || (!token.browser && !head.browsername)) &&
+                (token.device === head.devicetype || (!token.device && !head.devicetype)));
 
             if (tokensToDelete.length > 0) {
                 await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
