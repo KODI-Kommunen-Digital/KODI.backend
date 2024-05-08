@@ -89,18 +89,17 @@ router.post("/login", async function (req, res, next) {
             rememberMe: payload.rememberMe,
         });
 
-        let refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, {
+        const refreshData = await database.get(tables.REFRESH_TOKENS_TABLE, {
             userId: userData.id,
         });
         if (refreshData.rows.length > 0) {
-            refreshData = refreshData.rows[0];
-            if (
-                refreshData.sourceAddress === sourceAddress &&
-                refreshData.browser === head.browsername &&
-                refreshData.device === head.devicetype
-            ) {
+            const tokensToDelete = refreshData.rows.filter(token => 
+                token.sourceAddress === sourceAddress &&
+                token.browser === head.browsername &&
+                token.device === head.devicetype);
+            if (tokensToDelete.length > 0) {
                 await database.deleteData(tables.REFRESH_TOKENS_TABLE, {
-                    userId: userData.id,
+                    id: tokensToDelete.map(t => t.id),
                 });
             }
         }
