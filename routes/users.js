@@ -715,8 +715,8 @@ router.post(
 
 router.get("/:id/listings", async function (req, res, next) {
     const userId = req.params.id;
-    const pageNo = Number(req.query.pageNo || 1);
-    const pageSize = Number(req.query.pageSize || 9);
+    const pageNo = Number(req.query.pageNo) || 1;
+    const pageSize = Number(req.query.pageSize) || 9;
     
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         next(new AppError(`Invalid UserId ${userId}`, 400));
