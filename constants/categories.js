@@ -33,6 +33,8 @@ if (process.env.APPLICATION === "WALDI") {
         eatOrDrink: 13,
         rathaus:14,
         newsletter:15,
-        officialnotification:16
+        officialnotification:16,
+        AppointmentBooking: 18,
+        DefectReporter: 19
     }
 }
