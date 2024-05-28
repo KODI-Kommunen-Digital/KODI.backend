@@ -34,7 +34,7 @@ router.get("/listingsCount", async function(req, res, next){
         } catch (err) {
             return next(new AppError(err));
         }
-        const query = `SELECT categoryId, COUNT(*) as count FROM heidi_city_${params.cityId}.listings GROUP BY categoryId;`;
+        const query = `SELECT categoryId, COUNT(*) as count FROM heidi_city_${params.cityId}.listings WHERE statusId = 1 GROUP BY categoryId;`;
         const response = await database.callQuery(query)
         res.status(200).json({
             status:"success",
@@ -46,7 +46,7 @@ router.get("/listingsCount", async function(req, res, next){
         try {
             const cityConnection = await database.get(tables.CITIES_TABLE, null, "id");
             for (const data of cityConnection.rows){
-                innerQuery += `SELECT categoryId FROM heidi_city_${data.id}.listings UNION ALL `;
+                innerQuery += `SELECT categoryId FROM heidi_city_${data.id}.listings WHERE statusId = 1 UNION ALL `;
             }
             innerQuery = innerQuery.slice(0,-11);
             query += innerQuery + `) AS combinedResults GROUP BY categoryId;`;
