@@ -1534,9 +1534,8 @@ async function addDefaultImage(cityId, listingId, categoryId) {
     );
     const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
     const categoryImage = await database.callQuery(query);
-    const categoryCount =
-    categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
-    const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+    const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount || 0;
+    const moduloValue = ((categoryCount % defaultImageCount[categoryName]) || 0) + 1;
     const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
     return await database.create(
         tables.LISTINGS_IMAGES_TABLE,
