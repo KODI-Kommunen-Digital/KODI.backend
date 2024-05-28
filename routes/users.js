@@ -467,7 +467,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 
     if (payload.phoneNumber) {
-        const re = /^\+49\d{11}$/;
+        const re = /^(\d{8,15})$/;
         if (!re.test(payload.phoneNumber))
             return next(new AppError("Phone number is not valid", 400));
         updationData.phoneNumber = payload.phoneNumber;
