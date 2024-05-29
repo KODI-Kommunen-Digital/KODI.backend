@@ -23,8 +23,10 @@ async function sendPushNotificationToAll(topic="warnings", title="New Notificati
             data
         }
         const response = await admin.messaging().send(message)
+        console.log("PN Responce", response)
         return response
     } catch (err) {
+        console.log("Error", err)
         return false
     }
 }
