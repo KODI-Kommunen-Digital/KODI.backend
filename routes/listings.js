@@ -5,6 +5,8 @@ const tables = require("../constants/tableNames");
 const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
+const authentication = require("../middlewares/authentication");
+const { createListing } = require('../services/listingFunctions')
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -359,6 +361,35 @@ router.get("/search", async function (req, res, next) {
         });
     } catch (error) {
         next(new Error(`An error occurred while fetching listings: ${error.message}`));
+    }
+});
+
+router.post("/", authentication, async function (req, res, next) {
+    const payload = req.body;
+    const cityIds = payload.cityIds;
+
+    if (!cityIds) {
+        return next(new AppError(`CityIds not present`, 400));
+    }
+
+    if (!Array.isArray(cityIds)) {
+        return next(new AppError(`CityIds should be an array`, 400));
+    }
+
+    for (const cityId of cityIds) {
+        if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+            return next(new AppError(`Invalid City '${cityId}' given`, 400));
+        }
+    }
+
+    try {
+        const response = await createListing(cityIds, payload, req.userId, req.roleId)
+        return res.status(200).json({
+            status: "success",
+            data: response
+        });
+    } catch (err) {
+        return next(new AppError(err));
     }
 });
 
