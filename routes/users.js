@@ -374,6 +374,7 @@ router.get("/:id", async function (req, res, next) {
             "website",
             "description",
             "image",
+            "phoneNumber",
             "firstname",
             "lastname",
             "roleId",
