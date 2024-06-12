@@ -270,7 +270,6 @@ async function createListing(cityIds, payload, userId, roleId) {
     try {
         for (const cityId of cityIds) {
             let response = {};
-            const userId = user.id;
             const city = cities[cityId]
             if (city.isAdminListings) {
                 // If the city is admin listings, we need directly set the user id of the listing as 1 (i.e. admin's id)
@@ -278,7 +277,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             } else {
                 response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
                     cityId,
-                    userId,
+                    userId
                 });
 
                 if (!response.rows || response.rows.length === 0) {
