@@ -738,9 +738,9 @@ router.post(
 );
 
 router.get("/:id/listings", async function (req, res, next) {
-
+    const userId = req.params.id
     try {
-        const listings = await getUserListings(req, null);
+        const listings = await getUserListings(req, userId);
         if(listings){
             listings.forEach(listing => delete listing.viewCount);
             return res.status(200).json({

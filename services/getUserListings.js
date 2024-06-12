@@ -3,9 +3,6 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 
 async function getUserListings(req, userId){
-    if(!userId){
-        userId = req.params.id;
-    }
     const pageNo = Number(req.query.pageNo) || 1;
     const pageSize = Number(req.query.pageSize) || 9;
 

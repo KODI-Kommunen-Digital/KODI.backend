@@ -234,9 +234,10 @@ router.get("/", async function (req, res, next) {
                 }
             }
         }
+        listings.forEach(listing => delete listing.viewCount);
         return res.status(200).json({
             status: "success",
-            data: response.rows,
+            data: listings,
         });
     } catch (err) {
         return next(new AppError(err));
@@ -354,6 +355,7 @@ router.get("/search", async function (req, res, next) {
     try {
         const response = await database.callQuery(combinedQuery, combinedParams);
         const listings = response.rows;
+        listings.forEach(listing => delete listing.viewCount);
 
         res.json({
             status: "success",

@@ -208,7 +208,8 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-
+    
+    listings.forEach(listing => delete listing.viewCount);
     res.status(200).json({
         status: "success",
         data: listings,
