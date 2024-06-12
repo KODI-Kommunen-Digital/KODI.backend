@@ -1,14 +1,4 @@
-require("./instrument.js");
-
-// All other imports below
-const { createServer } = require("node:http");
-
-const server = createServer((req, res) => {
-    // server code
-});
-
-server.listen(3000, "127.0.0.1");
-
+const Sentry = require("./instrument.js");
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -121,6 +111,8 @@ app.use("/ads", advertisement)
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
+
+Sentry.setupExpressErrorHandler(app)
 app.use(errorHandler);
 
 // starting the server
