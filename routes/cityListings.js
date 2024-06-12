@@ -261,6 +261,20 @@ router.get("/:id", async function (req, res, next) {
             ? listingImagesList.rows[0].logo
             : null;
 
+            if (process.env.LISTING_VIEW_COUNT){
+                try {
+                    await database.update(
+                        tables.LISTINGS_TABLE,
+                        { viewCount: data[0].viewCount + 1 },
+                        id,
+                        cityId
+                    );
+                } catch (err) {
+                    return next(new AppError(`Failed to update view count: ${err.message}`, 500));
+                }
+            }
+
+            delete data[0].viewCount;
             res.status(200).json({
                 status: "success",
                 data: { ...data[0], logo, otherlogos: listingImagesList.rows },
