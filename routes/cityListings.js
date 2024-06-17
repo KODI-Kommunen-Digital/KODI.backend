@@ -275,6 +275,12 @@ router.get("/:id", async function (req, res, next) {
                 }
             }
 
+            // get polls if the categoryId name is polls
+            if (data[0].categoryId === categories.Polls) {
+                const pollOptions = await database.get(tables.POLL_OPTIONS_TABLE, {listingId: id}, null, cityId)
+                data[0].pollOptions = pollOptions.rows;
+            }
+
             delete data[0].viewCount;
             res.status(200).json({
                 status: "success",
