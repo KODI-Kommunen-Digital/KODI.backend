@@ -367,6 +367,7 @@ async function createListing(cityIds, payload, userId, roleId) {
 
         return allResponses;
     } catch (err) {
+        if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
 }
