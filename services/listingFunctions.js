@@ -123,9 +123,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
             if (data[0].noOfSubcategories > 0) subcategory = true;
 
-            if (response.rows[0].name === "Polls") {
-                isPoll = true;
-            }
+            isPoll = response.rows[0].id === categories.Polls;
         } catch (err) {
             throw new AppError(err);
         }
