@@ -889,11 +889,9 @@ router.post(
             return next(new AppError(`Invalid OptionId ${optionId} given`, 400));
         }
 
-        const requestVote = req.body.vote;
-        if (!requestVote) {
-            return next(new AppError(`Vote not provided`, 400));
-        }
-        const vote = requestVote === "up" ? 1 : -1;
+        const requestVote = Number(req.body.vote);
+        if (isNaN(requestVote) || (requestVote !== 1 && requestVote !== -1))
+            return next(new AppError(`Invalid Vote ${requestVote} given`, 400));
 
         const response = await database.get(
             tables.LISTINGS_TABLE,
@@ -922,7 +920,7 @@ router.post(
                 return next(new AppError(`OptionId not found`, 404));
             }
 
-            const voteCount = pollOption.votes + vote;
+            const voteCount = pollOption.votes + requestVote;
             if (voteCount < 0) {
                 return next(new AppError(`Vote count cannot be negative`, 400));
             }
