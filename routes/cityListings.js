@@ -860,7 +860,7 @@ router.post(
     async function (req, res, next) {
         const listingId = req.params.id;
         const cityId = req.cityId;
-        if (!cityId) {
+        if (!cityId || isNaN(Number(cityId))) {
             return next(new AppError(`City is not present`, 404));
         } else {
             try {
