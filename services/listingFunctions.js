@@ -317,16 +317,30 @@ async function createListing(cityIds, payload, userId, roleId) {
             });
 
 
-            if (payload.pollOptions && isPoll) {
-                // insert into poll options table
-                for (const option of payload.pollOptions) {
-                    await database.create(tables.POLL_OPTIONS_TABLE, {
-                        listingId,
-                        title: option.title,
-                    }, cityId);
+            // verify if the listing is a poll and has poll options
+            // verify if the poll options are less than or equal to 10
+            // verify the poll options is an array
+            // verify the poll options is not empty
+            // verify if the listing is a poll
+            if (isPoll) {
+                if (!payload.pollOptions || !Array.isArray(payload.pollOptions) || payload.pollOptions.length === 0) {
+                    throw new AppError(`Invalid Poll Options`, 400);
+                } else if(payload.pollOptions.length > 10){
+                    throw new AppError(`Poll options length cannot exceed 10`)
+                }else {
+                    // verify that no two poll options have the same title
+                    const pollOptions = payload.pollOptions.map((option) => option.title);
+                    if (new Set(pollOptions).size !== pollOptions.length) {
+                        throw new AppError(`Poll Options cannot have the same title`, 400);
+                    }
+                    for (const option of payload.pollOptions) {
+                        await database.create(tables.POLL_OPTIONS_TABLE, {
+                            listingId,
+                            title: option.title,
+                        }, cityId);
+                    }
                 }
             }
-
             allResponses.push({
                 cityId: Number(cityId),
                 listingId
