@@ -301,6 +301,9 @@ router.post("/", authentication, async function (req, res, next) {
             id: listingId,
         });
     } catch (err) {
+        if(err instanceof AppError) {
+            return next(err);
+        }
         return next(new AppError(err));
     }
 });
