@@ -42,7 +42,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         } catch (err) {
             if(err instanceof AppError) {
-                return next(err);
+                return (err);
             }
             throw new AppError(err);
         }
@@ -57,7 +57,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         user = data[0];
     } catch (err) {
         if(err instanceof AppError) {
-            return next(err);
+            return (err);
         }
         throw new AppError(err);
     }
@@ -84,7 +84,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         } catch (err) {
             if(err instanceof AppError) {
-                return next(err);
+                return (err);
             }
             throw new AppError(err);
         }
@@ -132,7 +132,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (data[0].noOfSubcategories > 0) subcategory = true;
         } catch (err) {
             if(err instanceof AppError) {
-                return next(err);
+                return (err);
             }
             throw new AppError(err);
         }
@@ -162,7 +162,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         } catch (err) {
             if(err instanceof AppError) {
-                return next(err);
+                return (err);
             }
             throw new AppError(err);
         }
@@ -188,7 +188,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 }
             } catch (err) {
                 if(err instanceof AppError) {
-                    return next(err);
+                    return (err);
                 }
                 throw new AppError(err);
             }
@@ -280,8 +280,8 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         }
     } catch (error) {
-        if(err instanceof AppError) {
-            return next(err);
+        if(error instanceof AppError) {
+            return (error);
         }
         throw new AppError(`Invalid time format ${error}`, 400);
     }
@@ -360,7 +360,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         return allResponses;
     } catch (err) {
         if(err instanceof AppError) {
-            return next(err);
+            return (err);
         }
         throw new AppError(err);
     }
