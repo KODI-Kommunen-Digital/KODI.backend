@@ -58,7 +58,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/test", (req, res) => {
-    res.send(message);
+    res.send('testing pipeline');
 });
 
 app.use("/users", usersRouter);
