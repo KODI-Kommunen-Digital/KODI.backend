@@ -57,6 +57,10 @@ app.get("/", (req, res) => {
     res.send(message);
 });
 
+app.get("/test", (req, res) => {
+    res.send(message);
+});
+
 app.use("/users", usersRouter);
 app.use("/cities", citiesRouter);
 app.use("/listings", listingsRouter);
