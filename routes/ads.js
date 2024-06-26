@@ -23,10 +23,10 @@ router.get("/", async function (req, res, next) {
                 city = response.rows[0];
                 filter.cityId = city.id;
             } else {
-                return next(new AppError("Invalid CityID given"), 400);
+                return next(new AppError("Invalid CityID given", 400));
             }
         } else {
-            return next(new AppError("CityID is not given"), 400);
+            return next(new AppError("CityID is not given", 400));
         }
         
         const queryLisitngs = `SELECT id, createdAt FROM listings WHERE createdAt > ? AND length(description) > 450 AND categoryId IN (1,3) AND showExternal = false ORDER BY createdAt LIMIT 1`
