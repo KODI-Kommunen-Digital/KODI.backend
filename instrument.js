@@ -1,3 +1,4 @@
+require('dotenv').config();
 const Sentry = require("@sentry/node");
 const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 
@@ -11,6 +12,7 @@ Sentry.init({
 
     // Set sampling rate for profiling - this is relative to tracesSampleRate
     profilesSampleRate: 1.0,
+    environment: process.env.SENTRY_ENV,
 });
 
 module.exports = Sentry;
