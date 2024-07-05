@@ -2,9 +2,7 @@ const admin = require("firebase-admin");
 const database = require("./database");
 const tables = require("../constants/tableNames");
 const serviceAccount = process.env.FIREBASE_PRIVATE ? JSON.parse(process.env.FIREBASE_PRIVATE) : {};
-
-
-async function sendPushNotificationToAll(topic="warnings", title="New Notification", body="Check it out", data=null) {
+const getDateInFormate = require("../utils/getDateInFormate")
 
     try {
         admin.initializeApp({
@@ -25,6 +23,11 @@ async function sendPushNotificationToAll(topic="warnings", title="New Notificati
         const response = await admin.messaging().send(message)
         return response
     } catch (err) {
+        try {
+            const occuredAt = new Date()
+            database.create(tables.EXCEPTIONS_TABLE, { message: err.message ?? 'no message', stackTrace: err.stack ?? 'no stack', occuredAt: getDateInFormate(occuredAt) })
+        } catch (err) {
+        }
         return false
     }
 }
