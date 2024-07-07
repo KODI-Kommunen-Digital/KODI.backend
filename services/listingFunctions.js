@@ -105,7 +105,6 @@ async function createListing(cityIds, payload, userId, roleId) {
     if (payload.media) {
         insertionData.media = payload.media;
     }
-    let isPoll = false;
     let subcategory = false;
     if (!payload.categoryId) {
         throw new AppError(`Category is not present`, 400);
@@ -123,7 +122,6 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
             if (data[0].noOfSubcategories > 0) subcategory = true;
 
-            isPoll = response.rows[0].id === categories.Polls;
         } catch (err) {
             throw new AppError(err);
         }
@@ -322,7 +320,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             // verify the poll options is an array
             // verify the poll options is not empty
             // verify if the listing is a poll
-            if (isPoll) {
+            if (parseInt(payload.categoryId) === categories.Polls){
                 if (!payload.pollOptions || !Array.isArray(payload.pollOptions) || payload.pollOptions.length === 0) {
                     throw new AppError(`Invalid Poll Options`, 400);
                 } else if(payload.pollOptions.length > 10){
