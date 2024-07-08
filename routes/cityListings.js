@@ -345,6 +345,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
     const currentListingData = response.rows[0];
     let subcategory = false;
+    const currCategoryId = currentListingData.categoryId;
 
     updationData.updatedAt = new Date()
         .toISOString()
@@ -372,10 +373,78 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 updationData.subcategoryId = null;
                 delete payload.subcategoryId;
             }
+
+            if (currCategoryId === categories.Polls && payload.categoryId !== categories.Polls) {
+                // delete poll options with listingId; id if category is changed from polls
+                await database.deleteData(tables.POLL_OPTIONS_TABLE, { listingId: id }, cityId);
+            }
+            if (currCategoryId !== categories.Polls && payload.categoryId === categories.Polls) {
+                // create poll options with listingId; id if category is changed to polls
+                if (!payload.pollOptions || !Array.isArray(payload.pollOptions) || payload.pollOptions.length === 0) {
+                    throw new AppError(`Invalid Poll Options`, 400);
+                } else if (payload.pollOptions.length > 10) {
+                    throw new AppError(`Poll options length cannot exceed 10`)
+                } else {
+                    // verify that no two poll options have the same title
+                    const pollOptions = payload.pollOptions.map((option) => option.title);
+                    if (new Set(pollOptions).size !== pollOptions.length) {
+                        throw new AppError(`Poll Options cannot have the same title`, 400);
+                    }
+                    for (const option of payload.pollOptions) {
+                        await database.create(tables.POLL_OPTIONS_TABLE, {
+                            id,
+                            title: option.title,
+                        }, cityId);
+                    }
+                }
+            }
         } catch (err) {
             return next(new AppError(err));
         }
         updationData.categoryId = payload.categoryId;
+
+        if (payload.categoryId === categories.Polls && payload.pollOptions) {
+            // verify that no two poll options have the same title.  if so, throw error
+            // else create new poll options
+            const pollOptionTitles = payload.pollOptions.map((option) => option.title);
+            if (new Set(pollOptionTitles).size !== pollOptionTitles.length) throw new AppError(`Poll Options cannot have the same title`, 400);
+
+            const payloadPollOptionIds = payload.pollOptions
+                .filter(option => option.id)
+                .map(option => option.id);
+            // get the existing poll options
+            const existingPollOptions = await database.get(tables.POLL_OPTIONS_TABLE, { listingId: id }, null, cityId)
+            const existingPollOptionTitles = existingPollOptions.rows.map((option) => option.title);
+            const existingPollOptionsIdMap = {}
+            for (const option of existingPollOptions.rows) {
+                existingPollOptionsIdMap[option.id] = option
+            }
+            // if the existingPollOption.id is not in the payload.pollOptionIds, delete it
+            for (const option of existingPollOptions.rows) {
+                if (!payloadPollOptionIds.includes(option.id)) {
+                    // if the existingPollOptions are not present in the payload, delete them
+                    await database.deleteData(tables.POLL_OPTIONS_TABLE, { id: option.id }, cityId);
+                }
+            }
+
+            // if the payload options are not present in the existingPollOptions,
+            for (const option of payload.pollOptions) {
+                if (option.id && existingPollOptionsIdMap[option.id] && existingPollOptionsIdMap[option.id].title !== option.title) {
+                    // update the existing poll options if pollOptionId is given and title is changed
+                    const pollOption = existingPollOptionsIdMap[option.id];
+                    if (pollOption.title !== option.title) {
+                        pollOption.title = option.title;
+                        await database.update(tables.POLL_OPTIONS_TABLE, pollOption, { id: option.id }, cityId);
+                    }
+                } else if (!existingPollOptionTitles.includes(option.title) && !option.id) {
+                    await database.create(tables.POLL_OPTIONS_TABLE, {
+                        title: option.title,
+                        listingId: id
+                    }, cityId);
+                }
+            }
+
+        }
 
         try {
             if (
