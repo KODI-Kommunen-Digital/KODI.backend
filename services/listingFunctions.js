@@ -352,6 +352,12 @@ async function createListing(cityIds, payload, userId, roleId) {
                     if (new Set(pollOptions).size !== pollOptions.length) {
                         throw new AppError(`Poll Options cannot have the same title`, 400);
                     }
+                    // assert polloption.title is not empty, is a string and is less than 255 characters
+                    payload.pollOptions.forEach((option) => {
+                        if (!option.title || typeof option.title !== 'string' || option.title.length > 255) {
+                            throw new AppError(`Invalid Poll Option`, 400);
+                        }
+                    });
                     for (const option of payload.pollOptions) {
                         await database.create(tables.POLL_OPTIONS_TABLE, {
                             listingId,

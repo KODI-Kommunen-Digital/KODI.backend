@@ -307,7 +307,7 @@ router.post("/", authentication, async function (req, res, next) {
             id: listingId,
         });
     } catch (err) {
-        if(err instanceof AppError) {
+        if (err instanceof AppError) {
             return next(err);
         }
         return next(new AppError(err));
@@ -384,14 +384,20 @@ router.patch("/:id", authentication, async function (req, res, next) {
             if (currCategoryId !== categories.Polls && payload.categoryId === categories.Polls) {
                 // create poll options with listingId; id if category is changed to polls
                 if (!payload.pollOptions || !Array.isArray(payload.pollOptions) || payload.pollOptions.length === 0) {
-                    throw new AppError(`Invalid Poll Options`, 400);
+                    next(new AppError(`Invalid Poll Options`, 400));
                 } else if (payload.pollOptions.length > 10) {
-                    throw new AppError(`Poll options length cannot exceed 10`)
+                    next(new AppError(`Poll options length cannot exceed 10`))
                 } else {
+                    // assert polloption.title is not empty, is a string and is less than 255 characters
+                    for (const option of payload.pollOptions) {
+                        if (!option.title || typeof option.title !== 'string' || option.title.length > 255) {
+                            next(new AppError(`Invalid Poll Option`, 400));
+                        }
+                    }
                     // verify that no two poll options have the same title
                     const pollOptions = payload.pollOptions.map((option) => option.title);
                     if (new Set(pollOptions).size !== pollOptions.length) {
-                        throw new AppError(`Poll Options cannot have the same title`, 400);
+                        next(new AppError(`Poll Options cannot have the same title`, 400));
                     }
                     for (const option of payload.pollOptions) {
                         await database.create(tables.POLL_OPTIONS_TABLE, {
@@ -406,11 +412,20 @@ router.patch("/:id", authentication, async function (req, res, next) {
         }
         updationData.categoryId = payload.categoryId;
 
-        if (payload.categoryId === categories.Polls && payload.pollOptions) {
-            // verify that no two poll options have the same title.  if so, throw error
+        if (payload.categoryId === categories.Polls) {
+            if (!payload.pollOptions || !Array.isArray(payload.pollOptions) || payload.pollOptions.length === 0) {
+                next(new AppError(`Invalid Poll Options`, 400));
+            }
+            // assert polloption.title is not empty, is a string and is less than 255 characters
+            for (const option of payload.pollOptions) {
+                if (!option.title || typeof option.title !== 'string' || option.title.length > 255) {
+                    next(new AppError(`Invalid Poll Option`, 400));
+                }
+            }
+            // verify that no two poll options have the same title.  if so, next(erro)r
             // else create new poll options
             const pollOptionTitles = payload.pollOptions.map((option) => option.title);
-            if (new Set(pollOptionTitles).size !== pollOptionTitles.length) throw new AppError(`Poll Options cannot have the same title`, 400);
+            if (new Set(pollOptionTitles).size !== pollOptionTitles.length) next(new AppError(`Poll Options cannot have the same title`, 400));
 
             const payloadPollOptionIds = payload.pollOptions
                 .filter(option => option.id)
