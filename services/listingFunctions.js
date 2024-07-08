@@ -41,6 +41,9 @@ async function createListing(cityIds, payload, userId, roleId) {
                 cities[cityId] = response.rows[0]
             }
         } catch (err) {
+            if(err instanceof AppError) {
+                return (err);
+            }
             throw new AppError(err);
         }
     }
@@ -53,6 +56,9 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
         user = data[0];
     } catch (err) {
+        if(err instanceof AppError) {
+            return (err);
+        }
         throw new AppError(err);
     }
 
@@ -77,6 +83,9 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.villageId = payload.villageId;
             }
         } catch (err) {
+            if(err instanceof AppError) {
+                return (err);
+            }
             throw new AppError(err);
         }
     } else {
@@ -123,6 +132,9 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (data[0].noOfSubcategories > 0) subcategory = true;
 
         } catch (err) {
+            if(err instanceof AppError) {
+                return (err);
+            }
             throw new AppError(err);
         }
         insertionData.categoryId = payload.categoryId;
@@ -150,6 +162,9 @@ async function createListing(cityIds, payload, userId, roleId) {
                 );
             }
         } catch (err) {
+            if(err instanceof AppError) {
+                return (err);
+            }
             throw new AppError(err);
         }
         insertionData.subcategoryId = payload.subcategoryId;
@@ -173,6 +188,9 @@ async function createListing(cityIds, payload, userId, roleId) {
                     throw new AppError(`Invalid Status '${payload.statusId}' given`, 400);
                 }
             } catch (err) {
+                if(err instanceof AppError) {
+                    return (err);
+                }
                 throw new AppError(err);
             }
             insertionData.statusId = payload.statusId;
@@ -263,6 +281,9 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         }
     } catch (error) {
+        if(error instanceof AppError) {
+            return (error);
+        }
         throw new AppError(`Invalid time format ${error}`, 400);
     }
 
@@ -365,7 +386,9 @@ async function createListing(cityIds, payload, userId, roleId) {
 
         return allResponses;
     } catch (err) {
-        if (err instanceof AppError) throw err;
+        if(err instanceof AppError) {
+            return (err);
+        }
         throw new AppError(err);
     }
 }
