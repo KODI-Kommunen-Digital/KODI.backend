@@ -18,11 +18,26 @@ const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const getPdfImage = require("../utils/getPdfImage");
-const { createListing } = require('../services/listingFunctions')
+const { createListing } = require('../services/listingFunctions');
+const rateLimit = require('express-rate-limit');
+// const createRateLimitMiddleware = require("./rateLimitMiddleware");
 
 // const radiusSearch = require('../services/handler')
 
 const DEFAULTIMAGE = "Defaultimage";
+
+const rateLogger = rateLimit({
+    windowMs: 5 * 1000, // 5 seconds
+    max: 1, // Max 1 request per 5 seconds
+    handler: (req, res, next, options) => {
+        console.log(`Repeated request detected from ${req.ip}.`);
+        req.repeatedRequest = true;
+        next(); // Proceed to the next middleware
+    },
+    standardHeaders: false, // Disable the RateLimit-* headers
+    legacyHeaders: false, // Disable the X-RateLimit-* headers
+    skipSuccessfulRequests: false, // Skip counting successful requests
+});
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -216,7 +231,7 @@ router.get("/", async function (req, res, next) {
     });
 });
 
-router.get("/:id", async function (req, res, next) {
+router.get("/:id", rateLogger, async function (req, res, next) {
     const id = req.params.id;
     const cityId = req.cityId;
 
@@ -262,12 +277,12 @@ router.get("/:id", async function (req, res, next) {
                     ? listingImagesList.rows[0].logo
                     : null;
 
-            if (process.env.LISTING_VIEW_COUNT) {
+            if (process.env.LISTING_VIEW_COUNT && !req.repeatedRequest) {
                 try {
                     await database.update(
                         tables.LISTINGS_TABLE,
                         { viewCount: data[0].viewCount + 1 },
-                        id,
+                        { id },
                         cityId
                     );
                 } catch (err) {
