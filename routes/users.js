@@ -321,7 +321,7 @@ router.get("/myListings", authentication, async function(req, res, next){
     try {
         const listings = await getUserListings(req, userId);
         if(listings){
-            if ( !process.env.LISTING_VIEW_COUNT || process.env.LISTING_VIEW_COUNT === 'False') {
+            if ( !process.env.IS_LISTING_VIEW_COUNT || process.env.IS_LISTING_VIEW_COUNT === 'False') {
                 listings.forEach(listing => delete listing.viewCount);
             }
             return res.status(200).json({
