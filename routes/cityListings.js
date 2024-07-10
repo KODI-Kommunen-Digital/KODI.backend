@@ -277,7 +277,7 @@ router.get("/:id", rateLogger, async function (req, res, next) {
                     ? listingImagesList.rows[0].logo
                     : null;
 
-            if (process.env.LISTING_VIEW_COUNT && !req.repeatedRequest) {
+            if (process.env.IS_LISTING_VIEW_COUNT && !req.repeatedRequest) {
                 try {
                     await database.update(
                         tables.LISTINGS_TABLE,
