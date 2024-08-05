@@ -175,38 +175,41 @@ router.get("/", async function (req, res, next) {
         let startDateCondition = "";
 
         switch (dateFilter) {
-            case "today":
-                // Start date is today's date
-                const todayStr = today.toISOString().split("T")[0]; // Get YYYY-MM-DD format
-                startDateCondition = ` AND L.startDate = '${todayStr}' `;
-                break;
-            case "week":
-                // Start date is within the current week (Monday to Sunday)
-                const currentDay = today.getDay();
-                const firstDayOfWeek = new Date(today);
-                firstDayOfWeek.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1)); // Set to Monday
-                const lastDayOfWeek = new Date(firstDayOfWeek);
-                lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6); // Set to Sunday
+        case "today":{
+            // Start date is today's date
+            const todayStr = today.toISOString().split("T")[0]; // Get YYYY-MM-DD format
+            startDateCondition = ` AND L.startDate BETWEEN '${todayStr} 00:00:00' AND  '${todayStr} 23:59:00'`;
+            break;
+        }
+        case "week":{
+            // Start date is within the current week (Monday to Sunday)
+            const currentDay = today.getDay();
+            const firstDayOfWeek = new Date(today);
+            firstDayOfWeek.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1)); // Set to Monday
+            const lastDayOfWeek = new Date(firstDayOfWeek);
+            lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6); // Set to Sunday
 
-                const firstDayStr = firstDayOfWeek.toISOString().split("T")[0];
-                const lastDayStr = lastDayOfWeek.toISOString().split("T")[0];
+            const firstDayStr = firstDayOfWeek.toISOString().split("T")[0];
+            const lastDayStr = lastDayOfWeek.toISOString().split("T")[0];
 
-                startDateCondition = ` AND L.startDate BETWEEN '${firstDayStr}' AND '${lastDayStr}' `;
-                break;
-            case "month":
-                // Start date is within the current month
-                const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-                const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            startDateCondition = ` AND L.startDate BETWEEN '${firstDayStr}' AND '${lastDayStr}' `;
+            break;
+        }
+        case "month":{
+            // Start date is within the current month
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-                const firstMonthStr = firstDayOfMonth.toISOString().split("T")[0];
-                const lastMonthStr = lastDayOfMonth.toISOString().split("T")[0];
+            const firstMonthStr = firstDayOfMonth.toISOString().split("T")[0];
+            const lastMonthStr = lastDayOfMonth.toISOString().split("T")[0];
 
-                startDateCondition = ` AND L.startDate BETWEEN '${firstMonthStr}' AND '${lastMonthStr}' `;
-                break;
-            default:
-                return next(
-                    new AppError("Invalid dateFilter value. Use 'today', 'week', or 'month'.", 400)
-                );
+            startDateCondition = ` AND L.startDate BETWEEN '${firstMonthStr}' AND '${lastMonthStr}' `;
+            break;
+        }
+        default:
+            return next(
+                new AppError("Invalid dateFilter value. Use 'today', 'week', or 'month'.", 400)
+            );
         }
 
         queryFilters += startDateCondition;
