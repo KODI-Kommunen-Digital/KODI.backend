@@ -393,7 +393,6 @@ router.get("/search", async function (req, res, next) {
     
         query += ` GROUP BY L.id, sub.logo, sub.logoCount`;
     
-        // Apply the sorting logic inside each city query
         const orderByClause = sortByStartDate ? 
             "ORDER BY relevance, startDate, createdAt" : 
             "ORDER BY relevance, createdAt DESC";
