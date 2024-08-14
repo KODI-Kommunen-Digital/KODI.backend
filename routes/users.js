@@ -141,6 +141,9 @@ router.post("/register", async function (req, res, next) {
     if (!payload.username) {
         return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     } else {
+        if (payload.username.length > 40){
+            return next(new AppError(`Username too long. Maximum 40 characters allowed.`, 400, errorCodes.INVALID_USERNAME));
+        }
         try {
             const response = await database.get(tables.USER_TABLE, {
                 username: payload.username,
@@ -197,18 +200,27 @@ router.post("/register", async function (req, res, next) {
     if (!payload.firstname) {
         return next(new AppError(`Firstname is not present`, 400, errorCodes.MISSING_FIRSTNAME));
     } else {
+        if (payload.firstname.length >40){
+            return next(new AppError(`Firstname too long. Maximum 40 characters allowed`, 400, errorCodes.INVALID_CREDENTIALS));
+        }
         insertionData.firstname = payload.firstname;
     }
 
     if (!payload.lastname) {
         return next(new AppError(`Lastname is not present`, 400, errorCodes.MISSING_LASTNAME));
     } else {
+        if (payload.lastname.length >40){
+            return next(new AppError(`Lastname too long. Maximum 40 characters allowed`, 400, errorCodes.INVALID_CREDENTIALS));
+        }
         insertionData.lastname = payload.lastname;
     }
 
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     } else {
+        if(payload.password.length>64){
+            return next(new AppError(`Password too long. Maximum 64 characters allowed.`, 400, errorCodes.INVALID_PASSWORD));
+        }
         const re = /^\S{8,}$/;
         if(!re.test(payload.password)){
             return next(new AppError(`Invalid Password. `, 400, errorCodes.INVALID_PASSWORD));
