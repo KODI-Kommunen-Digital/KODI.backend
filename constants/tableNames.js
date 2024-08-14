@@ -20,6 +20,14 @@ module.exports = {
     MORE_INFO_TABLE: 'moreinfo',
     CITIZEN_SERVICES_DATA_TABLE: 'citizen_service_data',
     ADVERTISEMENTS: 'advertisements',
+    MULLKALENDER_DATES: 'mullkalender_dates',
+    MULLKALENDER_DISTRICTS: 'mullkalender_districts',
+    MULLKALENDER_PICKUP_GROUPS: 'mullkalender_pickup_groups',
+    MULLKALENDER_PROPERTIES: 'mullkalender_properties',
+    MULLKALENDER_STREET_PROPERTIES_HOUSE: 'mullkalender_street_properties_house',
+    MULLKALENDER_STREETS: 'mullkalender_streets',
+    MULLKALENDER_WASTE_TYPES: 'mullkalender_waste_types',
+    POLL_OPTIONS_TABLE: 'poll_options',
     FIREBASE_TOKEN: 'firebase_token'
 
 }

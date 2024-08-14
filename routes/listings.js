@@ -12,21 +12,22 @@ router.get("/", async function (req, res, next) {
     const params = req.query;
     const pageNo = Number(params.pageNo) || 1;
     const pageSize = Number(params.pageSize) || 9;
-    // const filters = [];
     let sortByStartDate = false;
     let cities = [];
     const queryFilterParams = [];
     let queryFilters = '';
 
+    // Validate pageNo
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
             new AppError(`Please enter a positive integer for pageNo`, 400)
         );
     }
+    // Validate pageSize
     if (
         isNaN(Number(pageSize)) ||
-    Number(pageSize) <= 0 ||
-    Number(pageSize) > 20
+        Number(pageSize) <= 0 ||
+        Number(pageSize) > 20
     ) {
         return next(
             new AppError(
@@ -36,8 +37,9 @@ router.get("/", async function (req, res, next) {
         );
     }
 
+    // Validate sortByStartDate
     if (params.sortByStartDate) {
-        const sortByStartDateString = params.sortByStartDate.toString()
+        const sortByStartDateString = params.sortByStartDate.toString();
         if (sortByStartDateString !== 'true' && sortByStartDateString !== 'false') {
             return next(
                 new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
@@ -47,11 +49,10 @@ router.get("/", async function (req, res, next) {
         }
     }
 
+    // Validate statusId
     if (params.statusId) {
-
         if (isNaN(Number(params.statusId)) || Number(params.statusId) <= 0) {
-            next(new AppError(`Invalid status ${params.statusId}`, 400));
-            return;
+            return next(new AppError(`Invalid status ${params.statusId}`, 400));
         }
 
         try {
@@ -73,11 +74,10 @@ router.get("/", async function (req, res, next) {
         queryFilterParams.push(Number(params.statusId));
     }
 
+    // Validate categoryId and subcategoryId
     if (params.categoryId) {
-
         if (isNaN(Number(params.categoryId)) || Number(params.categoryId) <= 0) {
-            next(new AppError(`Invalid category ${params.categoryId}`, 400));
-            return;
+            return next(new AppError(`Invalid category ${params.categoryId}`, 400));
         }
 
         try {
@@ -95,17 +95,18 @@ router.get("/", async function (req, res, next) {
                 queryFilters += ` AND L.categoryId = ? `;
                 queryFilterParams.push(Number(params.categoryId));
                 if (params.subcategoryId) {
-                    if (!Number(params.subcategoryId)){
+                    if (isNaN(Number(params.subcategoryId)) || Number(params.subcategoryId) <= 0) {
                         return next(
                             new AppError(`Invalid Subcategory '${params.subcategoryId}' given`, 400)
                         );
                     }
                     try {
-                        response = database.get(tables.SUBCATEGORIES_TABLE, {
-                            categoryId: params.categoryId,
+                        response = await database.get(tables.SUBCATEGORIES_TABLE, {
+                            id: params.subcategoryId,  // Corrected the query condition
+                            categoryId: params.categoryId
                         });
-                        const data = response.rows;
-                        if (data && data.length === 0) {
+                        const subcategoryData = response.rows;
+                        if (subcategoryData && subcategoryData.length === 0) {
                             return next(
                                 new AppError(
                                     `Invalid subCategory '${params.subcategoryId}' given`,
@@ -125,9 +126,9 @@ router.get("/", async function (req, res, next) {
         }
     }
 
+    // Validate cityId
     try {
         if (params.cityId) {
-
             if (isNaN(Number(params.cityId)) || Number(params.cityId) <= 0) {
                 return next(
                     new AppError(`Invalid City '${params.cityId}' given`, 400)
@@ -153,25 +154,72 @@ router.get("/", async function (req, res, next) {
         return next(new AppError(err));
     }
 
+    // Validate showExternalListings
     if (params.showExternalListings !== 'true') {
         queryFilters += ` AND L.sourceId = 1 `;
     }
 
+    // Validate appointmentId
     if (params.appointmentId) {
-        if(!Number(params.appointmentId) || Number(params.appointmentId) <= 0) {
+        if (isNaN(Number(params.appointmentId)) || Number(params.appointmentId) <= 0) {
             return next(new AppError("Invalid AppointmentId"));
         }
-        queryFilters += ` AND L.appointmentId = ?`;
-        queryFilterParams.push(Number(params.appointmentId))
-
+        queryFilters += ` AND L.appointmentId = ? `;
+        queryFilterParams.push(Number(params.appointmentId));
     }
 
+    // New dateFilter logic
+    if (params.dateFilter) {
+        const dateFilter = params.dateFilter.toLowerCase();
+        const today = new Date();
+        let startDateCondition = "";
+
+        switch (dateFilter) {
+        case "today":{
+            // Start date is today's date
+            const todayStr = today.toISOString().split("T")[0]; // Get YYYY-MM-DD format
+            startDateCondition = ` AND L.startDate BETWEEN '${todayStr} 00:00:00' AND  '${todayStr} 23:59:00'`;
+            break;
+        }
+        case "week":{
+            // Start date is within the current week (Monday to Sunday)
+            const currentDay = today.getDay();
+            const firstDayOfWeek = new Date(today);
+            firstDayOfWeek.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1)); // Set to Monday
+            const lastDayOfWeek = new Date(firstDayOfWeek);
+            lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6); // Set to Sunday
+
+            const firstDayStr = firstDayOfWeek.toISOString().split("T")[0];
+            const lastDayStr = lastDayOfWeek.toISOString().split("T")[0];
+
+            startDateCondition = ` AND L.startDate BETWEEN '${firstDayStr}' AND '${lastDayStr}' `;
+            break;
+        }
+        case "month":{
+            // Start date is within the current month
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+            const firstMonthStr = firstDayOfMonth.toISOString().split("T")[0];
+            const lastMonthStr = lastDayOfMonth.toISOString().split("T")[0];
+
+            startDateCondition = ` AND L.startDate BETWEEN '${firstMonthStr}' AND '${lastMonthStr}' `;
+            break;
+        }
+        default:
+            return next(
+                new AppError("Invalid dateFilter value. Use 'today', 'week', or 'month'.", 400)
+            );
+        }
+
+        queryFilters += startDateCondition;
+    }
+
+    // Construct and execute the final query
     try {
         const individualQueries = [];
         const queryParams = [];
         for (const city of cities) {
-            // if the city database is present in the city's server, then we create a federated table in the format
-            // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
             const cityQuery = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
@@ -186,25 +234,26 @@ router.get("/", async function (req, res, next) {
                 FROM heidi_city_${city.id}.listing_images
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId 
-            inner join user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ?
-            inner join users U on U.id = UM.userId
+            INNER JOIN user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ?
+            INNER JOIN users U on U.id = UM.userId
             WHERE 1=1 ${queryFilters}
             GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
             individualQueries.push(cityQuery);
-            queryParams.push(city.id, city.id , ...queryFilterParams);
+            queryParams.push(city.id, city.id, ...queryFilterParams);
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
-        const fullQuery = `select * from (${individualQueries.join(" union all ")}) AS combined 
-        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt desc"} LIMIT ?, ?;`;
+        const fullQuery = `SELECT * FROM (${individualQueries.join(" UNION ALL ")}) AS combined 
+        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
         const response = await database.callQuery(fullQuery, finalQueryParams);
         const listings = response.rows;
         const noOfListings = listings.length;
 
+        // Handle translations if needed
         if (
             noOfListings > 0 &&
-      params.translate &&
-      supportedLanguages.includes(params.translate)
+            params.translate &&
+            supportedLanguages.includes(params.translate)
         ) {
             const textToTranslate = [];
             listings.forEach((listing) => {
@@ -226,17 +275,22 @@ router.get("/", async function (req, res, next) {
                 }
                 if (
                     translations[2 * i + 1].detectedSourceLang !==
-          params.translate.slice(0, 2)
+                    params.translate.slice(0, 2)
                 ) {
                     listings[i].descriptionLanguage =
-            translations[2 * i + 1].detectedSourceLang;
+                        translations[2 * i + 1].detectedSourceLang;
                     listings[i].descriptionTranslation = translations[2 * i + 1].text;
                 }
             }
         }
+
+        // Remove viewCount from listings
+        listings.forEach(listing => delete listing.viewCount);
+
+        // Send response
         return res.status(200).json({
             status: "success",
-            data: response.rows,
+            data: listings,
         });
     } catch (err) {
         return next(new AppError(err));
@@ -311,11 +365,15 @@ router.get("/search", async function (req, res, next) {
     }
 
     const individualQueries = cities.map(city => {
-        let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`]; 
+        let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`, `%${searchQuery}%`]; 
         let query = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
-            ${city.id} as cityId 
+            ${city.id} as cityId,
+            CASE 
+                WHEN L.title LIKE ? THEN 1 
+                ELSE 2 
+            END AS relevance
             FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
             LEFT JOIN 
             (
@@ -327,16 +385,23 @@ router.get("/search", async function (req, res, next) {
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId
             WHERE (L.title LIKE ? OR L.description LIKE ?)`;
-
+    
         if (filters.length > 0) {
             query += ` AND ${filters.join(" AND ")}`;
             cityQueryParams = cityQueryParams.concat(queryParams);
         }
-
+    
         query += ` GROUP BY L.id, sub.logo, sub.logoCount`;
+    
+        const orderByClause = sortByStartDate ? 
+            "ORDER BY relevance, startDate, createdAt" : 
+            "ORDER BY relevance, createdAt DESC";
+    
+        query += ` ${orderByClause}`;
+    
         return { query, params: cityQueryParams };
     });
-
+    
     const combinedQueryParts = [];
     let combinedParams = [];
     individualQueries.forEach(({ query, params }) => {
@@ -345,23 +410,23 @@ router.get("/search", async function (req, res, next) {
     });
     const paginationParams = [(pageNo - 1) * pageSize, pageSize];
     combinedParams = combinedParams.concat(paginationParams);
-
-    const orderByClause = sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC";
-    const combinedQuery = `SELECT * FROM (${combinedQueryParts.join(" UNION ALL ")}) AS combined 
-                            ${orderByClause} 
+    
+    const combinedQuery = `SELECT * FROM (${combinedQueryParts.join(" UNION ALL ")}) AS combined ORDER BY relevance, createdAt DESC
                             LIMIT ?, ?`;
-
+    
     try {
         const response = await database.callQuery(combinedQuery, combinedParams);
         const listings = response.rows;
-
+        listings.forEach(listing => delete listing.viewCount);
+    
         res.json({
             status: "success",
             data: listings,
         });
     } catch (error) {
         next(new Error(`An error occurred while fetching listings: ${error.message}`));
-    }
+    }    
+    
 });
 
 router.post("/", authentication, async function (req, res, next) {
@@ -389,6 +454,9 @@ router.post("/", authentication, async function (req, res, next) {
             data: response
         });
     } catch (err) {
+        if(err instanceof AppError) {
+            return next(err);
+        }
         return next(new AppError(err));
     }
 });
