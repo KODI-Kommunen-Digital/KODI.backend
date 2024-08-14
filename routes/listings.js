@@ -365,11 +365,15 @@ router.get("/search", async function (req, res, next) {
     }
 
     const individualQueries = cities.map(city => {
-        let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`]; 
+        let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`, `%${searchQuery}%`]; 
         let query = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
-            ${city.id} as cityId 
+            ${city.id} as cityId,
+            CASE 
+                WHEN L.title LIKE ? THEN 1 
+                ELSE 2 
+            END AS relevance
             FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
             LEFT JOIN 
             (
@@ -381,16 +385,23 @@ router.get("/search", async function (req, res, next) {
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId
             WHERE (L.title LIKE ? OR L.description LIKE ?)`;
-
+    
         if (filters.length > 0) {
             query += ` AND ${filters.join(" AND ")}`;
             cityQueryParams = cityQueryParams.concat(queryParams);
         }
-
+    
         query += ` GROUP BY L.id, sub.logo, sub.logoCount`;
+    
+        const orderByClause = sortByStartDate ? 
+            "ORDER BY relevance, startDate, createdAt" : 
+            "ORDER BY relevance, createdAt DESC";
+    
+        query += ` ${orderByClause}`;
+    
         return { query, params: cityQueryParams };
     });
-
+    
     const combinedQueryParts = [];
     let combinedParams = [];
     individualQueries.forEach(({ query, params }) => {
@@ -399,24 +410,23 @@ router.get("/search", async function (req, res, next) {
     });
     const paginationParams = [(pageNo - 1) * pageSize, pageSize];
     combinedParams = combinedParams.concat(paginationParams);
-
-    const orderByClause = sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC";
-    const combinedQuery = `SELECT * FROM (${combinedQueryParts.join(" UNION ALL ")}) AS combined 
-                            ${orderByClause} 
+    
+    const combinedQuery = `SELECT * FROM (${combinedQueryParts.join(" UNION ALL ")}) AS combined ORDER BY relevance, createdAt DESC
                             LIMIT ?, ?`;
-
+    
     try {
         const response = await database.callQuery(combinedQuery, combinedParams);
         const listings = response.rows;
         listings.forEach(listing => delete listing.viewCount);
-
+    
         res.json({
             status: "success",
             data: listings,
         });
     } catch (error) {
         next(new Error(`An error occurred while fetching listings: ${error.message}`));
-    }
+    }    
+    
 });
 
 router.post("/", authentication, async function (req, res, next) {
