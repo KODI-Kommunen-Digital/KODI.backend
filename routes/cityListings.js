@@ -3,9 +3,11 @@ const router = express.Router();
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
 const categories = require("../constants/categories");
+const subcategories = require("../constants/subcategories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const roles = require("../constants/roles");
 const supportedLanguages = require("../constants/supportedLanguages");
+const status = require("../constants/status");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 const deepl = require("deepl-node");
@@ -21,6 +23,7 @@ const getPdfImage = require("../utils/getPdfImage");
 const { createListing } = require('../services/listingFunctions');
 const rateLimit = require('express-rate-limit');
 // const createRateLimitMiddleware = require("./rateLimitMiddleware");
+const sendPushNotification = require("../services/sendPushNotification");
 
 // const radiusSearch = require('../services/handler')
 
@@ -696,17 +699,45 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.latitude = payload.latitude;
     }
 
-    database
-        .update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
-        .then((response) => {
-            res.status(200).json({
-                status: "success",
-                id,
-            });
-        })
-        .catch((err) => {
-            return next(new AppError(err));
+    try {
+        if (payload.startDate) {
+            updationData.startDate = getDateInFormate(new Date(payload.startDate));
+        }
+        
+        if (payload.endDate) {
+            if (parseInt(payload.subcategoryId) === subcategories.timelessNews){
+                return next(new AppError(`Timeless News should not have an end date.`, 400));
+            }
+            updationData.endDate = getDateInFormate(new Date(payload.endDate));
+            updationData.expiryDate = getDateInFormate(new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24));
+        }
+    } catch (error) {
+        return next(new AppError(`Invalid time format ${error}`, 400));
+    }
+
+    try {
+        const hasDefaultImage = payload.logo !== null || payload.otherlogos.length !== 0 ||  payload.hasAttachment ? false : true;
+        if(hasDefaultImage){
+            const categoryName = Object.keys(categories).find(key => categories[key] === +payload.categoryId);
+            const query = `select count(LI.id) as LICount from heidi_city_${cityId}.listing_images LI where LI.logo like '%${categoryName}%'`;
+            const categoryImage = await database.callQuery(query);
+            const categoryCount = categoryImage.rows.length > 0 && categoryImage.rows[0].LICount;
+            const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
+            const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
+            addDefaultImage(cityId,id,imageName);
+        }
+
+        await database.update(tables.LISTINGS_TABLE, updationData, { id }, cityId)
+        if (parseInt(payload.categoryId) === categories.News && parseInt(payload.subcategoryId) === subcategories.newsflash && payload.status === status.Active && req.roleId === roles.Admin) {
+            await sendPushNotification.sendPushNotificationToAll("warnings", "Eilmeldung", updationData.title || currentListingData.title , { cityId, id })
+        }
+        return res.status(200).json({
+            status: "success",
+            id,
         });
+    } catch (error) {
+        return next(new AppError(error));
+    }
 });
 
 router.delete("/:id", authentication, async function (req, res, next) {
@@ -1095,12 +1126,12 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
         );
     }
 
-    if (currentListingData.logo && currentListingData.logo.length > 0) {
+    if(currentListingData.logo && currentListingData.logo.length > 0) {
         return next(
             new AppError(`Image is present in listing So can not upload pdf.`, 403)
         );
     }
-    const { pdf } = req.files;
+    const { pdf } = req.files ? req.files : false;
 
     if (!pdf) {
         next(new AppError(`Pdf not uploaded`, 400));

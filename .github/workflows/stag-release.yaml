@@ -35,4 +35,4 @@ jobs:
             cd ${{ secrets.TEST_HOST_1_APPDIR }}
             npm install --production
             npm run lint .
-            pm2 restart API
+            pm2 restart NEW_API
