@@ -83,7 +83,7 @@ router.get("/", async function (req, res, next) {
         try {
             let response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: params.categoryId },
+                { id: params.categoryId, enabled: true },
                 null
             );
             const data = response.rows;

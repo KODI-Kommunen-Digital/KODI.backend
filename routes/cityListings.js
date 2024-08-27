@@ -111,7 +111,7 @@ router.get("/", async function (req, res, next) {
         try {
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: params.categoryId },
+                { id: params.categoryId, enabled: true },
                 null,
                 cityId
             );
@@ -374,7 +374,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         try {
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: payload.categoryId },
+                { id: payload.categoryId, enabled: true },
                 null,
                 cityId
             );

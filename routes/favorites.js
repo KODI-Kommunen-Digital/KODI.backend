@@ -53,7 +53,7 @@ router.get("/listings", authentication, async function (req, res, next) {
         try {
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: parseInt(params.categoryId)  },
+                { id: parseInt(params.categoryId), enabled: true  },
                 null
             );
             const data = response.rows;

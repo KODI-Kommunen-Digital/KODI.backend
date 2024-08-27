@@ -56,7 +56,7 @@ async function getUserListings(req, userId){
         try {
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: categoryId },
+                { id: categoryId, enabled: true },
                 null
             );
             const data = response.rows;

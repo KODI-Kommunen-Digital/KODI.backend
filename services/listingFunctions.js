@@ -121,7 +121,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         try {
             const response = await database.get(
                 tables.CATEGORIES_TABLE,
-                { id: payload.categoryId },
+                { id: payload.categoryId, enabled: true },
                 null
             );
 
