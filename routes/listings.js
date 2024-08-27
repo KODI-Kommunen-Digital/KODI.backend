@@ -242,7 +242,7 @@ router.get("/", async function (req, res, next) {
             queryParams.push(city.id, city.id, ...queryFilterParams);
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
-        const fullQuery = `SELECT DISTINCT U.* FROM (${individualQueries.join(" UNION ALL")}) AS U 
+        const fullQuery = `SELECT DISTINCT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
         ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
         const response = await database.callQuery(fullQuery, finalQueryParams);
