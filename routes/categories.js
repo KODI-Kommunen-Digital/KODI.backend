@@ -6,7 +6,7 @@ const AppError = require("../utils/appError");
 
 router.get("/", async function (req, res, next) {
     database
-        .get(tables.CATEGORIES_TABLE, { enabled: true }, null, null, null, null, ["category_order", "id"])
+        .get(tables.CATEGORIES_TABLE, { isEnabled: true }, "id, name, noOfSubcategories", null, null, null, ["category_order", "id"])
         .then((response) => {
             	const data = response.rows;
             res.status(200).json({
