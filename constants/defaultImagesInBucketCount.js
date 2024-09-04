@@ -38,7 +38,7 @@ if (process.env.APPLICATION === "WALDI") {
         EatOrDrink:1,
         AppointmentBooking:9,
         DefectReporter:6,
-        Polls:8,
+        Polls:1,
         Officialnotification: 1,
         Applicants:4
     };
