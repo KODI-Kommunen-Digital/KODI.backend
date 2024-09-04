@@ -40,6 +40,7 @@ if (process.env.APPLICATION === "WALDI") {
         DefectReporter:6,
         Polls:1,
         Officialnotification: 1,
-        Applicants:4
+        Applicants:4,
+        Coupons: 43
     };
 }
