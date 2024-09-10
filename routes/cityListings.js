@@ -804,8 +804,10 @@ router.delete("/:id", authentication, async function (req, res, next) {
                 { listingId: id },
                 cityId
             );
-            // delete poll options with listingId; id
-            await database.deleteData(tables.POLL_OPTIONS_TABLE, { listingId: id }, cityId);
+            // delete poll options with listingId: id
+            if (currentListingData.categoryId === categories.Polls) {
+                await database.deleteData(tables.POLL_OPTIONS_TABLE, { listingId: id }, cityId);
+            }
             await database.deleteData(tables.LISTINGS_TABLE, { id }, cityId);
             return res.status(200).json({
                 status: "success",

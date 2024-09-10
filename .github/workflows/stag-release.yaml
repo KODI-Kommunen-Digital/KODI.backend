@@ -32,7 +32,15 @@ jobs:
           password: ${{ secrets.TEST_HOST_1_PASSWORD }}
           port: 22
           script: |
-            cd ${{ secrets.TEST_HOST_1_APPDIR }}
+            cd ${{ secrets.TEST_HOST_1_APPDIR }}/Backend
+
+            eval "$(ssh-agent -s)"
+            ssh-add ~/.ssh/githubNew
+
+            git checkout -f main
+            git reset --hard
+            git pull || { echo "Git pull failed"; exit 1; }
+
             npm install --production
             npm run lint .
             pm2 restart NEW_API
