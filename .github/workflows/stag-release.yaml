@@ -14,16 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Copy files via SSH on Server 1
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.TEST_HOST_1 }}
-          username: ${{ secrets.TEST_HOST_1_USERNAME}}
-          port: 22
-          password: ${{ secrets.TEST_HOST_1_PASSWORD}}
-          source: "*"
-          target: ${{ secrets.TEST_HOST_1_APPDIR }}
-
       - name: Run commands on Server 1
         uses: appleboy/ssh-action@master
         with:
@@ -37,7 +27,7 @@ jobs:
             eval "$(ssh-agent -s)"
             ssh-add ~/.ssh/githubNew
 
-            git checkout -f main
+            git checkout -f develop
             git reset --hard
             git pull || { echo "Git pull failed"; exit 1; }
 
