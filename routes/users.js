@@ -423,7 +423,7 @@ router.get("/:id", optionalAuthentication, async function (req, res, next) {
                 );
             }
             const userData = data[0];
-            if (process.env.HIDE_PERSONAL_DETAILS === 'True' && req.userId !== userData.id) {
+            if (req.userId !== userData.id) {
                 // Obfuscate all fields except 'id', 'username', and 'image'
                 userData.email = "***@***.**";
                 userData.socialMedia = "hidden";
@@ -1183,7 +1183,7 @@ router.get("/", optionalAuthentication, async function (req, res, next) {
         .then((response) => {
             const data = response.rows.map(user => {
                 // Hide personal details for users other than the one authenticated
-                if (process.env.HIDE_PERSONAL_DETAILS === 'True' && req.userId !== user.id) {
+                if (req.userId !== user.id) {
                     user.email = "***@***.**";
                     user.socialMedia = "Hidden";
                     user.website = "Hidden";
