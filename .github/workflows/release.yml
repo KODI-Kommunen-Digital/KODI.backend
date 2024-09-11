@@ -135,7 +135,7 @@ jobs:
           password: ${{ env.PASSWORD || '' }}
           key: ${{ env.SSHKEY || '' }}
           script: |
-            cd ${{ env.APPDIR }}
+            cd ${{ env.APPDIR }} { echo "cd Failed: ${{ env.APPDIR }}"; exit 1; }
 
             eval "$(ssh-agent -s)"
             ssh-add ~/.ssh/githubNew
