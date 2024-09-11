@@ -54,7 +54,7 @@ jobs:
             echo "HOST=${{ secrets.WALDI_HOST_NAME }}" >> $GITHUB_ENV
             echo "USERNAME=${{ secrets.WALDI_USERNAME }}" >> $GITHUB_ENV
             echo "PASSWORD=${{ secrets.WALDI_PASSWORD }}" >> $GITHUB_ENV
-            echo "APPDIR=~/Waldi/Backend" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.WALDI_APPDIR }}/Backend" >> $GITHUB_ENV
           elif [[ "${{ matrix.project }}" == "smartregionauf" ]]; then
             echo "HOST=${{ secrets.SMART_HOST_NAME }}" >> $GITHUB_ENV
             echo "USERNAME=${{ secrets.SMART_USERNAME }}" >> $GITHUB_ENV
