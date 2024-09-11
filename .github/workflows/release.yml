@@ -89,6 +89,7 @@ jobs:
             echo "HOST=${{ secrets.TROISDORF_HOST_NAME }}" >> $GITHUB_ENV
             echo "USERNAME=${{ secrets.TROISDORF_USERNAME }}" >> $GITHUB_ENV
             echo "PASSWORD=${{ secrets.TROISDORF_PASSWORD }}" >> $GITHUB_ENV
+            echo "SSHKEY=${{ secrets.TROISDORF_SSHKEY }}" >> $GITHUB_ENV
             echo "APPDIR=${{ secrets.TROISDORF_APPDIR }}/Backend" >> $GITHUB_ENV
           elif [[ "${{ matrix.project }}" == "wunsiedel" ]]; then
             echo "HOST=${{ secrets.WUNSIEDEL_HOST_NAME }}" >> $GITHUB_ENV
