@@ -22,6 +22,9 @@ jobs:
           password: ${{ secrets.TEST_HOST_1_PASSWORD }}
           port: 22
           script: |
+            pwd
+            ls -la
+
             cd ${{ secrets.TEST_HOST_1_APPDIR }}/Backend
 
             eval "$(ssh-agent -s)"
