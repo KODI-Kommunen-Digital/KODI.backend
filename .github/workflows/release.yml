@@ -118,7 +118,7 @@ jobs:
             echo "USERNAME=${{ secrets.HASSLACHTAL_USERNAME }}" >> $GITHUB_ENV
             echo "PASSWORD=${{ secrets.HASSLACHTAL_PASSWORD }}" >> $GITHUB_ENV
             echo "APPDIR=${{ secrets.STOCKHEIM_APPDIR }}/Backend" >> $GITHUB_ENV
-            echo "PROCESS_NAME=SCHNECKENLOHE-API" >> $GITHUB_ENV
+            echo "PROCESS_NAME=STOCKHEIM-API" >> $GITHUB_ENV
           elif [[ "${{ matrix.project }}" == "einbeck" ]]; then
             echo "HOST=${{ secrets.EINBECK_HOST_NAME }}" >> $GITHUB_ENV
             echo "USERNAME=${{ secrets.EINBECK_USERNAME }}" >> $GITHUB_ENV
