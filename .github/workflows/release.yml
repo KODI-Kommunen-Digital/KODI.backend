@@ -146,4 +146,4 @@ jobs:
 
             npm install --production
             npm run lint .
-            pm2 restart ${{ secrets.PROCESS_NAME || 'API' }
+            pm2 restart ${{ secrets.PROCESS_NAME || 'API' }}
