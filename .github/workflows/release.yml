@@ -134,6 +134,7 @@ jobs:
           username: ${{ env.USERNAME }}
           password: ${{ env.PASSWORD || '' }}
           key: ${{ env.SSHKEY || '' }}
+          key_format: openssh
           script: |
             cd ${{ env.APPDIR }}
 
