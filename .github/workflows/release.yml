@@ -135,7 +135,7 @@ jobs:
           password: ${{ env.PASSWORD || '' }}
           key: ${{ env.SSHKEY || '' }}
           script: |
-            cd ${{ secrets.APPDIR }}
+            cd ${{ env.APPDIR }}
 
             eval "$(ssh-agent -s)"
             ssh-add ~/.ssh/githubNew
@@ -146,4 +146,4 @@ jobs:
 
             npm install --production
             npm run lint .
-            pm2 restart ${{ secrets.PROCESS_NAME || 'API' }}
+            pm2 restart ${{ env.PROCESS_NAME || 'API' }}
