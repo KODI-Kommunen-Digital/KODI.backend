@@ -1,20 +1,19 @@
 require('dotenv').config()
-const AppError = require("../utils/appError");
 const tokenUtil = require('../utils/token');
 
 const optionalAuthentication = async function (req, res, next) {
     const bearerToken = req.headers.authorization;
     if (!bearerToken) {
-        return next(new AppError(`Authorization token not present`, 401));
+        next();
     }
 
     if (!bearerToken.startsWith('Bearer ')) {
-        return next(new AppError(`Invalid authorization token`, 401));
+        next();
     }
 
     const token = bearerToken.split(' ')[1]
     if (!token) {
-        return next(new AppError(`Invalid authorization token`, 401));
+        next();
     }
     
     try {
