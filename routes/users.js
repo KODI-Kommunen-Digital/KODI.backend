@@ -423,7 +423,7 @@ router.get("/:id", optionalAuthentication, async function (req, res, next) {
                 );
             }
             const userData = data[0];
-            if (!req.userId !== userData.id) {
+            if (req.userId !== userData.id) {
                 // Obfuscate all fields except 'id', 'username', and 'image'
                 userData.email = "***@***.**";
                 userData.socialMedia = "hidden";
