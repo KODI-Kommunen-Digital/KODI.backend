@@ -36,4 +36,4 @@ jobs:
 
             npm install --production
             npm run lint .
-            pm2 restart NEW_API
+            pm2 restart API
