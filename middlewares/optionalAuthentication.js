@@ -4,16 +4,16 @@ const tokenUtil = require('../utils/token');
 const optionalAuthentication = async function (req, res, next) {
     const bearerToken = req.headers.authorization;
     if (!bearerToken) {
-        next();
+        return next();
     }
 
     if (!bearerToken.startsWith('Bearer ')) {
-        next();
+        return next();
     }
 
     const token = bearerToken.split(' ')[1]
     if (!token) {
-        next();
+        return next();
     }
     
     try {
