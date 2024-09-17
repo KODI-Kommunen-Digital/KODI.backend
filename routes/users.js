@@ -514,11 +514,14 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.lastname = payload.lastname;
     }
 
-    if (payload.phoneNumber) {
+    if (Object.prototype.hasOwnProperty.call(payload, "phoneNumber")) {
         const re = /^(\d{8,15})$/;
-        if (!re.test(payload.phoneNumber))
+        // If the phoneNumber is not an empty string and is invalid, throw an error
+        if (payload.phoneNumber !== "" && !re.test(payload.phoneNumber)) {
             return next(new AppError("Phone number is not valid", 400));
-        updationData.phoneNumber = payload.phoneNumber;
+        }
+        // If phoneNumber is an empty string, set it to null
+        updationData.phoneNumber = payload.phoneNumber === "" ? null : payload.phoneNumber;
     }
 
     if (payload.description) {
