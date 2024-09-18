@@ -1,12 +1,10 @@
-const {Category} = require("../models/Category");
-
-const getAllCategoriesSwagger = {
-    summary: "Get all categories",
-    description: "Retrieve all categories from the database",
-    tags: ["Categories"],
+const getAllStatusesSwagger = {
+    summary: "Get all statuses",
+    description: "Retrieve all statuses from the database",
+    tags: ["statuses"],
     responses: {
         200: {
-            description: "Successfully fetched the categories",
+            description: "Successfully fetched the statuses",
             content: {
                 "application/json": {
                     schema: {
@@ -18,7 +16,19 @@ const getAllCategoriesSwagger = {
                             },
                             data: {
                                 type: "array",
-                                items: Category,
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        categoryId: {
+                                            type: "integer",
+                                            example: 1
+                                        },
+                                        name: {
+                                            type: "string",
+                                            example: "Active"
+                                        }
+                                    },
+                                }
                             },
                         },
                     },
@@ -48,4 +58,4 @@ const getAllCategoriesSwagger = {
     },
 };
 
-module.exports = getAllCategoriesSwagger;
+module.exports = getAllStatusesSwagger;

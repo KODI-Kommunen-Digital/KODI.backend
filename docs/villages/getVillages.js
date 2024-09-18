@@ -1,20 +1,21 @@
-const getSubCategoriesSwagger = {
-    summary: "Get all subcategories for a category",
-    description: "Retrieve all subcategories for a category from the database",
-    tags: ["Categories"],
+const getVillegesSwagger = {
+    summary: "Get all villages",
+    description: "Retrieve all villages based on the cityId",
+    tags: ["Villeges"],
     parameters: [
         {
             in: "path",
-            name: "id",
+            name: "cityId",
             schema: {
-                type: "integer"
+                type: "integer",
+                minimum: 1,
             },
-            description: "The category ID for which the subcategories are to be fetched",
-        },
+            description: "The id of the city where the villages are in",
+        }
     ],
     responses: {
         200: {
-            description: "Successfully fetched the subcategories",
+            description: "Successfully fetched all villages",
             content: {
                 "application/json": {
                     schema: {
@@ -33,21 +34,37 @@ const getSubCategoriesSwagger = {
                                             type: "integer",
                                             example: 1,
                                         },
-                                        categoryId: {
-                                            type: "integer",
-                                            example: 1
-                                        },
                                         name: {
                                             type: "string",
-                                            example: "FlashNews",
+                                            example: "first village",
                                         },
-                                    },
-                                }
+                                    }
+                                },
                             },
                         },
                     },
                 },
             }
+        },
+        400: {
+            description: "Invalid input given",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "invalid cityId given",
+                            },
+                        },
+                    },
+                },
+            },
         },
         500: {
             description: "Internal Server Error",
@@ -72,4 +89,4 @@ const getSubCategoriesSwagger = {
     },
 };
 
-module.exports = getSubCategoriesSwagger;
+module.exports = getVillegesSwagger;

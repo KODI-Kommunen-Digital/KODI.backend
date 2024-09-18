@@ -1,21 +1,44 @@
-const getCategoriesListingCountSwagger = {
-    summary: "Get all categories listing count",
-    description: "Retrieve all categories listing count from the database",
-    tags: ["Categories"],
+const { UserResponseSchema } = require("../models/userModels");
+
+const getUserByIdDoc = {
+    summary: "Get a user by ID",
+    description: "Retrieve a user based on their ID",
+    'tags': ["Users"],
     parameters: [
+        {
+            in: "path",
+            name: "id",
+            schema: {
+                type: "integer",
+            },
+            required: true,
+            description: "The ID of the user",
+            title: "get used by Id",
+        },
+        {
+            in: "query",
+            name: "cityUser",
+            schema: {
+                type: "boolean",
+            },
+            required: false,
+            description:
+                "If true, the user will be checked against cityId and returned with cityUser mappings",
+        },
         {
             in: "query",
             name: "cityId",
             schema: {
                 type: "integer",
-                minimum: 1,
             },
-            description: "The city ID for which the listing count is to be fetched",
+            required: false,
+            description:
+                "The ID of the city; if given, will return the user with cityUser mapping for the specified city",
         },
     ],
     responses: {
-        200: {
-            description: "Successfully fetched the listing count",
+        "200": {
+            description: "The user was successfully fetched",
             content: {
                 "application/json": {
                     schema: {
@@ -24,56 +47,22 @@ const getCategoriesListingCountSwagger = {
                             status: {
                                 type: "string",
                                 example: "success",
+                                description: "The status of the response",
                             },
                             data: {
                                 type: "array",
                                 items: {
                                     type: "object",
-                                    properties: {
-                                        categoryId: {
-                                            type: "integer",
-                                            example: 1
-                                        },
-                                        count: {
-                                            type: "integer",
-                                            example: 1,
-                                            required: false,
-                                        },
-                                        totalCount: {
-                                            type: "integer",
-                                            example: 15,
-                                            reqired: false,
-                                        },
-                                    },
-                                }
-                            },
-                        },
-                    },
-                },
-            }
-        },
-        404: {
-            description: "Invalid cityId given",
-            content: {
-                "application/json": {
-                    schema: {
-                        type: "object",
-                        properties: {
-                            status: {
-                                type: "string",
-                                example: "error",
-                            },
-                            message: {
-                                type: "string",
-                                example: "Invalid City '1' given",
+                                    properties: UserResponseSchema,
+                                },
                             },
                         },
                     },
                 },
             },
         },
-        500: {
-            description: "Internal Server Error",
+        "400": {
+            description: "Invalid input given",
             content: {
                 "application/json": {
                     schema: {
@@ -85,7 +74,27 @@ const getCategoriesListingCountSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Internal server error",
+                                example: "User with id 20 does not exist",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "500": {
+            description: "Internal server error",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "ReferenceError data is not defined",
                             },
                         },
                     },
@@ -93,6 +102,7 @@ const getCategoriesListingCountSwagger = {
             },
         },
     },
+
 };
 
-module.exports = getCategoriesListingCountSwagger;
+module.exports = getUserByIdDoc;

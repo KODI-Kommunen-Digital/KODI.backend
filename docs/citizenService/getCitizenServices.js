@@ -1,12 +1,12 @@
-const {Category} = require("../models/Category");
+const { CitizenService } = require("../models/CitizenService");
 
-const getAllCategoriesSwagger = {
-    summary: "Get all categories",
-    description: "Retrieve all categories from the database",
-    tags: ["Categories"],
+const getAllCitizenServicesSwagger = {
+    summary: "Get all Citizen services",
+    description: "Retrieve all Citizen Services from the database",
+    tags: ["Citizen Services"],
     responses: {
         200: {
-            description: "Successfully fetched the categories",
+            description: "Successfully fetched Citizen Services",
             content: {
                 "application/json": {
                     schema: {
@@ -18,7 +18,7 @@ const getAllCategoriesSwagger = {
                             },
                             data: {
                                 type: "array",
-                                items: Category,
+                                items: CitizenService
                             },
                         },
                     },
@@ -48,4 +48,4 @@ const getAllCategoriesSwagger = {
     },
 };
 
-module.exports = getAllCategoriesSwagger;
+module.exports = getAllCitizenServicesSwagger;

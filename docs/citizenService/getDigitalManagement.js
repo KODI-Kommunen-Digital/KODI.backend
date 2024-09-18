@@ -1,20 +1,23 @@
-const getSubCategoriesSwagger = {
-    summary: "Get all subcategories for a category",
-    description: "Retrieve all subcategories for a category from the database",
-    tags: ["Categories"],
+const { DigitalManagement } = require("../models/CitizenService");
+
+const getDigitalManagementSwagger = {
+    summary: "Get Digital management",
+    description: "Retrieve Digital management from the database",
+    tags: ["Citizen Services"],
     parameters: [
         {
-            in: "path",
-            name: "id",
+            in: "query",
+            name: "cityId",
             schema: {
-                type: "integer"
+                type: "integer",
+                minimum: 1,
             },
-            description: "The category ID for which the subcategories are to be fetched",
+            description: "The city ID for which the listing count is to be fetched",
         },
     ],
     responses: {
         200: {
-            description: "Successfully fetched the subcategories",
+            description: "Successfully fetched Digital management from the database",
             content: {
                 "application/json": {
                     schema: {
@@ -26,28 +29,32 @@ const getSubCategoriesSwagger = {
                             },
                             data: {
                                 type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        id: {
-                                            type: "integer",
-                                            example: 1,
-                                        },
-                                        categoryId: {
-                                            type: "integer",
-                                            example: 1
-                                        },
-                                        name: {
-                                            type: "string",
-                                            example: "FlashNews",
-                                        },
-                                    },
-                                }
+                                items: DigitalManagement
                             },
                         },
                     },
                 },
             }
+        },
+        404: {
+            description: "Invalid cityId given",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "Invalid City '1' given",
+                            },
+                        },
+                    },
+                },
+            },
         },
         500: {
             description: "Internal Server Error",
@@ -72,4 +79,4 @@ const getSubCategoriesSwagger = {
     },
 };
 
-module.exports = getSubCategoriesSwagger;
+module.exports = getDigitalManagementSwagger;

@@ -1,21 +1,37 @@
-const getCategoriesListingCountSwagger = {
-    summary: "Get all categories listing count",
-    description: "Retrieve all categories listing count from the database",
-    tags: ["Categories"],
+const { CityListing } = require("../models/cityListing");
+
+const createCityListingSwagger = {
+    summary: "Create a new listing",
+    tags: ["City Listings"],
+    description: "Create a new listing in the given city",
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
     parameters: [
         {
-            in: "query",
+            in: "path",
             name: "cityId",
             schema: {
                 type: "integer",
-                minimum: 1,
+                required: true,
+                description: "The city id",
+                example: 1,
             },
-            description: "The city ID for which the listing count is to be fetched",
         },
     ],
+    requestBody: {
+        required: true,
+        content: {
+            "application/json": {
+                schema: CityListing,
+            },
+        },
+    },
     responses: {
         200: {
-            description: "Successfully fetched the listing count",
+            description: "The listing was successfully created",
             content: {
                 "application/json": {
                     schema: {
@@ -25,35 +41,17 @@ const getCategoriesListingCountSwagger = {
                                 type: "string",
                                 example: "success",
                             },
-                            data: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        categoryId: {
-                                            type: "integer",
-                                            example: 1
-                                        },
-                                        count: {
-                                            type: "integer",
-                                            example: 1,
-                                            required: false,
-                                        },
-                                        totalCount: {
-                                            type: "integer",
-                                            example: 15,
-                                            reqired: false,
-                                        },
-                                    },
-                                }
+                            id: {
+                                type: "integer",
+                                example: 1,
                             },
                         },
                     },
                 },
-            }
+            },
         },
-        404: {
-            description: "Invalid cityId given",
+        400: {
+            description: "Invalid input given",
             content: {
                 "application/json": {
                     schema: {
@@ -65,7 +63,27 @@ const getCategoriesListingCountSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Invalid City '1' given",
+                                example: "Invalid Village id '2' given",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        401: {
+            description: "Unauthorized",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "Authorization token not present",
                             },
                         },
                     },
@@ -95,4 +113,4 @@ const getCategoriesListingCountSwagger = {
     },
 };
 
-module.exports = getCategoriesListingCountSwagger;
+module.exports = createCityListingSwagger;

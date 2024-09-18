@@ -1,20 +1,21 @@
-const getSubCategoriesSwagger = {
-    summary: "Get all subcategories for a category",
-    description: "Retrieve all subcategories for a category from the database",
-    tags: ["Categories"],
+const getMoreInfoSwagger = {
+    summary: "Get more info",
+    description: "Retrieve more info from the database",
+    tags: ["More Info"],
     parameters: [
         {
-            in: "path",
-            name: "id",
+            in: "query",
+            name: "language",
             schema: {
-                type: "integer"
+                type: "string",
+                minimum: "de",
             },
-            description: "The category ID for which the subcategories are to be fetched",
+            description: "The language of response",
         },
     ],
     responses: {
         200: {
-            description: "Successfully fetched the subcategories",
+            description: "Successfully fetched more info from database",
             content: {
                 "application/json": {
                     schema: {
@@ -33,13 +34,17 @@ const getSubCategoriesSwagger = {
                                             type: "integer",
                                             example: 1,
                                         },
-                                        categoryId: {
-                                            type: "integer",
-                                            example: 1
-                                        },
-                                        name: {
+                                        title: {
                                             type: "string",
-                                            example: "FlashNews",
+                                            example: "title",
+                                        },
+                                        isPdf: {
+                                            type: "boolean",
+                                            example: false,
+                                        },
+                                        link: {
+                                            type: "string",
+                                            example: "https://www.google.com",
                                         },
                                     },
                                 }
@@ -72,4 +77,4 @@ const getSubCategoriesSwagger = {
     },
 };
 
-module.exports = getSubCategoriesSwagger;
+module.exports = getMoreInfoSwagger;
