@@ -7,6 +7,7 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const tokenUtil = require("../utils/token");
 const authentication = require("../middlewares/authentication");
+const optionalAuthentication = require("../middlewares/optionalAuthentication");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const axios = require("axios");
@@ -350,7 +351,7 @@ router.get("/myListings", authentication, async function(req, res, next){
     }
 })
 
-router.get("/:id", async function (req, res, next) {
+router.get("/:id", optionalAuthentication, async function (req, res, next) {
     let userId = req.params.id;
     const cityUser = req.query.cityUser || false;
     const cityId = req.query.cityId;
@@ -421,9 +422,20 @@ router.get("/:id", async function (req, res, next) {
                     new AppError(`User with id ${userId} does not exist`, 404)
                 );
             }
+            const userData = data[0];
+            if (req.userId !== userData.id) {
+                // Obfuscate all fields except 'id', 'username', and 'image'
+                userData.email = "***@***.**";
+                userData.socialMedia = "hidden";
+                userData.website = "hidden";
+                userData.description = "hidden";
+                userData.phoneNumber = "hidden";
+                userData.firstname = "hidden";
+                userData.lastname = "hidden";
+            }
             res.status(200).json({
                 status: "success",
-                data: data[0],
+                data: userData
             });
         })
         .catch((err) => {
@@ -1138,7 +1150,7 @@ router.post("/:id/logout", authentication, async function (req, res, next) {
         });
 });
 
-router.get("/", async function (req, res, next) {
+router.get("/", optionalAuthentication, async function (req, res, next) {
     const params = req.query;
     const columsToQuery = [
         "id",
@@ -1169,9 +1181,21 @@ router.get("/", async function (req, res, next) {
     database
         .get(tables.USER_TABLE, filter, columsToQuery)
         .then((response) => {
+            const data = response.rows.map(user => {
+                // Hide personal details for users other than the one authenticated
+                if (req.userId !== user.id) {
+                    user.email = "***@***.**";
+                    user.socialMedia = "Hidden";
+                    user.website = "Hidden";
+                    user.description = "Hidden";
+                    user.firstname = "Hidden";
+                    user.lastname = "Hidden";
+                }
+                return user;
+            });
             res.status(200).json({
                 status: "success",
-                data: response.rows,
+                data
             });
         })
         .catch((err) => {

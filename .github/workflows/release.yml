@@ -3,76 +3,149 @@ name: Deploy Draft Release on Production
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      projects:
+        description: 'Select the projects to deploy (comma-separated list or "all" for all projects)'
+        required: true
+        default: "all"
+        type: string
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        project:
+          [
+            "waldi",
+            "smartregionauf",
+            "geseke",
+            "ratingen",
+            "hivada",
+            "coburg",
+            "salzkotten",
+            "troisdorf",
+            "wunsiedel",
+            "hasslachtalMitwitz",
+            "hasslachtalPressig",
+            "hasslachtalSchneckenlohe",
+            "hasslachtalStockheim",
+            "einbeck",
+          ]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v3
 
-      - name: Current path
-        run: pwd
+      - name: Set Projects to Deploy
+        id: set-projects
+        run: |
+          if [[ "${{ github.event.inputs.projects }}" == "all" ]]; then
+            echo "ALL_PROJECTS=waldi,smartregionauf,ratingen,geseke,hivada,coburg,salzkotten,troisdorf,wunsiedel,hasslachtalMitwitz,hasslachtalPressig,hasslachtalSchneckenlohe,hasslachtalStockheim,einbeck" >> $GITHUB_ENV
+          else
+            echo "ALL_PROJECTS=${{ github.event.inputs.projects }}" >> $GITHUB_ENV
+          fi
 
-      - name: Copy files via SSH on Waldi Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.WALDI_HOST_NAME }}
-          username: ${{ secrets.WALDI_USERNAME }}
-          password: ${{ secrets.WALDI_PASSWORD }}
-          source: "*"
-          target: ${{ secrets.WALDI_APPDIR }}
+      - name: Filter Projects to Deploy
+        if: contains(env.ALL_PROJECTS, matrix.project)
+        id: set-vars
+        run: |
+          if [[ "${{ matrix.project }}" == "waldi" ]]; then
+            echo "HOST=${{ secrets.WALDI_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.WALDI_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.WALDI_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.WALDI_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "smartregionauf" ]]; then
+            echo "HOST=${{ secrets.SMART_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.SMART_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.SMART_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.SMART_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "ratingen" ]]; then
+            echo "HOST=${{ secrets.RATINGEN_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.RATINGEN_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.RATINGEN_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.RATINGEN_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "geseke" ]]; then
+            echo "HOST=${{ secrets.GESEKE_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.GESEKE_USERNAME }}" >> $GITHUB_ENV
+            echo "SSHKEY=${{ secrets.GESEKE_SSHKEY }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.GESEKE_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "hivada" ]]; then
+            echo "HOST=${{ secrets.HIVADA_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.HIVADA_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.HIVADA_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.HIVADA_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "coburg" ]]; then
+            echo "HOST=${{ secrets.COBURG_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.COBURG_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.COBURG_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.COBURG_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "salzkotten" ]]; then
+            echo "HOST=${{ secrets.SALZKOTTEN_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.SALZKOTTEN_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.SALZKOTTEN_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.SALZKOTTEN_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "troisdorf" ]]; then
+            echo "HOST=${{ secrets.TROISDORF_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.TROISDORF_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.TROISDORF_PASSWORD }}" >> $GITHUB_ENV
+            echo "SSHKEY=${{ secrets.TROISDORF_SSHKEY }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.TROISDORF_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "wunsiedel" ]]; then
+            echo "HOST=${{ secrets.WUNSIEDEL_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.WUNSIEDEL_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.WUNSIEDEL_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.WUNSIEDEL_APPDIR }}/Backend" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "hasslachtalMitwitz" ]]; then
+            echo "HOST=${{ secrets.HASSLACHTAL_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.HASSLACHTAL_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.HASSLACHTAL_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.MITWITZ_APPDIR }}/Backend" >> $GITHUB_ENV
+            echo "PROCESS_NAME=MITWITZ-API" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "hasslachtalPressig" ]]; then
+            echo "HOST=${{ secrets.HASSLACHTAL_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.HASSLACHTAL_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.HASSLACHTAL_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.PRESSIG_APPDIR }}/Backend" >> $GITHUB_ENV
+            echo "PROCESS_NAME=PRESSIG-API" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "hasslachtalSchneckenlohe" ]]; then
+            echo "HOST=${{ secrets.HASSLACHTAL_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.HASSLACHTAL_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.HASSLACHTAL_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.SCHNECKENLOHE_APPDIR }}/Backend" >> $GITHUB_ENV
+            echo "PROCESS_NAME=SCHNECKENLOHE-API" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "hasslachtalStockheim" ]]; then
+            echo "HOST=${{ secrets.HASSLACHTAL_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.HASSLACHTAL_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.HASSLACHTAL_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.STOCKHEIM_APPDIR }}/Backend" >> $GITHUB_ENV
+            echo "PROCESS_NAME=STOCKHEIM-API" >> $GITHUB_ENV
+          elif [[ "${{ matrix.project }}" == "einbeck" ]]; then
+            echo "HOST=${{ secrets.EINBECK_HOST_NAME }}" >> $GITHUB_ENV
+            echo "USERNAME=${{ secrets.EINBECK_USERNAME }}" >> $GITHUB_ENV
+            echo "PASSWORD=${{ secrets.EINBECK_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPDIR=${{ secrets.EINBECK_APPDIR }}/Backend" >> $GITHUB_ENV
+          fi
 
-      - name: SSH to Waldi Server and run commands
+      - name: SSH to Server and run commands
+        if: contains(env.ALL_PROJECTS, matrix.project)
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.WALDI_HOST_NAME }}
-          username: ${{ secrets.WALDI_USERNAME }}
-          password: ${{ secrets.WALDI_PASSWORD }}
+          host: ${{ env.HOST }}
+          username: ${{ env.USERNAME }}
+          password: ${{ env.PASSWORD || '' }}
+          key: ${{ env.SSHKEY || '' }}
+          key_format: openssh
           script: |
-            cd ${{ secrets.WALDI_APPDIR }}
+            cd ${{ env.APPDIR }}
+
+            eval "$(ssh-agent -s)"
+            ssh-add ~/.ssh/githubNew
+
+            git checkout -f main
+            git reset --hard
+            git pull || { echo "Git pull failed"; exit 1; }
+
             npm install --production
             npm run lint .
-            pm2 restart API
-
-      - name: Copy files via SSH on SmartRegionAuf Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SMART_HOST_NAME }}
-          username: ${{ secrets.SMART_USERNAME }}
-          password: ${{ secrets.SMART_PASSWORD }}
-          source: "*"
-          target: ${{ secrets.SMART_APPDIR }}
-
-      - name: SSH to SmartRegionAuf Server and run commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SMART_HOST_NAME }}
-          username: ${{ secrets.SMART_USERNAME }}
-          password: ${{ secrets.SMART_PASSWORD }}
-          script: |
-            cd ${{ secrets.SMART_APPDIR }}
-            npm install --production
-            npm run lint .
-            pm2 restart SmaraufBackend
-
-      - name: Copy files via SSH on Geseke Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.GESEKE_HOST_NAME }}
-          username: ${{ secrets.GESEKE_USERNAME }}
-          key: ${{ secrets.GESEKE_SSHKEY }}
-          source: "*"
-          target: ${{ secrets.GESEKE_APPDIR }}
-    
-      - name: SSH to Geseke Server and run commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.GESEKE_HOST_NAME }}
-          username: ${{ secrets.GESEKE_USERNAME }}
-          key: ${{ secrets.GESEKE_SSHKEY }}
-          script: |
-            cd ${{ secrets.GESEKE_APPDIR }}
-            /root/.nvm/versions/node/v18.18.2/bin/npm install --production
-            /root/.nvm/versions/node/v18.18.2/bin/npm run lint .
-            /root/.nvm/versions/node/v18.18.2/bin/pm2 restart API
+            pm2 restart ${{ env.PROCESS_NAME || 'API' }}
