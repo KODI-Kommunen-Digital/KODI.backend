@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-async function sendMail(to, subject, text, html) {
+async function sendMail(to, subject, text, html, attachments = []) {
     const mailOptions = {
         from: process.env.EMAIL_ID,
         to,
@@ -20,6 +20,9 @@ async function sendMail(to, subject, text, html) {
     }
     if (html) {
         mailOptions.html = html;
+    }
+    if (attachments.length > 0) {
+        mailOptions.attachments = attachments;
     }
     return transporter.sendMail(mailOptions);
 }
