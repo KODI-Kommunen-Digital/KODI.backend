@@ -318,7 +318,7 @@ router.post("/register", async function (req, res, next) {
             userId,
             language
         );
-        await sendMail(insertionData.email, subject, null, body);
+        await sendMail('welcome',insertionData.email, subject, null, body);
 
         return res.status(200).json({
             status: "success",
@@ -906,7 +906,7 @@ router.post("/forgotPassword", async function (req, res, next) {
             token,
             user.id
         );
-        await sendMail(user.email, subject, null, body);
+        await sendMail('welcome',user.email, subject, null, body);
         return res.status(200).json({
             status: "success",
         });
@@ -984,7 +984,7 @@ router.post("/resetPassword", async function (req, res, next) {
             user.firstname,
             user.lastname
         );
-        await sendMail(user.email, subject, null, body);
+        await sendMail('welcome',user.email, subject, null, body);
         return res.status(200).json({
             status: "success",
         });
@@ -1037,7 +1037,7 @@ router.post("/sendVerificationEmail", async function (req, res, next) {
             user.id,
             language
         );
-        await sendMail(user.email, subject, null, body);
+        await sendMail('welcome',user.email, subject, null, body);
         return res.status(200).json({
             status: "success",
         });
@@ -1107,7 +1107,7 @@ router.post("/verifyEmail", async function (req, res, next) {
             user.firstname,
             user.lastname
         );
-        await sendMail(user.email, subject, null, body);
+        await sendMail('welcome',user.email, subject, null, body);
         return res.status(200).json({
             status: "success",
             message: "The Email Verification was successfull!",

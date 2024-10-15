@@ -31,7 +31,7 @@ router.post("/",authentication, async function (req, res, next) {
             user.email
         );
         const contactEmail = process.env.CONTACT_EMAIL || 'info@heidi-app.de';
-        await sendMail(contactEmail, subject, body, null);
+        await sendMail('welcome', contactEmail, subject, body, null);
         return res.status(200).json({
             status: "success",
         });

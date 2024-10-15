@@ -17,14 +17,17 @@ let defectReport = {};
 
 router.post('/', authentication, upload.single('image'), async function(req, res, next) {
     const payload = req.body;
+    const language = payload.language || "de";
     const userId = req.userId;
+    const context = 'defect-report';
     try {
         const {title, description } = payload;
-        if (!title || !description || !req.file){
+        if (!title || !description){
             return next(new AppError("All fields are mandatory" , 400));
         }
 
         const imageHash = crypto.createHash('md5').update(req.file.buffer).digest('hex');
+        // const imageHash = "dsjbvkjsdbvkj";
 
         defectReport = {
             userId,
@@ -33,18 +36,9 @@ router.post('/', authentication, upload.single('image'), async function(req, res
             hashOfImage: imageHash,
         };
         const recipients = JSON.parse(process.env.DEFECT_REPORTING_EMAILS);
-        const subject = `Neuer Fehlerbericht: ${title}`;
-        const htmlContent = `
-            <h3>Fehlerbericht</h3>
-            <p><strong>Titel:</strong> ${title}</p>
-            <p><strong>Beschreibung:</strong> ${description}</p>
-            <p>Weitere Einzelheiten finden Sie im beigefügten Bild.</p>
-        `;
-        await sendMail(
-            recipients.join(','), 
-            subject,
-            null, 
-            htmlContent,
+        const defectReportEmail = require(`../emailTemplates/${language}/defectReportEmail`);
+        const {subject, body } = defectReportEmail(title, description);
+        await sendMail(context,recipients.join(','), subject, null, body, 
             [
                 {
                     filename: `defect_image_${userId}.jpg`,
