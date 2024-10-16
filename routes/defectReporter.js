@@ -21,12 +21,11 @@ router.post('/', authentication, upload.single('image'), async function(req, res
     const userId = req.userId;
     try {
         const {title, description } = payload;
-        if (!title || !description){
+        if (!title || !description || !req.file){
             return next(new AppError("All fields are mandatory" , 400));
         }
 
         const imageHash = crypto.createHash('md5').update(req.file.buffer).digest('hex');
-        // const imageHash = "dsjbvkjsdbvkj";
 
         defectReport = {
             userId,
