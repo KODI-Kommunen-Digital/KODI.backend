@@ -18,8 +18,9 @@ const statusRouter = require("./routes/status");
 const citizenServicesRouter = require("./routes/citizenServices");
 const contactUsRouter = require("./routes/contactUs");
 const moreInfoRouter = require("./routes/moreInfo");
-const advertisement = require("./routes/ads")
-const wasteCalender = require("./routes/wasteCalender")
+const advertisement = require("./routes/ads");
+const wasteCalender = require("./routes/wasteCalender");
+const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers")
 
@@ -45,6 +46,7 @@ app.use(morgan("combined"));
 
 app.use(headers)
 
+app.use("/reportDefect", defectReportRouter);
 app.use(
     fileUpload({
         limits: {
