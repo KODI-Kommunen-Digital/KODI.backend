@@ -5,6 +5,6 @@ module.exports = {
     },
     de:{
         uploadListing: "Wie laden wir einen Eintrag hoch",
-        createForum: "Wie erstellen wir ein Forum"
+        createForum: "Wie erstellen wir eine Gruppe"
     }
 }
