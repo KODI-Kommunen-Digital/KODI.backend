@@ -19,7 +19,6 @@ router.post('/', authentication, upload.single('image'), async function(req, res
     const payload = req.body;
     const language = payload.language || "de";
     const userId = req.userId;
-    const context = 'defect-report';
     try {
         const {title, description } = payload;
         if (!title || !description){
@@ -35,10 +34,11 @@ router.post('/', authentication, upload.single('image'), async function(req, res
             description,
             hashOfImage: imageHash,
         };
-        const recipients = JSON.parse(process.env.DEFECT_REPORTING_EMAILS);
+        let recipients = JSON.parse(process.env.DEFECT_REPORTING_EMAILS);
         const defectReportEmail = require(`../emailTemplates/${language}/defectReportEmail`);
         const {subject, body } = defectReportEmail(title, description);
-        await sendMail(context,recipients.join(','), subject, null, body, 
+        recipients = recipients.join(',');
+        await sendMail(recipients, subject, null, body, 
             [
                 {
                     filename: `defect_image_${userId}.jpg`,

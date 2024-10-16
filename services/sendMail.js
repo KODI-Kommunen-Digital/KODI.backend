@@ -1,39 +1,18 @@
 const nodemailer = require('nodemailer');
 
-function createTransporter(context) {
-    let emailId, emailPassword;
-    
-    switch (context) {
-    case 'welcome':
-        emailId = process.env.WILKOMMEN_EMAIL_ID;
-        emailPassword = process.env.WILKOMMEN_EMAIL_PASSWORD;
-        console.log("its in wilkomen")
-        break;
-    case 'defect-report':
-        emailId = process.env.DEFECTREPORT_EMAIL_ID;
-        emailPassword = process.env.DEFECTREPORT_EMAIL_PASSWORD;
-        console.log("its in defect")
-        break;
-    // Add more cases
-    default:
-        throw new Error('Invalid email context provided.');
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    path: process.env.EMAIL_PATH,
+    auth: {
+        user: process.env.EMAIL_ID,
+        pass: process.env.EMAIL_PASSWORD
     }
+});
 
-    return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST, 
-        port: process.env.EMAIL_PORT ,
-        auth: {
-            user: emailId,
-            pass: emailPassword
-        }
-    });
-}
-
-async function sendMail(context = 'welcome', to, subject, text, html, attachments = []) {
-    const transporter = createTransporter(context);
+async function sendMail(to, subject, text, html, attachments = []) {
 
     const mailOptions = {
-        from: transporter.options.auth.user,
+        from: process.env.EMAIL_ID,
         to,
         subject
     };

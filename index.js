@@ -46,7 +46,7 @@ app.use(morgan("combined"));
 
 app.use(headers)
 
-app.use("/report-defect", defectReportRouter);
+app.use("/reportDefect", defectReportRouter);
 app.use(
     fileUpload({
         limits: {
