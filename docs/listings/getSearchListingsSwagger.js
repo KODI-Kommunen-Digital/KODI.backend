@@ -1,25 +1,65 @@
-const getCategoriesListingCountSwagger = {
-    summary: "Get listings count by category",
-    description: `
-      Retrieve the count of listings per category. If a \`cityId\` is provided, it fetches listings count specific to that city. 
-      If no \`cityId\` is given, it aggregates the listings count from all available cities.
-    `,
-    tags: ["Categories"],
+const { CityListing } = require("../models/cityListing");
+
+const getSearchListingsSwagger = {
+    summary: "Search listings",
+    description: "Search and retrieve listings based on query, filters, and pagination.",
+    tags: ["Listings"],
     parameters: [
+        {
+            in: "query",
+            name: "pageNo",
+            schema: {
+                type: "integer",
+                minimum: 1,
+            },
+            description: "The page number for pagination (must be a positive integer).",
+        },
+        {
+            in: "query",
+            name: "pageSize",
+            schema: {
+                type: "integer",
+                minimum: 1,
+                maximum: 20,
+            },
+            description: "The number of listings per page (positive integer, maximum 20).",
+        },
+        {
+            in: "query",
+            name: "searchQuery",
+            schema: {
+                type: "string",
+            },
+            description: "The search term to filter listings by title or description.",
+        },
         {
             in: "query",
             name: "cityId",
             schema: {
-                type: "integer",
-                example: 1,
+                type: "string",
             },
-            required: false,
-            description: "ID of the city to fetch the listings count for. If not provided, it will aggregate across all cities.",
+            description: "The ID of the city to filter the listings. If not provided, all cities are searched.",
         },
+        {
+            in: "query",
+            name: "sortByStartDate",
+            schema: {
+                type: "boolean",
+            },
+            description: "Whether to sort the listings by start date. Default is to sort by creation date.",
+        },
+        {
+            in: "query",
+            name: "statusId",
+            schema: {
+                type: "string",
+            },
+            description: "The ID of the listing status to filter the results.",
+        }
     ],
     responses: {
         200: {
-            description: "Successfully fetched the listings count",
+            description: "Successfully fetched the listings",
             content: {
                 "application/json": {
                     schema: {
@@ -31,19 +71,7 @@ const getCategoriesListingCountSwagger = {
                             },
                             data: {
                                 type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        categoryId: {
-                                            type: "integer",
-                                            example: 2,
-                                        },
-                                        count: {
-                                            type: "integer",
-                                            example: 150,
-                                        },
-                                    },
-                                },
+                                items: CityListing
                             },
                         },
                     },
@@ -51,7 +79,7 @@ const getCategoriesListingCountSwagger = {
             },
         },
         400: {
-            description: "Bad Request",
+            description: "Invalid input for query parameters",
             content: {
                 "application/json": {
                     schema: {
@@ -63,7 +91,7 @@ const getCategoriesListingCountSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Invalid request data",
+                                example: "Please enter a positive integer for pageNo",
                             },
                         },
                     },
@@ -71,7 +99,7 @@ const getCategoriesListingCountSwagger = {
             },
         },
         404: {
-            description: "City not found",
+            description: "Invalid cityId provided",
             content: {
                 "application/json": {
                     schema: {
@@ -83,7 +111,7 @@ const getCategoriesListingCountSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Invalid City '1' given",
+                                example: "Invalid City '999' given",
                             },
                         },
                     },
@@ -103,7 +131,7 @@ const getCategoriesListingCountSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Internal server error",
+                                example: "An error occurred while fetching listings: Internal server error",
                             },
                         },
                     },
@@ -113,4 +141,4 @@ const getCategoriesListingCountSwagger = {
     },
 };
 
-module.exports = getCategoriesListingCountSwagger;
+module.exports = getSearchListingsSwagger;

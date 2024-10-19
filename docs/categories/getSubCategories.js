@@ -1,13 +1,15 @@
 const getSubCategoriesSwagger = {
     summary: "Get all subcategories for a category",
-    description: "Retrieve all subcategories for a category from the database",
+    description: "Retrieve all subcategories for a specific category from the database using the category ID.",
     tags: ["Categories"],
     parameters: [
         {
             in: "path",
             name: "id",
+            required: true, 
             schema: {
-                type: "integer"
+                type: "integer",
+                example: 1, 
             },
             description: "The category ID for which the subcategories are to be fetched",
         },
@@ -33,16 +35,28 @@ const getSubCategoriesSwagger = {
                                             type: "integer",
                                             example: 1,
                                         },
-                                        categoryId: {
-                                            type: "integer",
-                                            example: 1
-                                        },
                                         name: {
                                             type: "string",
                                             example: "FlashNews",
                                         },
+                                        categoryId: {
+                                            type: "integer",
+                                            example: 1,
+                                        },
                                     },
-                                }
+                                },
+                                example: [
+                                    {
+                                        id: 1,
+                                        categoryId: 1,
+                                        name: "FlashNews"
+                                    },
+                                    {
+                                        id: 2,
+                                        categoryId: 1,
+                                        name: "BreakingNews"
+                                    }
+                                ]
                             },
                         },
                     },

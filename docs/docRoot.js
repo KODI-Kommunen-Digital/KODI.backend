@@ -39,6 +39,12 @@ const sendVerificaltionEmailSwagger = require("./users/sendVerificationEmail");
 const updateUserSwagger = require("./users/updateUser");
 const verifyEmailSwagger = require("./users/verifyEmail");
 const getVillegesSwagger = require("./villages/getVillages");
+const getAds = require("./ads/getAds");
+const getSearchListingsSwagger = require("./listings/getSearchListingsSwagger");
+const createListingSwagger = require("./listings/postListingSwagger");
+const getStreetsSwagger = require("./wasteCalender/getStreetsSwagger");
+const getWasteTypesSwagger = require('./wasteCalender/getWasteTypesSwagger');
+const getPickupDatesSwagger = require('./wasteCalender/getPickupDatesSwagger');
 
 const apiDocumentation = {
     openapi: '3.0.1',
@@ -71,6 +77,12 @@ const apiDocumentation = {
         },
         {
             name: 'City Listings',
+        },
+        {
+            name: 'Ads',
+        },
+        {
+            name: 'Waste Calender',
         },
     ],
     paths: {
@@ -146,6 +158,12 @@ const apiDocumentation = {
         '/listings': {
             'get': getAllListingsSwagger,
         },
+        '/listings/search': {
+            'get': getSearchListingsSwagger,
+        },
+        '/listings/': {
+            'post': createListingSwagger
+        },
         '/categories': {
             'get': getAllCategoriesSwagger,
         },
@@ -183,6 +201,18 @@ const apiDocumentation = {
         '/cities/{cityId}/villages': {
             'get': getVillegesSwagger,
         },
+        '/ads/' :{
+            'get': getAds,
+        },
+        '/cities/:cityId/wasteCalender/streets' : {
+            'get': getStreetsSwagger,
+        },
+        '/cities/:cityId/wasteCalender/wasteTypes' : {
+            'get': getWasteTypesSwagger,
+        },
+        '/cities/:cityId/wasteCalender/streets/:streetId/pickupDates' : {
+            'get': getPickupDatesSwagger,
+        }
     }
 };
 

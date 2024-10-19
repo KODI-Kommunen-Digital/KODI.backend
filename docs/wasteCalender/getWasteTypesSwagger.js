@@ -1,24 +1,22 @@
-const getAllCitiesSwagger = {
-    summary: "Get all cities",
-    description: `
-      Retrieve all cities from the database. Optionally, filter cities that have a forum by passing the \`hasForum\` query parameter.
-    `,
-    tags: ["Cities"],
+const getWasteTypesSwagger = {
+    summary: "Retrieve waste types",
+    description: "Fetches a list of waste types available for the specified city.",
+    tags: ["Waste Calender"],
     parameters: [
         {
+            name: "cityId",
             in: "query",
-            name: "hasForum",
+            required: true,
             schema: {
-                type: "boolean",
-                example: true,
+                type: "integer",
+                example: 1,
             },
-            required: false,
-            description: "Filter cities that have a forum (true = has forum). If not provided, all cities are returned.",
+            description: "The ID of the city for which the waste types are to be retrieved.",
         },
     ],
     responses: {
         200: {
-            description: "Successfully fetched the cities",
+            description: "Successfully retrieved waste types for the specified city",
             content: {
                 "application/json": {
                     schema: {
@@ -35,22 +33,36 @@ const getAllCitiesSwagger = {
                                     properties: {
                                         id: {
                                             type: "integer",
+                                            description: "The unique identifier for the waste type.",
                                             example: 1,
                                         },
                                         name: {
                                             type: "string",
-                                            example: "New York",
-                                        },
-                                        image: {
-                                            type: "string",
-                                            example: "https://example.com/images/city.jpg",
-                                        },
-                                        hasForum: {
-                                            type: "boolean",
-                                            example: true,
+                                            description: "The name of the waste type.",
+                                            example: "Recyclable Waste",
                                         },
                                     },
                                 },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        400: {
+            description: "Invalid city ID provided",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "Invalid CityId '1' given",
                             },
                         },
                     },
@@ -70,7 +82,7 @@ const getAllCitiesSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Internal server error",
+                                example: "An error occurred while retrieving waste types: Internal server error",
                             },
                         },
                     },
@@ -80,4 +92,4 @@ const getAllCitiesSwagger = {
     },
 };
 
-module.exports = getAllCitiesSwagger;
+module.exports = getWasteTypesSwagger;
