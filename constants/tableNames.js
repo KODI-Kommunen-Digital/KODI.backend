@@ -28,4 +28,5 @@ module.exports = {
     MULLKALENDER_STREETS: 'mullkalender_streets',
     MULLKALENDER_WASTE_TYPES: 'mullkalender_waste_types',
     POLL_OPTIONS_TABLE: 'poll_options',
+    DEFECT_REPORTS: 'defect_reports'
 }
