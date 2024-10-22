@@ -2,36 +2,19 @@ const { CityListing } = require("../models/cityListing");
 
 const createCityListingSwagger = {
     summary: "Create a new listing",
+    description: "Allows users to create a new listing in a specified city.",
     tags: ["City Listings"],
-    description: "Create a new listing in the given city",
-    security: [
-        {
-            bearerAuth: [],
-        },
-    ],
-    parameters: [
-        {
-            in: "path",
-            name: "cityId",
-            schema: {
-                type: "integer",
-                required: true,
-                description: "The city id",
-                example: 1,
-            },
-        },
-    ],
     requestBody: {
         required: true,
         content: {
             "application/json": {
-                schema: CityListing,
+                schema: CityListing
             },
         },
     },
     responses: {
         200: {
-            description: "The listing was successfully created",
+            description: "Listing created successfully",
             content: {
                 "application/json": {
                     schema: {
@@ -43,7 +26,7 @@ const createCityListingSwagger = {
                             },
                             id: {
                                 type: "integer",
-                                example: 1,
+                                example: 12345,
                             },
                         },
                     },
@@ -51,39 +34,15 @@ const createCityListingSwagger = {
             },
         },
         400: {
-            description: "Invalid input given",
+            description: "Invalid City ID or missing required fields",
             content: {
                 "application/json": {
                     schema: {
                         type: "object",
                         properties: {
-                            status: {
-                                type: "string",
-                                example: "error",
-                            },
                             message: {
                                 type: "string",
-                                example: "Invalid Village id '2' given",
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        401: {
-            description: "Unauthorized",
-            content: {
-                "application/json": {
-                    schema: {
-                        type: "object",
-                        properties: {
-                            status: {
-                                type: "string",
-                                example: "error",
-                            },
-                            message: {
-                                type: "string",
-                                example: "Authorization token not present",
+                                example: "Invalid City '0' given",
                             },
                         },
                     },
@@ -91,19 +50,15 @@ const createCityListingSwagger = {
             },
         },
         500: {
-            description: "Internal Server Error",
+            description: "Internal server error",
             content: {
                 "application/json": {
                     schema: {
                         type: "object",
                         properties: {
-                            status: {
-                                type: "string",
-                                example: "error",
-                            },
                             message: {
                                 type: "string",
-                                example: "Internal server error",
+                                example: "Error creating listing",
                             },
                         },
                     },
@@ -111,6 +66,11 @@ const createCityListingSwagger = {
             },
         },
     },
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
 };
 
 module.exports = createCityListingSwagger;

@@ -45,6 +45,8 @@ const createListingSwagger = require("./listings/postListingSwagger");
 const getStreetsSwagger = require("./wasteCalender/getStreetsSwagger");
 const getWasteTypesSwagger = require('./wasteCalender/getWasteTypesSwagger');
 const getPickupDatesSwagger = require('./wasteCalender/getPickupDatesSwagger');
+const createDefectReport = require('./defectReport/createDefectReport');
+const voteOnListingSwagger = require('./cityListings/voteOnListingSwagger')
 
 const apiDocumentation = {
     openapi: '3.0.1',
@@ -83,6 +85,9 @@ const apiDocumentation = {
         },
         {
             name: 'Waste Calender',
+        },
+        {
+            name:'Defect Reports',
         },
     ],
     paths: {
@@ -155,6 +160,9 @@ const apiDocumentation = {
         '/cities/{cityId}/listings/{id}/pdfDelete': {
             'delete': deletePDFSchemaSwagger,
         },
+        '/cities/{cityId}/listings/:id/vote': {
+            'post': voteOnListingSwagger,
+        },
         '/listings': {
             'get': getAllListingsSwagger,
         },
@@ -212,7 +220,10 @@ const apiDocumentation = {
         },
         '/cities/:cityId/wasteCalender/streets/:streetId/pickupDates' : {
             'get': getPickupDatesSwagger,
-        }
+        },
+        '/reportDefect' : {
+            'post' : createDefectReport,
+        },
     }
 };
 
