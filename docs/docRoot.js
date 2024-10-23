@@ -83,12 +83,6 @@ const apiDocumentation = {
         {
             name: 'Ads',
         },
-        {
-            name: 'Waste Calender',
-        },
-        {
-            name:'Defect Reports',
-        },
     ],
     paths: {
         '/users': {
@@ -212,18 +206,14 @@ const apiDocumentation = {
         '/ads/' :{
             'get': getAds,
         },
-        '/cities/:cityId/wasteCalender/streets' : {
-            'get': getStreetsSwagger,
-        },
-        '/cities/:cityId/wasteCalender/wasteTypes' : {
-            'get': getWasteTypesSwagger,
-        },
-        '/cities/:cityId/wasteCalender/streets/:streetId/pickupDates' : {
-            'get': getPickupDatesSwagger,
-        },
-        '/reportDefect' : {
-            'post' : createDefectReport,
-        },
+        ...(process.env.ENABLE_WASTE_CALENDER === 'True' && {
+            '/cities/:cityId/wasteCalender/streets': { 'get': getStreetsSwagger },
+            '/cities/:cityId/wasteCalender/wasteTypes': { 'get': getWasteTypesSwagger },
+            '/cities/:cityId/wasteCalender/streets/:streetId/pickupDates': { 'get': getPickupDatesSwagger },
+        }),
+        ...(process.env.ENABLE_DEFECT_REPORT === 'True' && {
+            '/reportDefect': { 'post': createDefectReport },
+        }),
     }
 };
 
