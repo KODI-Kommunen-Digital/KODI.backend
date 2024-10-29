@@ -700,7 +700,7 @@ router.delete(
                     new AppError("Image Delete failed with Error Code: " + err)
                 );
             };
-            await objectDelete(response[0].image, onSucccess, onFail);
+            await objectDelete(response.rows[0].image, onSucccess, onFail);
         } catch (err) {
             return next(new AppError(err));
         }
