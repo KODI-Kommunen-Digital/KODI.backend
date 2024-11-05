@@ -18,10 +18,13 @@ const statusRouter = require("./routes/status");
 const citizenServicesRouter = require("./routes/citizenServices");
 const contactUsRouter = require("./routes/contactUs");
 const moreInfoRouter = require("./routes/moreInfo");
-const advertisement = require("./routes/ads")
-const wasteCalender = require("./routes/wasteCalender")
+const advertisement = require("./routes/ads");
+const wasteCalender = require("./routes/wasteCalender");
+const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
-const headers = require("./middlewares/headers")
+const headers = require("./middlewares/headers");
+const swaggerUi = require('swagger-ui-express');
+const apiDocumentation = require('./docs/docRoot');
 
 // defining the Express app
 const app = express();
@@ -45,6 +48,7 @@ app.use(morgan("combined"));
 
 app.use(headers)
 
+app.use("/reportDefect", defectReportRouter);
 app.use(
     fileUpload({
         limits: {
@@ -129,6 +133,7 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
     );
 }
 app.use("/ads", advertisement)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(apiDocumentation));
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
