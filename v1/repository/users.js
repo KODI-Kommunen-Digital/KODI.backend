@@ -1,4 +1,4 @@
-const database = require("../../..//utils/database");
+const database = require("../utils/database");
 const tables = require("../constants/tableNames");
 
 const getUserWithUsername = async function (username) {

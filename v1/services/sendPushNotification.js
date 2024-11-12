@@ -11,7 +11,8 @@ try {
         credential: admin.credential.cert(serviceAccount),
     });
 } catch (err) {
-    console.log("error in firebase admin initialization", err);
+    if (!err.message.includes("The default Firebase app already exists."))
+        console.log("error in firebase admin initialization", err);
 }
 
 async function sendPushNotificationToAll(
@@ -41,7 +42,7 @@ async function sendPushNotificationToAll(
                 err.stack ?? "no stack",
                 getDateInFormate(occuredAt),
             );
-        } catch (err) {}
+        } catch (err) { }
         return false;
     }
 }
@@ -85,7 +86,7 @@ async function sendPushNotificationsToUser(
                 error.stack ?? "no stack",
                 getDateInFormate(occuredAt),
             );
-        } catch (err) {}
+        } catch (err) { }
     }
     return true;
 }
