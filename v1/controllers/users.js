@@ -253,6 +253,7 @@ const logout = async function (req, res, next) {
 
 const getUsers = async function (req, res, next) {
     const userName = req.query.username;
+    const reqUserId = parseInt(req.userId);
     try {
         let userIds;
         if (req.query.ids) {
@@ -263,7 +264,7 @@ const getUsers = async function (req, res, next) {
             userIds = ids;
         }
 
-        const users = await userService.getUsers(userIds, userName);
+        const users = await userService.getUsers(userIds, userName, reqUserId);
         res.status(200).json({
             status: "success",
             data: users,

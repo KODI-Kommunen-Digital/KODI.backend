@@ -61,8 +61,8 @@ const register = async function (payload) {
 
             if (
                 /\s/.test(payload.username) ||
-        /^_/.test(payload.username) ||
-        /^[^a-z_]/.test(payload.username)
+                /^_/.test(payload.username) ||
+                /^[^a-z_]/.test(payload.username)
             ) {
                 throw new AppError(
                     `Username '${payload.username}' is not valid`,
@@ -196,7 +196,7 @@ const register = async function (payload) {
 
                 if (
                     typeof socialMediaList[socialMedia] !== "string" ||
-          !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
+                    !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
                 ) {
                     throw new AppError(
                         `Invalid input given for social media '${socialMedia}' `,
@@ -289,8 +289,8 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
             const tokensToDelete = refreshTokens.filter(
                 (token) =>
                     token.sourceAddress === sourceAddress &&
-          (token.browser === browsername || (!token.browser && !browsername)) &&
-          (token.device === devicetype || (!token.device && !devicetype)),
+                    (token.browser === browsername || (!token.browser && !browsername)) &&
+                    (token.device === devicetype || (!token.device && !devicetype)),
             );
 
             const tokenDeletes = tokensToDelete.map((token) =>
@@ -385,7 +385,7 @@ const updateUser = async function (id, payload) {
 
     if (payload.email && payload.email !== currentUserData.email) {
         const re =
-      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
             throw new AppError(`Invalid email given`, 400);
         }
@@ -439,7 +439,7 @@ const updateUser = async function (id, payload) {
         }
         // If phoneNumber is an empty string, set it to null
         updationData.phoneNumber =
-      payload.phoneNumber === "" ? null : payload.phoneNumber;
+            payload.phoneNumber === "" ? null : payload.phoneNumber;
     }
 
     if (payload.description) {
@@ -477,9 +477,9 @@ const updateUser = async function (id, payload) {
 
             if (
                 typeof socialMedia[Object.keys(socialMedia)[0]] !== "string" ||
-        !socialMedia[Object.keys(socialMedia)[0]].includes(
-            Object.values(socialMedia)[0].toLowerCase(),
-        )
+                !socialMedia[Object.keys(socialMedia)[0]].includes(
+                    Object.values(socialMedia)[0].toLowerCase(),
+                )
             ) {
                 throw new AppError(
                     `Invalid input given for social '${socialMedia}' `,
@@ -491,7 +491,7 @@ const updateUser = async function (id, payload) {
     }
 
     if (Object.keys(updationData).length > 0) {
-    // TODO add transaction
+        // TODO add transaction
         try {
             const cityUserResponse = await userRepo.getuserCityMappings(id);
             await userRepo.updateUserById(id, updationData);
@@ -533,7 +533,7 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
         }
 
         const refreshTokenData =
-      await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
+            await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
         if (!refreshTokenData) {
             throw new AppError(`Invalid refresh token`, 400);
         }
@@ -737,7 +737,7 @@ const logout = async function (userId, refreshToken) {
     }
 };
 
-const getUsers = async function (userIds, username) {
+const getUsers = async function (userIds, username, reqUserId) {
     const columsToQuery = [
         "id",
         "username",
@@ -764,6 +764,16 @@ const getUsers = async function (userIds, username) {
     }
     try {
         const users = await userRepo.getAllUsers(filter, columsToQuery);
+        users.forEach((user) => {
+            if (user.id !== reqUserId) {
+                user.email = "***@***.**";
+                user.socialMedia = "Hidden";
+                user.website = "Hidden";
+                user.description = "Hidden";
+                user.firstname = "Hidden";
+                user.lastname = "Hidden";
+            }
+        });
         return users;
     } catch (err) {
         if (err instanceof AppError) throw err;

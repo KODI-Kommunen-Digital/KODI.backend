@@ -62,7 +62,7 @@ router.post("/verifyEmail", verifyEmail);
 
 router.post("/:id/logout", authentication, logout);
 
-router.get("/", getUsers);
+router.get("/", optionalAuthentication, getUsers);
 
 router.post("/:id/loginDevices", authentication, listLoginDevices);
 
