@@ -21,6 +21,123 @@ const { getUserImages } = require("../repository/image");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const storedProcedures = require("../constants/storedProcedures");
 
+const usersRepository = require("../repository/usersRepo");
+const tokenRepository = require("../repository/tokenRepo");
+const userCityUserMappingRepository = require("../repository/cityUserMappingRepo");
+
+const login = async function (payload, sourceAddress, browsername, devicetype) {
+    try {
+        const userData = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "username",
+                    sign: "=",
+                    value: payload.username,
+                },
+                {
+                    key: "email",
+                    sign: "=",
+                    value: payload.username,
+                },
+            ],
+            joinFiltersBy: "OR",
+            columns: ["id", "username", "email", "password", "emailVerified", "roleId"],
+        });
+        if (!userData) {
+            throw new AppError(
+                `Invalid username or email`,
+                401,
+                errorCodes.INVALID_CREDENTIALS,
+            );
+        }
+
+        if (!userData.emailVerified) {
+            throw new AppError(
+                `Verification email sent to your email id. Please verify first before trying to login.`,
+                401,
+                errorCodes.EMAIL_NOT_VERIFIED,
+            );
+        }
+
+        const correctPassword = await bcrypt.compare(
+            payload.password,
+            userData.password,
+        );
+        if (!correctPassword) {
+            throw new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD);
+        }
+
+        // const userMappings = await userRepo.getuserCityMappings(userData.id);
+        let userMappings = []
+        const userMappingsResp = await userCityUserMappingRepository.getAll({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userData.id,
+                }
+            ],
+            columns: ["cityId", "cityUserId"],
+        });
+        if (!userMappingsResp || !userMappingsResp.rows || userMappingsResp.rows.length === 0) {
+            userMappings = [];
+        } else {
+            userMappings = userMappings.rows;
+        }
+
+        const tokens = tokenUtil.generator({
+            userId: userData.id,
+            roleId: userData.roleId,
+            rememberMe: payload.rememberMe,
+        });
+
+        const refreshToken = await tokenRepository.getOne({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userData.id
+                }
+            ]
+        });
+        if (refreshToken &&
+            refreshToken.sourceAddress === sourceAddress &&
+            (refreshToken.browser === browsername || (!refreshToken.browser && !browsername)) &&
+            (refreshToken.device === devicetype || (!refreshToken.device && !devicetype))) {
+            tokenRepository.delete({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: refreshToken.id
+                    }
+                ]
+            })
+        }
+        const insertionData = {
+            userId: userData.id,
+            sourceAddress,
+            refreshToken: tokens.refreshToken,
+            browser: browsername,
+            device: devicetype,
+        };
+
+        await tokenRepository.create({
+            data: insertionData
+        });
+        return {
+            cityUsers: userMappings,
+            userId: userData.id,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+        };
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err, 500);
+    }
+};
+
+
 const register = async function (payload) {
     const insertionData = {};
     if (!payload) {
@@ -243,79 +360,6 @@ const register = async function (payload) {
         if (err instanceof AppError) throw err;
         database.rollbackTransaction(connection);
         throw new AppError(err);
-    }
-};
-
-const login = async function (payload, sourceAddress, browsername, devicetype) {
-    try {
-        const userData = await userRepo.getUserByUsernameOrEmail(
-            payload.username,
-            payload.username,
-        );
-        if (!userData) {
-            throw new AppError(
-                `Invalid username or email`,
-                401,
-                errorCodes.INVALID_CREDENTIALS,
-            );
-        }
-
-        if (!userData.emailVerified) {
-            throw new AppError(
-                `Verification email sent to your email id. Please verify first before trying to login.`,
-                401,
-                errorCodes.EMAIL_NOT_VERIFIED,
-            );
-        }
-
-        const correctPassword = await bcrypt.compare(
-            payload.password,
-            userData.password,
-        );
-        if (!correctPassword) {
-            throw new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD);
-        }
-
-        const userMappings = await userRepo.getuserCityMappings(userData.id);
-
-        const tokens = tokenUtil.generator({
-            userId: userData.id,
-            roleId: userData.roleId,
-            rememberMe: payload.rememberMe,
-        });
-
-        const refreshTokens = await tokenRepo.getRefreshTokens(userData.id);
-        if (refreshTokens.length) {
-            const tokensToDelete = refreshTokens.filter(
-                (token) =>
-                    token.sourceAddress === sourceAddress &&
-                    (token.browser === browsername || (!token.browser && !browsername)) &&
-                    (token.device === devicetype || (!token.device && !devicetype)),
-            );
-
-            const tokenDeletes = tokensToDelete.map((token) =>
-                tokenRepo.deleteRefreshTokenByTokenUid(token.id),
-            );
-            await Promise.all(tokenDeletes);
-        }
-        const insertionData = {
-            userId: userData.id,
-            sourceAddress,
-            refreshToken: tokens.refreshToken,
-            browser: browsername,
-            device: devicetype,
-        };
-
-        await tokenRepo.insertRefreshTokenData(insertionData);
-        return {
-            cityUsers: userMappings,
-            userId: userData.id,
-            accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-        };
-    } catch (err) {
-        if (err instanceof AppError) throw err;
-        throw new AppError(err, 500);
     }
 };
 
