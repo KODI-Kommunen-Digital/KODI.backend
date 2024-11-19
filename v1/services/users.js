@@ -675,8 +675,17 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
             throw new AppError(`Invalid refresh token`, 403);
         }
 
-        const refreshTokenData =
-            await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
+        // const refreshTokenData =
+        //     await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
+        const refreshTokenData = await tokenRepository.getOne({
+            filters: [
+                {
+                    key: "refreshToken",
+                    sign: "=",
+                    value: refreshToken
+                }
+            ]
+        });
         if (!refreshTokenData) {
             throw new AppError(`Invalid refresh token`, 400);
         }
@@ -694,9 +703,21 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
             refreshToken: newTokens.refreshToken,
         };
 
-        await tokenRepo.deleteRefreshTokenByTokenUid(refreshTokenData.id);
+        // await tokenRepo.deleteRefreshTokenByTokenUid(refreshTokenData.id);
+        await tokenRepository.delete({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: refreshTokenData.id
+                }
+            ]
+        });
 
-        await tokenRepo.insertRefreshTokenData(insertionData);
+        // await tokenRepo.insertRefreshTokenData(insertionData);
+        await tokenRepository.create({
+            data: insertionData
+        });
 
         return {
             accessToken: newTokens.accessToken,
@@ -704,7 +725,16 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
         };
     } catch (err) {
         if (err.name === "TokenExpiredError") {
-            await tokenRepo.deleteRefreshTokenByRefreshToken(refreshToken);
+            // await tokenRepo.deleteRefreshTokenByRefreshToken(refreshToken);
+            await tokenRepository.delete({
+                filters: [
+                    {
+                        key: "refreshToken",
+                        sign: "=",
+                        value: refreshToken
+                    }
+                ]
+            });
             throw new AppError(`Unauthorized! Refresh Token was expired!`, 401);
         }
         if (err instanceof AppError) throw err;
