@@ -1109,7 +1109,12 @@ const getUsers = async function (userIds, username, reqUserId) {
         throw new AppError("You need to send some params to filter");
     }
     try {
-        const users = await userRepo.getAllUsers(filter, columsToQuery);
+        // const users = await userRepo.getAllUsers(filter, columsToQuery);
+        const userrResp = await usersRepository.getAll({
+            filters: filter,
+            columns: columsToQuery
+        });
+        const users = userrResp.rows;
         users.forEach((user) => {
             if (user.id !== reqUserId) {
                 user.email = "***@***.**";
