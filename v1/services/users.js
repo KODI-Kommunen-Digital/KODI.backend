@@ -1227,7 +1227,16 @@ const uploadUserProfileImage = async function (id, image) {
 
 const deleteUserProfileImage = async function (userId) {
     try {
-        const user = await userRepo.getUserDataById(userId);
+        // const user = await userRepo.getUserDataById(userId);
+        const user = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
         if (!user) {
             throw new AppError(`User ${userId} does not exist`, 404);
         }
@@ -1236,7 +1245,17 @@ const deleteUserProfileImage = async function (userId) {
             const updationData = {};
             updationData.image = "";
 
-            await userRepo.updateUserById(userId, updationData);
+            // await userRepo.updateUserById(userId, updationData);
+            await usersRepository.update({
+                data: updationData,
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: userId
+                    }
+                ]
+            });
         };
         const onFail = (err) => {
             throw new AppError("Image Delete failed with Error Code: " + err);
