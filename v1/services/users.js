@@ -1206,7 +1206,17 @@ const uploadUserProfileImage = async function (id, image) {
         if (uploadStatus === "Success") {
             const updationData = {};
             updationData.image = imagePath;
-            await userRepo.updateUserById(id, updationData);
+            // await userRepo.updateUserById(id, updationData);
+            await usersRepository.update({
+                data: updationData,
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: id
+                    }
+                ]
+            });
             return updationData;
         }
     } catch (err) {
