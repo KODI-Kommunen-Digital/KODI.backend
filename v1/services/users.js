@@ -9,7 +9,6 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const userRepo = require("../repository/users");
 const {
-    getCityWithId,
     getCityUserCityMapping,
 } = require("../repository/cities");
 const tokenRepo = require("../repository/auth");
@@ -25,6 +24,7 @@ const usersRepository = require("../repository/usersRepo");
 const tokenRepository = require("../repository/tokenRepo");
 const userCityUserMappingRepository = require("../repository/cityUserMappingRepo");
 const verificationTokenRepository = require("../repository/verificationTokenrepo");
+const cityRepository = require("../repository/cityRepo");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -399,12 +399,35 @@ const getUserById = async function (userId, cityUser, cityId, reqUserId) {
             throw new AppError(`Invalid cityId ${cityId}`, 400);
         }
         try {
-            const city = await getCityWithId(cityId);
+            // const city = await getCityWithId(cityId);
+            const city = await cityRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: cityId
+                    }
+                ]
+            });
             if (!city) {
                 throw new AppError(`City with id ${cityId} does not exist`, 400);
             }
 
-            const cityUser = await userRepo.getCityUser(cityId, userId);
+            // const cityUser = await userRepo.getCityUser(cityId, userId);
+            const cityUser = await userCityUserMappingRepository.getOne({
+                filters: [
+                    {
+                        key: "cityId",
+                        sign: "=",
+                        value: cityId
+                    },
+                    {
+                        key: "cityUserId",
+                        sign: "=",
+                        value: userId
+                    }
+                ]
+            });
             if (!cityUser) {
                 throw new AppError(
                     `User ${userId} is not found in city ${cityId}`,
@@ -419,7 +442,17 @@ const getUserById = async function (userId, cityUser, cityId, reqUserId) {
     }
 
     try {
-        const userData = await userRepo.getUserWithId(userId);
+        // const userData = await userRepo.getUserWithId(userId);
+        const userData = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ],
+            columns: "id, username, socialMedia, email, website, description, image, phoneNumber, firstname, lastname, roleId"
+        });
         if (!userData) {
             throw new AppError(`User with id ${userId} does not exist`, 404);
         }
