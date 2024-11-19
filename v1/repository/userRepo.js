@@ -1,10 +1,10 @@
 const BaseRepo = require("./baseRepo");
 const tableNames = require("../constants/tableNames");
 
-class UsersRepo extends BaseRepo {
+class UserRepo extends BaseRepo {
     constructor() {
         super(tableNames.USER_TABLE);
     }
 }
 
-module.exports = new UsersRepo();
+module.exports = new UserRepo();
