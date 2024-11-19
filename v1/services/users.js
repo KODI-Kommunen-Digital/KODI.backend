@@ -1134,10 +1134,28 @@ const getUsers = async function (userIds, username, reqUserId) {
 
 const listLoginDevices = async function (userId, refreshToken) {
     try {
-        const tokens = await tokenRepo.fetchRefreshTokensOtherThan(
-            userId,
-            refreshToken,
-        );
+        // const tokens = await tokenRepo.fetchRefreshTokensOtherThan(
+        //     userId,
+        //     refreshToken,
+        // );
+        // if refresh token is not an array, convert it to an array
+        if (!Array.isArray(refreshToken)) {
+            refreshToken = [refreshToken];
+        }
+        const tokens = await tokenRepository.getAll({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                },
+                {
+                    key: "refreshToken",
+                    sign: "NOT IN",
+                    value: refreshToken
+                }
+            ]
+        });
         return tokens;
     } catch (err) {
         if (err instanceof AppError) throw err;
