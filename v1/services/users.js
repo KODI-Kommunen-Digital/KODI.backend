@@ -8,23 +8,23 @@ const sendMail = require("../utils/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const userRepo = require("../repository/users");
-const {
-    getCityUserCityMapping,
-} = require("../repository/cities");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
-const cityListings = require("../repository/cityListing");
 const tokenUtil = require("../utils/token");
 const { getUserImages } = require("../repository/image");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const storedProcedures = require("../constants/storedProcedures");
 
-const usersRepository = require("../repository/usersRepo");
+const usersRepository = require("../repository/userRepo");
 const tokenRepository = require("../repository/tokenRepo");
 const userCityUserMappingRepository = require("../repository/cityUserMappingRepo");
-const verificationTokenRepository = require("../repository/verificationTokenrepo");
+const verificationTokenRepository = require("../repository/verificationTokensRepo");
 const cityRepository = require("../repository/cityRepo");
-const forgotPasswordTokenRepository = require("../repository/forgotPasswordTokenRepo");
+const forgotPasswordTokenRepository = require("../repository/forgotPasswordTokensRepo");
+const statusRepository = require("../repository/statusRepo");
+const listingRepository = require("../repository/listingsRepo");
+const categoryRepository = require("../repository/categoriesRepo");
+const subCategoryRepository = require("../repository/subcategoriesRepo");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -1279,7 +1279,16 @@ const getUserListings = async function (
 
     if (statusId) {
         try {
-            const data = await cityListings.getStatusById(statusId);
+            // const data = await cityListings.getStatusById(statusId);
+            const data = await statusRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: statusId
+                    }
+                ]
+            });
             if (!data) {
                 throw new AppError(`Invalid Status '${statusId}' given`, 400);
             }
@@ -1292,16 +1301,39 @@ const getUserListings = async function (
 
     if (categoryId) {
         try {
-            const data = await cityListings.getCategoryById(categoryId);
+            // const data = await cityListings.getCategoryById(categoryId);
+            const data = await categoryRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: categoryId
+                    }
+                ]
+            });
             if (!data) {
                 throw new AppError(`Invalid Category '${categoryId}' given`, 400);
             } else {
                 if (subcategoryId) {
                     try {
-                        const data = await cityListings.getSubCategoryWithFilter(
-                            categoryId,
-                            subcategoryId,
-                        );
+                        // const data = await cityListings.getSubCategoryWithFilter(
+                        //     categoryId,
+                        //     subcategoryId,
+                        // );
+                        const data = await subCategoryRepository.getOne({
+                            filters: [
+                                {
+                                    key: "id",
+                                    sign: "=",
+                                    value: subcategoryId
+                                },
+                                {
+                                    key: "categoryId",
+                                    sign: "=",
+                                    value: categoryId
+                                }
+                            ],
+                        });
                         if (!data) {
                             throw new AppError(
                                 `Invalid subCategory '${subcategoryId}' given`,
@@ -1323,14 +1355,22 @@ const getUserListings = async function (
     }
 
     try {
-        const cityMappings = await getCityUserCityMapping(userId);
-        const data = await userRepo.getUserListingsFromDatabase(
+        // const cityMappings = await getCityUserCityMapping(userId);
+        const cityMappings = await userCityUserMappingRepository.getCityUserCityMapping(userId);
+        // const data = await userRepo.getUserListingsFromDatabase(
+        //     userId,
+        //     filters,
+        //     cityMappings,
+        //     pageNo,
+        //     pageSize,
+        // );
+        const data = await listingRepository.getUserListingsFromDatabase(
             userId,
             filters,
             cityMappings,
             pageNo,
             pageSize,
-        );
+        )
         return data;
     } catch (err) {
         if (err instanceof AppError) throw err;
