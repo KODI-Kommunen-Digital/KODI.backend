@@ -3,7 +3,6 @@ const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
 const listingRepo = require("../repository/listings");
 const cityRepo = require("../repository/cities");
-const statusRepo = require("../repository/status");
 const databaseUtil = require("../utils/database");
 
 const listingRepository = require("../repository/listingsRepo");
@@ -209,13 +208,27 @@ const searchListings = async ({
 
     // Get cities
     if (cityId) {
-        const city = await cityRepo.getCityWithId(cityId);
+        // const city = await cityRepo.getCityWithId(cityId);
+        const city = await cityRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: cityId
+                }
+            ]
+        });
         if (!city) {
             throw new AppError(`Invalid CityId '${cityId}' given`, 400);
         }
         cities = [city];
     } else {
-        cities = await cityRepo.getCities();
+        // cities = await cityRepo.getCities();
+        const citiesResp = await cityRepository.getAll({
+            columns: "id,name,image, hasForum",
+            sort: ["name"]
+        });
+        cities = citiesResp?.rows ?? [];
         if (cities.length === 0) {
             throw new AppError("No cities found", 404);
         }
@@ -238,7 +251,16 @@ const searchListings = async ({
         if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
             throw new AppError(`Invalid status ${statusId}`, 400);
         }
-        const status = await statusRepo.getStatusById(statusId);
+        // const status = await statusRepo.getStatusById(statusId);
+        const status = await statusRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: statusId
+                }
+            ]
+        });
         if (!status) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
@@ -246,7 +268,7 @@ const searchListings = async ({
     }
 
     try {
-        const listings = await listingRepo.searchListingsWithFilters({
+        const listings = await listingRepository.searchListingsWithFilters({
             filters,
             cities,
             searchQuery,

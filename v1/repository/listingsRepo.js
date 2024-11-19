@@ -68,7 +68,7 @@ class ListingsRepo extends BaseRepo {
         }
         return [];
     };
-    
+
     getCityListingsWithFiltersAndPagination = async ({
         filters,
         pageNo,
@@ -97,15 +97,75 @@ class ListingsRepo extends BaseRepo {
             GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image
             `;
         });
-    
+
         const query = `
             SELECT * FROM (
                 ${individualQueries.join(" UNION ALL ")}
             ) a ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"}
             LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};
         `;
-    
+
         const response = await database.callQuery(query);
+        return response.rows;
+    };
+
+    searchListingsWithFilters = async ({
+        filters,
+        cities,
+        searchQuery,
+        pageNo,
+        pageSize,
+        sortByStartDate,
+        statusId,
+    }) => {
+        const individualQueries = cities.map((city) => {
+            let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`];
+            let query = `
+                SELECT L.*, 
+                    IFNULL(sub.logo, '') as logo,
+                    IFNULL(sub.logoCount, 0) as logoCount,
+                    ${city.id} as cityId 
+                FROM heidi_city_${city.id}${city.inCityServer ? "_" : "."}listings L
+                LEFT JOIN (
+                    SELECT 
+                        listingId,
+                        MIN(logo) as logo,
+                        COUNT(listingId) as logoCount
+                    FROM heidi_city_${city.id}.listing_images
+                    GROUP BY listingId
+                ) sub ON L.id = sub.listingId
+                WHERE (L.title LIKE ? OR L.description LIKE ?)
+            `;
+
+            if (filters.length > 0) {
+                query += ` AND ${filters.join(" AND ")}`;
+                cityQueryParams = cityQueryParams.concat([statusId]);
+            }
+
+            query += ` GROUP BY L.id, sub.logo, sub.logoCount`;
+            return { query, params: cityQueryParams };
+        });
+
+        const combinedQueryParts = [];
+        let combinedParams = [];
+        individualQueries.forEach(({ query, params }) => {
+            combinedQueryParts.push(`(${query})`);
+            combinedParams = combinedParams.concat(params);
+        });
+
+        const paginationParams = [(pageNo - 1) * pageSize, pageSize];
+        combinedParams = combinedParams.concat(paginationParams);
+
+        const orderByClause = sortByStartDate
+            ? "ORDER BY startDate, createdAt"
+            : "ORDER BY createdAt DESC";
+        const combinedQuery = `
+            SELECT * FROM (${combinedQueryParts.join(" UNION ALL ")}) AS combined 
+            ${orderByClause} 
+            LIMIT ?, ?
+        `;
+
+        const response = await database.callQuery(combinedQuery, combinedParams);
         return response.rows;
     };
 }
