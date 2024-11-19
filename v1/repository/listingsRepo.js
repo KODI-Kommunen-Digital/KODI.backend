@@ -68,6 +68,46 @@ class ListingsRepo extends BaseRepo {
         }
         return [];
     };
+    
+    getCityListingsWithFiltersAndPagination = async ({
+        filters,
+        pageNo,
+        pageSize,
+        cities,
+        sortByStartDate,
+    }) => {
+        const individualQueries = cities.map((city) => {
+            const cityId = city.id;
+            return `
+            SELECT L.*, 
+            IFNULL(sub.logo, '') as logo,
+            IFNULL(sub.logoCount, 0) as logoCount,
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${cityId} as cityId 
+            FROM heidi_city_${cityId}${city.inCityServer ? "_" : "."}listings L 
+            LEFT JOIN (
+                SELECT listingId, MIN(logo) as logo, COUNT(listingId) as logoCount
+                FROM heidi_city_${cityId}.listing_images
+                GROUP BY listingId
+            ) sub ON L.id = sub.listingId
+            INNER JOIN user_cityuser_mapping UM 
+            ON UM.cityUserId = L.userId AND UM.cityId = ${cityId}
+            INNER JOIN users U 
+            ON U.id = UM.userId
+            ${filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : ""}
+            GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image
+            `;
+        });
+    
+        const query = `
+            SELECT * FROM (
+                ${individualQueries.join(" UNION ALL ")}
+            ) a ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"}
+            LIMIT ${(pageNo - 1) * pageSize}, ${pageSize};
+        `;
+    
+        const response = await database.callQuery(query);
+        return response.rows;
+    };
 }
 
 module.exports = new ListingsRepo();

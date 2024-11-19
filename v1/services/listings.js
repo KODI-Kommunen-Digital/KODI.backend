@@ -4,8 +4,13 @@ const deepl = require("deepl-node");
 const listingRepo = require("../repository/listings");
 const cityRepo = require("../repository/cities");
 const statusRepo = require("../repository/status");
-const cityListingRepo = require("../repository/cityListing");
 const databaseUtil = require("../utils/database");
+
+const listingRepository = require("../repository/listingsRepo");
+const cityRepository = require("../repository/citiesRepo");
+const statusRepository = require("../repository/statusRepo");
+const categoriesRepo = require("../repository/categoriesRepo");
+const subcategoriesRepo = require("../repository/subcategoriesRepo");
 
 const getAllListings = async ({
     pageNo,
@@ -46,23 +51,51 @@ const getAllListings = async ({
     }
 
     if (statusId) {
-        const response = await cityListingRepo.getStatusById(statusId);
-        if (!response) {
+        // const response = await cityListingRepo.getStatusById(statusId);
+        const response = await statusRepository.getAll({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: statusId
+                }
+            ]
+        }); // removing the cityId
+        if (!response || !response.rows || !response.rows.length) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
         filters.push(`L.statusId = ${statusId}`);
     }
 
     if (categoryId) {
-        const category = await cityListingRepo.getCategoryById(categoryId);
-        if (!category) {
+        // const category = await cityListingRepo.getCategoryById(categoryId);
+        const categoryResp = await categoriesRepo.getAll({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: categoryId
+                }
+            ]
+        });
+        if (!categoryResp || !categoryResp.rows || !categoryResp.rows.length) {
             throw new AppError(`Invalid Category '${categoryId}' given`, 400);
         }
 
         if (subcategoryId) {
             const subcategory =
-        await cityListingRepo.getSubCategoryById(subcategoryId);
-            if (!subcategory) {
+                // await cityListingRepo.getSubCategoryById(subcategoryId);
+                await subcategoriesRepo.getAll({
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: subcategoryId
+                        }
+                    ]
+                });
+            // if (!subcategory) {
+            if (!subcategory || !subcategory.rows || !subcategory.rows.length) {
                 throw new AppError(`Invalid subCategory '${subcategoryId}' given`, 400);
             }
             filters.push(`L.subcategoryId = ${subcategoryId}`);
@@ -71,13 +104,27 @@ const getAllListings = async ({
     }
 
     if (cityId) {
-        const city = await cityRepo.getCityWithId(cityId);
+        // const city = await cityRepo.getCityWithId(cityId);
+        const city = await cityRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: cityId
+                }
+            ]
+        });
         if (!city) {
             throw new AppError(`Invalid CityId '${cityId}' given`, 400);
         }
         cities = [city];
     } else {
-        cities = await cityRepo.getCities();
+        // cities = await cityRepo.getCities();
+        const citiesResp = await cityRepository.getAll({
+            columns: "id,name,image, hasForum",
+            sort: ["name"]
+        });
+        cities = citiesResp?.rows ?? [];
     }
 
     if (showExternalListings !== "true") {
@@ -85,7 +132,7 @@ const getAllListings = async ({
     }
 
     try {
-        const listings = await listingRepo.getCityListingsWithFiltersAndPagination({
+        const listings = await listingRepository.getCityListingsWithFiltersAndPagination({
             filters,
             pageNo,
             pageSize,
@@ -95,8 +142,8 @@ const getAllListings = async ({
         const noOfListings = listings.length;
         if (
             noOfListings > 0 &&
-      reqTranslate &&
-      supportedLanguages.includes(reqTranslate)
+            reqTranslate &&
+            supportedLanguages.includes(reqTranslate)
         ) {
             const textToTranslate = [];
             listings.forEach((listing) => {
@@ -118,10 +165,10 @@ const getAllListings = async ({
                 }
                 if (
                     translations[2 * i + 1].detectedSourceLang !==
-          reqTranslate.slice(0, 2)
+                    reqTranslate.slice(0, 2)
                 ) {
                     listings[i].descriptionLanguage =
-            translations[2 * i + 1].detectedSourceLang;
+                        translations[2 * i + 1].detectedSourceLang;
                     listings[i].descriptionTranslation = translations[2 * i + 1].text;
                 }
             }
@@ -151,8 +198,8 @@ const searchListings = async ({
     }
     if (
         isNaN(Number(pageSize)) ||
-    Number(pageSize) <= 0 ||
-    Number(pageSize) > 20
+        Number(pageSize) <= 0 ||
+        Number(pageSize) > 20
     ) {
         throw new AppError(
             "Please enter a positive integer less than or equal to 20 for pageSize",
@@ -238,7 +285,7 @@ const createListing = async ({ cityIds, listingData, userId, roleId }) => {
     });
 
     try {
-    // First verify all cities exist
+        // First verify all cities exist
         const transactionMap = {};
         await Promise.all(
             cityIds.map(async (cityId) => {
@@ -268,7 +315,7 @@ const createListing = async ({ cityIds, listingData, userId, roleId }) => {
                 Object.values(transactionMap).forEach((trasaction) => {
                     databaseUtil.rollbackTransaction(trasaction);
                 });
-            } catch (e) {}
+            } catch (e) { }
             throw new AppError(`Error creating listings: ${error.message}`);
         }
     } catch (err) {
