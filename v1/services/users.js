@@ -24,6 +24,7 @@ const storedProcedures = require("../constants/storedProcedures");
 const usersRepository = require("../repository/usersRepo");
 const tokenRepository = require("../repository/tokenRepo");
 const userCityUserMappingRepository = require("../repository/cityUserMappingRepo");
+const verificationTokenRepository = require("../repository/verificationTokenrepo");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -137,7 +138,6 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
     }
 };
 
-
 const register = async function (payload) {
     const insertionData = {};
     if (!payload) {
@@ -167,7 +167,16 @@ const register = async function (payload) {
             );
         }
         try {
-            const user = await userRepo.getUserWithUsername(payload.username);
+            // const user = await userRepo.getUserWithUsername(payload.username);
+            const user = await usersRepository.getOne({
+                filters: [
+                    {
+                        key: "username",
+                        sign: "=",
+                        value: payload.username
+                    }
+                ]
+            });
             if (user) {
                 throw new AppError(
                     `User with username '${payload.username}' already exists`,
@@ -198,7 +207,16 @@ const register = async function (payload) {
         throw new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL);
     } else {
         try {
-            const user = await userRepo.getUserWithEmail(payload.email);
+            // const user = await userRepo.getUserWithEmail(payload.email);
+            const user = await usersRepository.getOne({
+                filters: [
+                    {
+                        key: "email",
+                        sign: "=",
+                        value: payload.email
+                    }
+                ]
+            });
             if (user) {
                 throw new AppError(
                     `User with email '${payload.email}' is already registered`,
@@ -328,9 +346,13 @@ const register = async function (payload) {
         }
     }
 
-    const connection = await database.createTransaction();
+    // const connection = await database.createTransaction();
+    const connection = await usersRepository.createTransaction();
     try {
-        const response = await userRepo.createUser(insertionData, connection);
+        // const response = await userRepo.createUser(insertionData, connection);
+        const response = await usersRepository.create({
+            data: insertionData
+        });
 
         const userId = response.id;
         const now = new Date();
@@ -341,9 +363,12 @@ const register = async function (payload) {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await userRepo.addVerificationToken(tokenData, connection);
+        await verificationTokenRepository.createWithTransaction({
+            data: tokenData,
+        }, connection);
 
-        const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
+        // const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
+        const verifyEmail = require(`../../emailTemplates/${language}/verifyEmail`);
         const { subject, body } = verifyEmail(
             insertionData.firstname,
             insertionData.lastname,
@@ -353,12 +378,14 @@ const register = async function (payload) {
         );
         await sendMail(insertionData.email, subject, null, body);
 
-        database.commitTransaction(connection);
+        // database.commitTransaction(connection);
+        await usersRepository.commitTransaction(connection);
 
         return userId;
     } catch (err) {
         if (err instanceof AppError) throw err;
-        database.rollbackTransaction(connection);
+        // database.rollbackTransaction(connection);
+        await usersRepository.rollbackTransaction(connection);
         throw new AppError(err);
     }
 };
