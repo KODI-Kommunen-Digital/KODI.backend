@@ -43,7 +43,7 @@ async function get(
 function buildQueryWithFilters(filters, query, countQuery, joinFiltersBy) {
     const queryParams = [];
 
-    if (filters.length > 0) {
+    if (filters && filters.length > 0) {
         query += "WHERE ";
         countQuery += "WHERE ";
 

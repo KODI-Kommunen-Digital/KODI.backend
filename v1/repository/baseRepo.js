@@ -26,7 +26,7 @@ class BaseRepo {
         return response.rows[0];
     }
 
-    async getAll(params) {
+    async getAll(params = {}) {
         const { columns, filters, pageNo, pageSize, orderBy, isDescending, joinFiltersBy, cityId } = params;
         const response = await get(this.tableName, filters, columns, cityId, pageNo, pageSize, orderBy, isDescending, joinFiltersBy);
         return { rows: response.rows, count: response.totalCount };
