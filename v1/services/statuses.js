@@ -3,7 +3,8 @@ const statusRepository = require("../repository/statusRepo");
 
 const getAllStatuses = async function () {
     try {
-        return await statusRepository.getAll();
+        const statuses = await statusRepository.getAll();
+        return statuses?.rows ?? [];
     } catch (error) {
         throw new AppError(error);
     }
