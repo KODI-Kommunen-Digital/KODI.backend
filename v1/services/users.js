@@ -1049,11 +1049,34 @@ const verifyEmail = async function (userId, token, language = "de") {
 
 const logout = async function (userId, refreshToken) {
     try {
-        const token = await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
+        // const token = await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
+        const token = await tokenRepository.getOne({
+            filters: [
+                {
+                    key: "refreshToken",
+                    sign: "=",
+                    value: refreshToken
+                }
+            ]
+        });
         if (!token) {
             throw new AppError(`User with id ${refreshToken} does not exist`, 404);
         }
-        await tokenRepo.deleteRefreshTokenFor({ refreshToken, userId });
+        // await tokenRepo.deleteRefreshTokenFor({ refreshToken, userId });
+        await tokenRepository.delete({
+            filters: [
+                {
+                    key: "refreshToken",
+                    sign: "=",
+                    value: refreshToken
+                },
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
