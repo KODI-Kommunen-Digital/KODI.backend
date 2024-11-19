@@ -1,6 +1,6 @@
 const BaseRepo = require("./baseRepo");
 const tableNames = require("../constants/tableNames");
-const database = require("../services/database");
+const database = require("../utils/database");
 const storedProcedures = require("../constants/storedProcedures");
 class UserRepo extends BaseRepo {
     constructor() {
