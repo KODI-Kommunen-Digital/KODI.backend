@@ -925,7 +925,7 @@ const sendVerificationEmail = async function (email, language = "de") {
 
         // await tokenRepo.deleteVerificationToken({ userId: user.id });
         await verificationTokenRepository.delete({
-            filters:[
+            filters: [
                 {
                     key: "userId",
                     sign: "=",
@@ -965,7 +965,16 @@ const sendVerificationEmail = async function (email, language = "de") {
 
 const verifyEmail = async function (userId, token, language = "de") {
     try {
-        const user = await userRepo.getUserDataById(userId);
+        // const user = await userRepo.getUserDataById(userId);
+        const user = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
         if (!user) {
             throw new AppError(`UserId ${userId} does not exist`, 400);
         }
@@ -973,18 +982,58 @@ const verifyEmail = async function (userId, token, language = "de") {
             return "Email has already been vefified!!";
         }
 
-        const tokenData = await tokenRepo.getEmailVerificationToken(userId, token);
+        // const tokenData = await tokenRepo.getEmailVerificationToken(userId, token);
+        const tokenData = await verificationTokenRepository.getOne({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                },
+                {
+                    key: "token",
+                    sign: "=",
+                    value: token
+                }
+            ]
+        });
         if (!tokenData) {
             throw new AppError(`Invalid data sent`, 400);
         }
 
-        await tokenRepo.deleteVerificationToken({ userId, token });
+        // await tokenRepo.deleteVerificationToken({ userId, token });
+        await verificationTokenRepository.delete({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                },
+                {
+                    key: "token",
+                    sign: "=",
+                    value: token
+                }
+            ]
+        });
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
             throw new AppError(`Token Expired, send verification mail again`, 400);
         }
 
-        await userRepo.updateUserById(userId, { emailVerified: true });
+        // await userRepo.updateUserById(userId, { emailVerified: true });
+        await usersRepository.update({
+            data: {
+                emailVerified: true
+            },
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
 
         const verificationDone = require(
             `../emailTemplates/${language}/verificationDone`,
