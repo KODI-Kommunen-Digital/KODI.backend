@@ -1,19 +1,16 @@
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const database = require("../utils/database");
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const roles = require("../constants/roles");
 const sendMail = require("../utils/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const userRepo = require("../repository/users");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const tokenUtil = require("../utils/token");
 const { getUserImages } = require("../repository/image");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
-const storedProcedures = require("../constants/storedProcedures");
 
 const usersRepository = require("../repository/userRepo");
 const tokenRepository = require("../repository/tokenRepo");
@@ -1380,12 +1377,33 @@ const getUserListings = async function (
 
 const deleteUser = async function (userId) {
     try {
-        const userData = await userRepo.getUserDataById(userId);
+        // implement transaction
+        // const userData = await userRepo.getUserDataById(userId);
+        const userData = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
         if (!userData) {
             throw new AppError(`User with id ${userId} does not exist`, 404);
         }
 
-        const cityUsers = await userRepo.getuserCityMappings(userId);
+        // const cityUsers = await userRepo.getuserCityMappings(userId);
+        const cityUsersData = await userCityUserMappingRepository.getAll({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                }
+            ],
+            columns: ["cityId, cityUserId"]
+        });
+        const cityUsers = cityUsersData.rows;
 
         const userImageList = await getUserImages(userId);
 
@@ -1393,15 +1411,18 @@ const deleteUser = async function (userId) {
             userImageList.map((image) => ({ Key: image.Key._text })),
         );
         for (const cityUser of cityUsers) {
-            await database.callStoredProcedure(
-                storedProcedures.DELETE_CITY_USER,
-                [cityUser.cityUserId],
-                cityUser.cityId,
-            );
+            // await database.callStoredProcedure(
+            //     storedProcedures.DELETE_CITY_USER,
+            //     [cityUser.cityUserId],
+            //     cityUser.cityId,
+            // );
+            await usersRepository.deleteCityUserProcedure(cityUser.cityUserId, cityUser.cityId);
         }
-        await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [
-            userId,
-        ]);
+        // await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [
+        //     userId,
+        // ]);
+
+        await usersRepository.deleteCoreUserProcedure(userId);
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
