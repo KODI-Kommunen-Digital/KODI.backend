@@ -767,7 +767,7 @@ const forgotPassword = async function (username, language = "de") {
             throw new AppError(`Username ${username} does not exist`, 404);
         }
 
-        await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
+        // await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
         await forgotPasswordTokenRepository.deleteWithTransaction({
             filters: [
                 {
@@ -811,6 +811,7 @@ const forgotPassword = async function (username, language = "de") {
     }
 };
 
+// TODO: implement transaction
 const resetPassword = async function (userId, language, token, password) {
     try {
         // const user = await userRepo.getUserDataById(userId);
@@ -905,7 +906,16 @@ const resetPassword = async function (userId, language, token, password) {
 
 const sendVerificationEmail = async function (email, language = "de") {
     try {
-        const user = await userRepo.getUserWithEmail(email);
+        // const user = await userRepo.getUserWithEmail(email);
+        const user = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "email",
+                    sign: "=",
+                    value: email
+                }
+            ]
+        });
         if (!user) {
             throw new AppError(`Email ${email} does not exist`, 400);
         }
@@ -913,7 +923,16 @@ const sendVerificationEmail = async function (email, language = "de") {
             throw new AppError(`Email already verified`, 400);
         }
 
-        await tokenRepo.deleteVerificationToken({ userId: user.id });
+        // await tokenRepo.deleteVerificationToken({ userId: user.id });
+        await verificationTokenRepository.delete({
+            filters:[
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: user.id
+                }
+            ]
+        });
 
         const now = new Date();
         now.setHours(now.getHours() + 24);
@@ -923,7 +942,11 @@ const sendVerificationEmail = async function (email, language = "de") {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await tokenRepo.insertVerificationTokenData(tokenData);
+        // TODO: implement transaction
+        // await tokenRepo.insertVerificationTokenData(tokenData);
+        await verificationTokenRepository.create({
+            data: tokenData
+        });
 
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         const { subject, body } = verifyEmail(
