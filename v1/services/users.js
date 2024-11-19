@@ -25,6 +25,7 @@ const tokenRepository = require("../repository/tokenRepo");
 const userCityUserMappingRepository = require("../repository/cityUserMappingRepo");
 const verificationTokenRepository = require("../repository/verificationTokenrepo");
 const cityRepository = require("../repository/cityRepo");
+const forgotPasswordTokenRepository = require("../repository/forgotPasswordTokenRepo");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -743,14 +744,39 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
 };
 
 const forgotPassword = async function (username, language = "de") {
-    const transaction = await database.createTransaction();
+    // const transaction = await database.createTransaction();
+    const transaction = await usersRepository.createTransaction();
     try {
-        const user = await userRepo.getUserByUsernameOrEmail(username, username);
+        // const user = await userRepo.getUserByUsernameOrEmail(username, username);
+        const user = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "username",
+                    sign: "=",
+                    value: username
+                },
+                {
+                    key: "email",
+                    sign: "=",
+                    value: username
+                }
+            ],
+            joinFiltersBy: "OR"
+        })
         if (!user) {
             throw new AppError(`Username ${username} does not exist`, 404);
         }
 
         await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
+        await forgotPasswordTokenRepository.deleteWithTransaction({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: user.id
+                }
+            ]
+        }, transaction);
 
         const now = new Date();
         now.setMinutes(now.getMinutes() + 30);
@@ -761,7 +787,10 @@ const forgotPassword = async function (username, language = "de") {
             expiresAt: getDateInFormate(now),
         };
 
-        await userRepo.addForgotPasswordTokenWithConnection(tokenData, transaction);
+        // await userRepo.addForgotPasswordTokenWithConnection(tokenData, transaction);
+        await forgotPasswordTokenRepository.createWithTransaction({
+            data: tokenData
+        }, transaction);
 
         const resetPasswordEmail = require(
             `../emailTemplates/${language}/resetPasswordEmail`,
@@ -774,9 +803,9 @@ const forgotPassword = async function (username, language = "de") {
         );
         await sendMail(user.email, subject, null, body);
 
-        await database.commitTransaction(transaction);
+        await usersRepository.commitTransaction(transaction);
     } catch (err) {
-        await database.rollbackTransaction(transaction);
+        await usersRepository.rollbackTransaction(transaction);
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
