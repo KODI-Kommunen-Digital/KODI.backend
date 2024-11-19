@@ -813,7 +813,16 @@ const forgotPassword = async function (username, language = "de") {
 
 const resetPassword = async function (userId, language, token, password) {
     try {
-        const user = await userRepo.getUserDataById(userId);
+        // const user = await userRepo.getUserDataById(userId);
+        const user = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
         if (!user) {
             throw new AppError(`UserId ${userId} does not exist`, 400);
         }
@@ -826,11 +835,39 @@ const resetPassword = async function (userId, language, token, password) {
                 errorCodes.NEW_OLD_PASSWORD_DIFFERENT,
             );
         }
-        const tokenData = await tokenRepo.getForgotPasswordToken(userId, token);
+        // const tokenData = await tokenRepo.getForgotPasswordToken(userId, token);
+        const tokenData = await forgotPasswordTokenRepository.getOne({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                },
+                {
+                    key: "token",
+                    sign: "=",
+                    value: token
+                }
+            ]
+        })
         if (!tokenData) {
             throw new AppError(`Invalid data sent`, 400);
         }
-        await tokenRepo.deleteForgotPasswordToken(userId, token);
+        // await tokenRepo.deleteForgotPasswordToken(userId, token);
+        await forgotPasswordTokenRepository.delete({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                },
+                {
+                    key: "token",
+                    sign: "=",
+                    value: token
+                }
+            ]
+        });
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
             throw new AppError(`Token Expired`, 400);
@@ -841,7 +878,19 @@ const resetPassword = async function (userId, language, token, password) {
             Number(process.env.SALT),
         );
 
-        await userRepo.updateUserById(userId, { password: hashedPassword });
+        // await userRepo.updateUserById(userId, { password: hashedPassword });
+        await usersRepository.update({
+            data: {
+                password: hashedPassword
+            },
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
 
         const passwordResetDone = require(
             `../emailTemplates/${language}/passwordResetDone`,
