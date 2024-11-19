@@ -478,7 +478,15 @@ const getUserById = async function (userId, cityUser, cityId, reqUserId) {
 const updateUser = async function (id, payload) {
     const updationData = {};
 
-    const currentUserData = await userRepo.getUserDataById(id);
+    const currentUserData = await usersRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: id
+            }
+        ]
+    });
     if (!currentUserData) {
         throw new AppError(`User with id ${id} does not exist`, 404);
     }
@@ -597,19 +605,50 @@ const updateUser = async function (id, payload) {
     if (Object.keys(updationData).length > 0) {
         // TODO add transaction
         try {
-            const cityUserResponse = await userRepo.getuserCityMappings(id);
-            await userRepo.updateUserById(id, updationData);
+            // const cityUserResponse = await userRepo.getuserCityMappings(id);
+            const cityUserResponse = await userCityUserMappingRepository.getAll({
+                filters: [
+                    {
+                        key: "userId",
+                        sign: "=",
+                        value: id
+                    }
+                ],
+                columns: ["cityId", "cityUserId"]
+            });
+            // await userRepo.updateUserById(id, updationData);
+            await usersRepository.update({
+                data: updationData,
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: id
+                    }
+                ]
+            });
 
             const cityUserUpdationData = { ...updationData, coreuserId: id };
             delete cityUserUpdationData.password;
             delete cityUserUpdationData.socialMedia;
 
             for (const element of cityUserResponse.rows) {
-                await userRepo.updateCityUserById(
-                    element.cityUserId,
-                    cityUserUpdationData,
-                    element.cityId,
-                );
+                // await userRepo.updateCityUserById(
+                //     element.cityUserId,
+                //     cityUserUpdationData,
+                //     element.cityId,
+                // );
+                await usersRepository.update({
+                    data: cityUserUpdationData,
+                    cityId: element.cityId,
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: element.cityUserId
+                        }
+                    ]
+                });
             }
         } catch (err) {
             if (err instanceof AppError) throw err;
