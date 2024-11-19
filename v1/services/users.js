@@ -11,7 +11,6 @@ const userRepo = require("../repository/users");
 const {
     getCityUserCityMapping,
 } = require("../repository/cities");
-const tokenRepo = require("../repository/auth");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const cityListings = require("../repository/cityListing");
@@ -1166,9 +1165,32 @@ const listLoginDevices = async function (userId, refreshToken) {
 const deleteLoginDevices = async function (paramId, queryId) {
     try {
         if (!queryId) {
-            await tokenRepo.deleteRefreshToken(paramId);
+            // await tokenRepo.deleteRefreshToken(paramId);
+            await tokenRepository.delete({
+                filters: [
+                    {
+                        key: "userId",
+                        sign: "=",
+                        value: paramId
+                    }
+                ]
+            });
         } else {
-            await tokenRepo.deleteRefreshTokenFor({ paramId, id: queryId });
+            // await tokenRepo.deleteRefreshTokenFor({ paramId, id: queryId });
+            await tokenRepository.delete({
+                filters: [
+                    {
+                        key: "userId",
+                        sign: "=",
+                        value: paramId
+                    },
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: queryId
+                    }
+                ]
+            });
         }
     } catch (err) {
         if (err instanceof AppError) throw err;
