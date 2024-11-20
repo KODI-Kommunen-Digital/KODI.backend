@@ -1,10 +1,20 @@
 const sendMail = require("../utils/sendMail");
 const AppError = require("../utils/appError");
-const { getUserById } = require("../repository/users");
+// const { getUserById } = require("../repository/users");
+const usersRepository = require("../repository/userRepo");
 
 const contactUs = async function (id, language, body) {
     try {
-        const user = await getUserById(id);
+        // const user = await getUserById(id);
+        const user = await usersRepository.getOne({
+            filters: [
+                {
+                    key: 'id',
+                    sign: '=',
+                    value: id
+                }
+            ]
+        })
         if (!user) {
             throw new AppError(`UserID ${id} does not exist`, 404);
         }
