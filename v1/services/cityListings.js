@@ -717,7 +717,15 @@ const uploadImageForCityListing = async function (
         throw new AppError(`City is not present`, 404);
     } else {
         try {
-            const response = await cityRepo.getCityWithId(cityId);
+            const response = await cityRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: cityId,
+                    },
+                ]
+            });
             if (!response) {
                 throw new AppError(`City '${cityId}' not found`, 404);
             }
@@ -731,13 +739,32 @@ const uploadImageForCityListing = async function (
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
 
-    const response = await userRepo.getCityUserCityMapping(cityId, userId);
+    const response = await userCityuserMappingRepo.getOne({
+        filters: [
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId,
+            },
+            {
+                key: "userId",
+                sign: "=",
+                value: userId,
+            },
+        ],
+    });
     const cityUserId = response ? response.cityUserId : null;
 
-    const currentListingData = await listingRepo.getCityListingWithId(
-        listingId,
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: listingId,
+            },
+        ],
         cityId,
-    );
+    });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
     }
@@ -760,12 +787,30 @@ const uploadImageForCityListing = async function (
     }
 
     let imageOrder = 0;
-    const listingImages = await cityListingRepo.getListingImages(
-        listingId,
+    // const listingImages = await cityListingRepo.getListingImages(
+    const listingImagesResp = await listingImagesRepository.getAll({
+        filters: [
+            {
+                key: "listingId",
+                sign: "=",
+                value: listingId,
+            },
+        ],
         cityId,
-    );
+    });
+    const listingImages = listingImagesResp.rows;
     if (listingImages[0].logo.startsWith("admin/")) {
-        await cityListingRepo.deleteListingImage(listingId, cityId);
+        // await cityListingRepo.deleteListingImage(listingId, cityId);
+        await listingImagesRepository.delete({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: listingId,
+                },
+            ],
+            cityId,
+        });
     } else {
         const imagesToRetain = listingImages.filter((value) =>
             (image || []).includes(value.logo),
@@ -776,19 +821,40 @@ const uploadImageForCityListing = async function (
 
         if (imagesToDelete && imagesToDelete.length > 0) {
             await imageDeleteAsync.deleteMultiple(imagesToDelete.map((i) => i.logo));
-            await cityListingRepo.deleteListingImageById(
-                imagesToDelete.map((i) => i.id),
+            // await cityListingRepo.deleteListingImageById(
+            //     imagesToDelete.map((i) => i.id),
+            //     cityId,
+            // );
+            await listingImagesRepository.delete({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "IN",
+                        value: imagesToDelete.map((i) => i.id),
+                    },
+                ],
                 cityId,
-            );
+            });
         }
 
         if (imagesToRetain && imagesToRetain.length > 0) {
             for (const imageToRetain of imagesToRetain) {
-                await cityListingRepo.updateListingImage(
-                    imageToRetain.id,
-                    { imageOrder: ++imageOrder },
+                // await cityListingRepo.updateListingImage(
+                //     imageToRetain.id,
+                //     { imageOrder: ++imageOrder },
+                //     cityId,
+                // );
+                await listingImagesRepository.update({
+                    data: { imageOrder: ++imageOrder },
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: imageToRetain.id,
+                        },
+                    ],
                     cityId,
-                );
+                });
             }
         }
         if (imagesToRetain.length === 0 && imageArr.length === 0) {
@@ -805,12 +871,20 @@ const uploadImageForCityListing = async function (
                 filePath,
             );
             if (uploadStatus === "Success") {
-                await cityListingRepo.createListingImage(
+                // await cityListingRepo.createListingImage(
+                //     cityId,
+                //     listingId,
+                //     imageOrder,
+                //     objectKey,
+                // );
+                await listingImagesRepository.create({
+                    data: {
+                        listingId,
+                        imageOrder,
+                        logo: objectKey,
+                    },
                     cityId,
-                    listingId,
-                    imageOrder,
-                    objectKey,
-                );
+                });
             } else {
                 throw new AppError("Image Upload failed");
             }
