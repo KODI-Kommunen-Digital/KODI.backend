@@ -31,6 +31,9 @@ const pollRepository = require("../repository/pollOptionsRepo");
 const cityRepository = require("../repository/citiesRepo");
 const listingRepository = require("../repository/listingsRepo");
 const { createListing } = require("../services/listingFunctions");
+const statusRepository = require("../repository/statusRepo");
+const categoriesRepository = require("../repository/categoriesRepo");
+const userCityuserMappingRepo = require("../repository/userCityuserMappingRepo");
 
 const DEFAULTIMAGE = "Defaultimage";
 
@@ -151,7 +154,7 @@ const getCityListingWithId = async function (
 };
 
 const getAllCityListings = async function (params, cityId) {
-    const filters = {};
+    const listingFilters = [];
     const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
 
     let listings = [];
@@ -163,7 +166,15 @@ const getAllCityListings = async function (params, cityId) {
         throw new AppError(`Invalid City '${cityId}' given`, 404);
     } else {
         try {
-            const city = await cityRepo.getCityWithId(cityId);
+            const city = await cityRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: cityId,
+                    },
+                ]
+            });
             if (!city) {
                 throw new AppError(`Invalid City '${cityId}' given`, 404);
             }
@@ -192,10 +203,16 @@ const getAllCityListings = async function (params, cityId) {
 
     if (params.statusId) {
         try {
-            const status = await cityListingRepo.getStatusById(
-                params.statusId,
+            const status = await statusRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: params.statusId,
+                    },
+                ],
                 cityId,
-            );
+            });
             if (!status) {
                 throw new AppError(`Invalid Status '${params.statusId}' given`, 400);
             }
@@ -203,16 +220,35 @@ const getAllCityListings = async function (params, cityId) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        filters.statusId = params.statusId;
+        // filters.statusId = params.statusId;
+        listingFilters.push({
+            key: "statusId",
+            sign: "=",
+            value: params.statusId,
+        });
     }
 
     if (params.categoryId) {
         try {
-            const category = await cityListingRepo.getCategoryById(
-                params.categoryId,
-                cityId,
-                true,
-            );
+            // const category = await cityListingRepo.getCategoryById(
+            //     params.categoryId,
+            //     cityId,
+            //     true,
+            // );
+            const category = await categoriesRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: params.categoryId,
+                    },
+                    {
+                        key: "isEnabled",
+                        sign: "=",
+                        value: true,
+                    }
+                ],
+            })
             if (!category) {
                 throw new AppError(
                     `Invalid Category '${params.categoryId}' given`,
@@ -223,19 +259,32 @@ const getAllCityListings = async function (params, cityId) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        filters.categoryId = params.categoryId;
+        // filters.categoryId = params.categoryId;
+        listingFilters.push({
+            key: "categoryId",
+            sign: "=",
+            value: params.categoryId,
+        });
     }
 
     if (params.subcategoryId) {
         if (!params.categoryId) throw new AppError(`categoryId not present`, 400);
         try {
-            const subcategory = await cityListingRepo.getSubCategory(
-                {
-                    id: params.subcategoryId,
-                    categoryId: params.categoryId,
-                },
+            const subcategory = await categoriesRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: params.subcategoryId,
+                    },
+                    {
+                        key: "categoryId",
+                        sign: "=",
+                        value: params.categoryId,
+                    }
+                ],
                 cityId,
-            );
+            });
             if (!subcategory) {
                 throw new AppError(
                     `Invalid Sub Category '${params.subcategoryId}' given`,
@@ -246,14 +295,38 @@ const getAllCityListings = async function (params, cityId) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        filters.subcategoryId = params.subcategoryId;
+        // filters.subcategoryId = params.subcategoryId;
+        listingFilters.push({
+            key: "subcategoryId",
+            sign: "=",
+            value: params.subcategoryId,
+        });
     }
 
     if (params.userId) {
         try {
-            const user = await userRepo.getCityUserCityMapping(cityId, params.userId);
+            // const user = await userRepo.getCityUserCityMapping(cityId, params.userId);
+            const user = await userCityuserMappingRepo.getOne({
+                filters: [
+                    {
+                        key: "cityId",
+                        sign: "=",
+                        value: cityId,
+                    },
+                    {
+                        key: "userId",
+                        sign: "=",
+                        value: params.userId,
+                    },
+                ],
+            });
             if (user) {
-                filters.userId = user.cityUserId;
+                // filters.userId = user.cityUserId;
+                listingFilters.push({
+                    key: "userId",
+                    sign: "=",
+                    value: user.cityUserId,
+                });
             }
         } catch (err) {
             if (err instanceof AppError) throw err;
@@ -262,12 +335,19 @@ const getAllCityListings = async function (params, cityId) {
     }
 
     try {
-        listings = await listingRepo.getAllListingsWithFilters(
-            filters,
+        // listings = await listingRepo.getAllListingsWithFilters(
+        //     filters,
+        //     cityId,
+        //     pageNo,
+        //     pageSize,
+        // );
+        const response = await listingRepository.getAll({
+            listingFilters,
             cityId,
             pageNo,
             pageSize,
-        );
+        });
+        listings = response.rows;
         if (!listings) {
             listings = [];
         }
