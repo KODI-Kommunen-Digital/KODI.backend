@@ -1,12 +1,12 @@
 const cityService = require("../services/cities");
 
 const getCities = async function (req, res, next) {
-    const filter = {};
+    let hasForum = false;
     if (req.query.hasForum) {
-        filter.hasForum = true;
+        hasForum = true;
     }
     try {
-        const data = await cityService.getCities(filter);
+        const data = await cityService.getCities(hasForum);
         res.status(200).json({
             status: "success",
             data,
