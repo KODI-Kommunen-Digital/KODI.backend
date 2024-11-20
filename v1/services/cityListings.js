@@ -24,7 +24,7 @@ const axios = require("axios");
 const parser = require("xml-js");
 
 // const sendPushNotification = require("../services/sendPushNotification");
-const pollRepo = require("../repository/polls");
+// const pollRepo = require("../repository/polls");
 
 const pollRepository = require("../repository/pollOptionsRepo");
 // const userRepository = require("../repository/userRepo");
@@ -899,7 +899,15 @@ const vote = async function (listingId, cityId, optionId, vote) {
     if (!cityId || isNaN(Number(cityId)) || Number(cityId) <= 0) {
         throw new AppError(`City is not present`, 404);
     } else {
-        const city = await cityRepo.getCityWithId(cityId);
+        const city = await cityRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: cityId,
+                },
+            ]
+        });
         if (!city) {
             throw new AppError(`City '${cityId}' not found`, 404);
         }
@@ -917,10 +925,16 @@ const vote = async function (listingId, cityId, optionId, vote) {
         throw new AppError(`Invalid Vote ${vote} given`, 400);
     }
 
-    const currentCityListing = await listingRepo.getCityListingWithId(
-        listingId,
+    const currentCityListing = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: listingId,
+            },
+        ],
         cityId,
-    );
+    });
     if (!currentCityListing) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
     }
@@ -929,7 +943,18 @@ const vote = async function (listingId, cityId, optionId, vote) {
         throw new AppError(`This listing is not a poll`, 400);
     }
 
-    const pollOptions = await pollRepo.getPollOptions(listingId, cityId);
+    // const pollOptions = await pollRepo.getPollOptions(listingId, cityId);
+    const pollOptionsResp = await pollRepository.getAll({
+        filters: [
+            {
+                key: "listingId",
+                sign: "=",
+                value: listingId,
+            },
+        ],
+        cityId,
+    });
+    const pollOptions = pollOptionsResp?.rows ?? [];
     if (!pollOptions || pollOptions.length === 0) {
         throw new AppError(`No poll options found for this listing`, 404);
     }
@@ -946,7 +971,18 @@ const vote = async function (listingId, cityId, optionId, vote) {
             throw new AppError(`Vote count cannot be negative`, 400);
         }
 
-        await pollRepo.updatePollOptionVotes(optionId, voteCount, cityId);
+        // await pollRepo.updatePollOptionVotes(optionId, voteCount, cityId);
+        await pollRepository.update({
+            data: { votes: voteCount },
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: optionId,
+                },
+            ],
+            cityId,
+        });
         return voteCount;
     } catch (err) {
         if (err instanceof AppError) throw err;
