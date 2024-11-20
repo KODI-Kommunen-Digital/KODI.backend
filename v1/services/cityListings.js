@@ -30,6 +30,7 @@ const pollRepository = require("../repository/pollOptionsRepo");
 // const userRepository = require("../repository/userRepo");
 const cityRepository = require("../repository/citiesRepo");
 const listingRepository = require("../repository/listingsRepo");
+const listingImagesRepository = require("../repository/listingsImagesRepo");
 const { createListing } = require("../services/listingFunctions");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
@@ -412,7 +413,20 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         throw new AppError(`Invalid ListingsId ${id}`, 404);
     }
 
-    const response = await userRepo.getCityUserCityMapping(cityId, userId);
+    const response = await userCityuserMappingRepo.getOne({
+        filters: [
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId,
+            },
+            {
+                key: "userId",
+                sign: "=",
+                value: userId,
+            },
+        ],
+    });
     const cityUserId = response ? response.cityUserId : null;
 
     const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
@@ -426,10 +440,16 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         .replace("T", " ");
     if (payload.categoryId) {
         try {
-            const data = await cityListingRepo.getCategoryById(
-                payload.categoryId,
+            const data = await categoriesRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: payload.categoryId,
+                    },
+                ],
                 cityId,
-            );
+            });
             if (!data) {
                 throw new AppError(
                     `Invalid Category '${payload.categoryId}' given`,
@@ -492,10 +512,30 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
             throw new AppError(`Invalid time format ${error}`, 400);
         }
         try {
-            const response = await listingRepo.getCityListingImage(id, cityId);
-            const hasDefaultImage = response && response.logo.startsWith("admin");
+            // const response = await listingRepo.getCityListingImage(id, cityId);
+            const response = await listingImagesRepository.getAll({
+                filters: [
+                    {
+                        key: "listingId",
+                        sign: "=",
+                        value: id,
+                    },
+                ],
+                cityId,
+            });
+            const hasDefaultImage = response?.rows?.length === 1 && response.rows[0].logo.startsWith("admin");
+
             if (hasDefaultImage) {
-                await listingRepo.deleteListingImage(id, cityId);
+                await listingImagesRepository.delete({
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: response.rows[0].id,
+                        },
+                    ],
+                    cityId,
+                });
                 await addDefaultImage(cityId, id, payload.categoryId);
             }
         } catch (err) {
@@ -511,10 +551,21 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
             );
         }
         try {
-            const subcategory = await cityListingRepo.getSubCategoryById(
-                payload.subcategoryId,
+            const subcategory = await categoriesRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: payload.subcategoryId,
+                    },
+                    {
+                        key: "categoryId",
+                        sign: "=",
+                        value: payload.categoryId,
+                    }
+                ],
                 cityId,
-            );
+            });
             if (!subcategory) {
                 throw new AppError(
                     `Invalid Sub Category '${payload.subcategoryId}' given`,
@@ -611,10 +662,16 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         roleId === roles.Admin
     ) {
         try {
-            const status = await cityListingRepo.getStatusById(
-                payload.statusId,
+            const status = await statusRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: payload.statusId,
+                    },
+                ],
                 cityId,
-            );
+            });
             if (!status) {
                 throw new AppError(`Invalid Status '${payload.statusId}' given`, 400);
             }
@@ -632,7 +689,17 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
     }
 
     try {
-        await cityListingRepo.updateCityListing(id, updationData, cityId);
+        await listingRepository.update({
+            data: updationData,
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: id,
+                },
+            ],
+            cityId,
+        });
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -1096,20 +1163,38 @@ async function addDefaultImage(cityId, listingId, categoryId) {
         (key) => categories[key] === +categoryId,
     );
 
-    const categoryCount = await cityListingRepo.getCountByCategory(
+    // const categoryCount = await cityListingRepo.getCountByCategory(
+    const categoryCountResponse = await listingImagesRepository.getCount({
+        filters: [
+            {
+                key: "logo",
+                sign: "LIKE",
+                value: `%${categoryName}%`,
+            },
+        ],
         cityId,
-        categoryName,
-    );
+        columns: "COUNT(id) AS count",
+    });
+    const categoryCount = categoryCountResponse.count;
+
     const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
     const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
 
     // Create listing image
-    return await cityListingRepo.createListingImage(
+    // return await cityListingRepo.createListingImage(
+    //     cityId,
+    //     listingId,
+    //     imageOrder,
+    //     imageName,
+    // );
+    return await listingImagesRepository.create({
+        data: {
+            listingId,
+            imageOrder,
+            logo: imageName,
+        },
         cityId,
-        listingId,
-        imageOrder,
-        imageName,
-    );
+    });
 }
 
 async function addDefaultImageWithTransaction(
