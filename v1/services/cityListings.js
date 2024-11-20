@@ -1001,7 +1001,15 @@ const uploadPDFForCityListing = async function (
         throw new AppError(`City is not present`, 404);
     } else {
         try {
-            const response = await cityRepo.getCityWithId(cityId);
+            const response = await cityRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: cityId,
+                    },
+                ]
+            });
             if (!response) {
                 throw new AppError(`City '${cityId}' not found`, 404);
             }
@@ -1015,13 +1023,32 @@ const uploadPDFForCityListing = async function (
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
 
-    const response = await userRepo.getCityUserCityMapping(cityId, userId);
+    const response = await userCityuserMappingRepo.getOne({
+        filters: [
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId,
+            },
+            {
+                key: "userId",
+                sign: "=",
+                value: userId,
+            },
+        ],
+    });
     const cityUserId = response ? response.cityUserId : null;
 
-    const currentListingData = await listingRepo.getCityListingWithId(
-        listingId,
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: listingId,
+            },
+        ],
         cityId,
-    );
+    });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
     }
@@ -1055,18 +1082,39 @@ const uploadPDFForCityListing = async function (
         throw new AppError(`Invalid Pdf type`, 403);
     }
 
-    const imagesToDelete = await cityListingRepo.getListingImages(
-        listingId,
+    // const imagesToDelete = await cityListingRepo.getListingImages(
+    //     listingId,
+    //     cityId,
+    // );
+    const imagesToDeleteResp = await listingImagesRepository.getAll({
+        filters: [
+            {
+                key: "listingId",
+                sign: "=",
+                value: listingId,
+            },
+        ],
         cityId,
-    );
+    });
+    const imagesToDelete = imagesToDeleteResp.rows;
     if (imagesToDelete && imagesToDelete.length > 0) {
         await imageDeleteAsync.deleteMultiple(
             imagesToDelete.map((i) => i.logo).filter((i) => !i.startsWith("admin/")),
         );
-        await cityListingRepo.deleteMultipleListingImagesById(
-            imagesToDelete.map((i) => i.id),
+        // await cityListingRepo.deleteMultipleListingImagesById(
+        //     imagesToDelete.map((i) => i.id),
+        //     cityId,
+        // );
+        await listingImagesRepository.delete({
+            filters: [
+                {
+                    key: "id",
+                    sign: "IN",
+                    value: imagesToDelete.map((i) => i.id),
+                },
+            ],
             cityId,
-        );
+        });
     }
 
     try {
@@ -1092,15 +1140,34 @@ const uploadPDFForCityListing = async function (
 
             if (uploadStatus === "Success") {
                 // update logo
-                await cityListingRepo.createListingImage(
+                // await cityListingRepo.createListingImage(
+                //     cityId,
+                //     listingId,
+                //     imageOrder,
+                //     objectKey,
+                // );
+                await listingImagesRepository.create({
+                    data: {
+                        listingId,
+                        imageOrder,
+                        logo: objectKey,
+                    },
                     cityId,
-                    listingId,
-                    imageOrder,
-                    objectKey,
-                );
+                });
             }
 
-            await cityListingRepo.updateCityListing(listingId, updationData, cityId);
+            // await cityListingRepo.updateCityListing(listingId, updationData, cityId);
+            await listingRepository.update({
+                data: updationData,
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: listingId,
+                    },
+                ],
+                cityId,
+            });
         } else {
             throw new AppError("pdf Upload failed");
         }
