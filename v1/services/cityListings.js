@@ -6,8 +6,8 @@ const getDateInFormate = require("../utils/getDateInFormate");
 // const databaseUtil = require("../utils/database");
 // const subcategories = require("../constants/subcategories");
 const roles = require("../constants/roles");
-const userRepo = require("../repository/users");
-const cityRepo = require("../repository/cities");
+// const userRepo = require("../repository/users");
+// const cityRepo = require("../repository/cities");
 const cityListingRepo = require("../repository/cityListing");
 const listingRepo = require("../repository/listings");
 const imageUpload = require("../utils/imageUpload");
@@ -1381,19 +1381,49 @@ const deleteCityListing = async function (id, cityId, userId, roleId) {
         throw new AppError(`Invalid entry ${id}`, 404);
     }
 
-    const cityResp = await cityRepo.getCityWithId(cityId);
+    const cityResp = await cityRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: cityId,
+            },
+        ]
+    });
     if (!cityResp) {
         throw new AppError(`City '${cityId}' not found`, 404);
     }
 
-    const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: id,
+            },
+        ],
+        cityId,
+    });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
     }
 
     const userImageList = await bucketClient.fetchUserImages(userId, cityId, id);
 
-    const response = await userRepo.getCityUserCityMapping(cityId, userId);
+    const response = await userCityuserMappingRepo.getOne({
+        filters: [
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId,
+            },
+            {
+                key: "userId",
+                sign: "=",
+                value: userId,
+            },
+        ],
+    });
     const cityUserId = response ? response.cityUserId : null;
     if (currentListingData.userId !== cityUserId && roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
@@ -1401,8 +1431,26 @@ const deleteCityListing = async function (id, cityId, userId, roleId) {
 
     const onSucccess = async () => {
         // TODO : use transactions
-        await cityListingRepo.deleteListingImage(id, cityId);
-        await cityListingRepo.deleteCityListing(id, cityId);
+        await listingImagesRepository.delete({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: id,
+                },
+            ],
+            cityId,
+        });
+        await listingRepository.delete({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: id,
+                },
+            ],
+            cityId,
+        });
     };
     const onFail = (err) => {
         throw new AppError("Image Delete failed with Error Code: " + err);
