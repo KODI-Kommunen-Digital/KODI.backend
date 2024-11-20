@@ -1286,7 +1286,15 @@ const deletePDFForCityListing = async function (id, cityId, userId, roleId) {
         throw new AppError(`City is not present`, 404);
     } else {
         try {
-            const response = await cityRepo.getCityWithId(cityId);
+            const response = await cityRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: cityId,
+                    },
+                ]
+            });
             if (!response) {
                 throw new AppError(`City '${cityId}' not found`, 404);
             }
@@ -1300,11 +1308,33 @@ const deletePDFForCityListing = async function (id, cityId, userId, roleId) {
         throw new AppError(`Invalid ListingsId ${id}`, 404);
     }
 
-    const response = await userRepo.getCityUserCityMapping(cityId, userId);
+    const response = await userCityuserMappingRepo.getOne({
+        filters: [
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId,
+            },
+            {
+                key: "userId",
+                sign: "=",
+                value: userId,
+            },
+        ],
+    });
 
     // The current user might not be in the city db
     const cityUserId = response ? response.cityUserId : null;
-    const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: id,
+            },
+        ],
+        cityId,
+    });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
     }
@@ -1317,7 +1347,17 @@ const deletePDFForCityListing = async function (id, cityId, userId, roleId) {
             const updationData = {};
             updationData.pdf = "";
 
-            await cityListingRepo.updateCityListing(id, updationData, cityId);
+            await listingRepository.update({
+                data: updationData,
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: id,
+                    },
+                ],
+                cityId,
+            });
         };
         const onFail = (err) => {
             throw new AppError("Pdf Delete failed with Error Code: " + err);
