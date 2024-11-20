@@ -25,6 +25,11 @@ const parser = require("xml-js");
 
 // const sendPushNotification = require("../services/sendPushNotification");
 const pollRepo = require("../repository/polls");
+
+const pollRepository = require("../repository/pollOptionsRepo");
+// const userRepository = require("../repository/userRepo");
+const cityRepository = require("../repository/citiesRepo");
+const listingRepository = require("../repository/listingsRepo");
 const { createListing } = require("../services/listingFunctions");
 
 const DEFAULTIMAGE = "Defaultimage";
@@ -42,6 +47,7 @@ const createCityListing = async function (
         }
         cityId = Number(cityId);
 
+        // refactor
         const response = await createListing([cityId], payload, userId, roleId);
         const listingId = response.find((r) => r.cityId === cityId).listingId;
         return listingId;
@@ -67,7 +73,16 @@ const getCityListingWithId = async function (
             throw new AppError(`City is not present`, 404);
         } else {
             try {
-                const response = await cityRepo.getCityWithId(cityId);
+                // const response = await cityRepo.getCityWithId(cityId);
+                const response = await cityRepository.getOne({
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: cityId,
+                        },
+                    ]
+                });
                 if (!response) {
                     throw new AppError(`Invalid City '${cityId}' given`, 400);
                 }
@@ -77,7 +92,17 @@ const getCityListingWithId = async function (
             }
         }
 
-        const data = await listingRepo.getCityListingWithId(id, cityId);
+        // const data = await listingRepo.getCityListingWithId(id, cityId);
+        const data = await listingRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: id,
+                },
+            ],
+            cityId,
+        });
         if (!data) {
             throw new AppError(`Listings with id ${id} does not exist`, 404);
         }
@@ -86,11 +111,35 @@ const getCityListingWithId = async function (
         const logo = listingImageList ? listingImageList[0].logo : null;
 
         if (process.env.IS_LISTING_VIEW_COUNT && !repeatedRequest) {
-            await listingRepo.setViewCount(id, data.viewCount + 1, cityId);
+            // await listingRepo.setViewCount(id, data.viewCount + 1, cityId);
+            await listingRepository.update({
+                data: {
+                    viewCount: data.viewCount + 1,
+                },
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: id,
+                    },
+                ],
+                cityId,
+            });
         }
 
         if (data.categoryId === categories.Polls) {
-            data.pollOptions = await pollRepo.getPollOptions(id, cityId);
+            // data.pollOptions = await pollRepo.getPollOptions(id, cityId);
+            const pollOptionResp = await pollRepository.getAll({
+                filters: [
+                    {
+                        key: "listingId",
+                        sign: "=",
+                        value: id,
+                    },
+                ],
+                cityId,
+            });
+            data.pollOptions = pollOptionResp?.rows ?? [];
         }
 
         delete data.viewCount;
@@ -132,8 +181,8 @@ const getAllCityListings = async function (params, cityId) {
 
     if (
         isNaN(Number(pageSize)) ||
-    Number(pageSize) <= 0 ||
-    Number(pageSize) > 20
+        Number(pageSize) <= 0 ||
+        Number(pageSize) > 20
     ) {
         throw new AppError(
             `Please enter a positive integer less than or equal to 20 for pageSize`,
@@ -230,8 +279,8 @@ const getAllCityListings = async function (params, cityId) {
     const noOfListings = listings.length;
     if (
         noOfListings > 0 &&
-    params.translate &&
-    supportedLanguages.includes(params.translate)
+        params.translate &&
+        supportedLanguages.includes(params.translate)
     ) {
         try {
             const textToTranslate = [];
@@ -249,17 +298,17 @@ const getAllCityListings = async function (params, cityId) {
             for (let i = 0; i < noOfListings; i++) {
                 if (
                     translations[2 * i].detectedSourceLang !==
-          params.translate.slice(0, 2)
+                    params.translate.slice(0, 2)
                 ) {
                     listings[i].titleLanguage = translations[2 * i].detectedSourceLang;
                     listings[i].titleTranslation = translations[2 * i].text;
                 }
                 if (
                     translations[2 * i + 1].detectedSourceLang !==
-          params.translate.slice(0, 2)
+                    params.translate.slice(0, 2)
                 ) {
                     listings[i].descriptionLanguage =
-            translations[2 * i + 1].detectedSourceLang;
+                        translations[2 * i + 1].detectedSourceLang;
                     listings[i].descriptionTranslation = translations[2 * i + 1].text;
                 }
             }
@@ -321,7 +370,7 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         try {
             if (
                 parseInt(payload.categoryId) === categories.News &&
-        !payload.timeless
+                !payload.timeless
             ) {
                 if (payload.expiryDate) {
                     updationData.expiryDate = getDateInFormate(
@@ -331,7 +380,7 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
                     updationData.expiryDate = getDateInFormate(
                         new Date(
                             new Date(updationData.updatedAt).getTime() +
-                1000 * 60 * 60 * 24 * 14,
+                            1000 * 60 * 60 * 24 * 14,
                         ),
                     );
                 }
@@ -430,7 +479,7 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
 
     if (payload.email && payload.email !== currentListingData.email) {
         const re =
-      /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+            /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
             throw new AppError(`Invalid email given`, 400);
         }
@@ -479,7 +528,7 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
 
     if (
         payload.statusId !== currentListingData.statusId &&
-    roleId === roles.Admin
+        roleId === roles.Admin
     ) {
         try {
             const status = await cityListingRepo.getStatusById(
@@ -744,7 +793,7 @@ const uploadPDFForCityListing = async function (
 
     if (
         !arrayOfAllowedFiles.includes(fileExtension) ||
-    !arrayOfAllowedFileTypes.includes(pdf.mimetype)
+        !arrayOfAllowedFileTypes.includes(pdf.mimetype)
     ) {
         throw new AppError(`Invalid Pdf type`, 403);
     }
@@ -771,7 +820,7 @@ const uploadPDFForCityListing = async function (
 
         const updationData = { pdf: pdfObjectKey };
         const pdfBucketPath =
-      "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST;
+            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST;
 
         if (pdfUploadStatus === "Success") {
             // create image
@@ -946,7 +995,7 @@ const deleteCityListing = async function (id, cityId, userId, roleId) {
     }
 
     const onSucccess = async () => {
-    // TODO : use transactions
+        // TODO : use transactions
         await cityListingRepo.deleteListingImage(id, cityId);
         await cityListingRepo.deleteCityListing(id, cityId);
     };
