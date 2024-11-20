@@ -1,8 +1,9 @@
-const favoritesRepo = require("../repository/favorites");
 const AppError = require("../utils/appError");
-const categoriesRepo = require("../repository/category");
-const citiesRepo = require("../repository/cities");
-const listingRepo = require("../repository/listings");
+
+const favoritesRepository = require("../repository/favoritesRepo");
+const citiesrepository = require("../repository/citiesRepo");
+const listingRepository = require("../repository/listingsRepo");
+const categoriesRepository = require("../repository/categoriesRepo");
 
 const getAllFavoritesForUser = async function (paramUserId, userId) {
     if (isNaN(Number(paramUserId)) || Number(paramUserId) <= 0) {
@@ -12,7 +13,17 @@ const getAllFavoritesForUser = async function (paramUserId, userId) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
     try {
-        return await favoritesRepo.getFavoritesforUser(paramUserId);
+        // return await favoritesRepo.getFavoritesforUser(paramUserId);
+        const response = await favoritesRepository.getAll({
+            filters: [
+                {
+                    key: 'userId',
+                    sign: '=',
+                    value: paramUserId
+                }
+            ]
+        });
+        return response?.rows ?? [];
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -26,10 +37,20 @@ const getFavoriteListingsForUser = async function (
     cityId,
 ) {
     let listings = [];
-    const listingFilter = {};
-    const favFilter = {
-        userId: paramUserId,
-    };
+    // const listingFilter = {};
+    // const favFilter = {
+    //     userId: paramUserId,
+    // };
+    const favFilters = [
+        {
+            key: 'userId',
+            sign: '=',
+            value: paramUserId
+        }
+    ]
+
+    const listingFilters = [];
+
     if (isNaN(Number(paramUserId)) || Number(paramUserId) <= 0) {
         throw new AppError(`Invalid userId ${paramUserId}`, 400);
     }
@@ -39,11 +60,26 @@ const getFavoriteListingsForUser = async function (
 
     if (categoryId) {
         try {
-            const data = await categoriesRepo.getCategoryById(categoryId);
-            if (data.length === 0) {
+            // const data = await categoriesRepo.getCategoryById(categoryId);
+            const data = await categoriesRepository.getAll({
+                filters: [
+                    {
+                        key: 'id',
+                        sign: '=',
+                        value: categoryId
+                    }
+                ]
+            });
+            // if (data.length === 0) {
+            if (!data || !data.rows || data.rows.length === 0) {
                 throw new AppError(`Invalid Category '${categoryId}' given`, 400);
             }
-            listingFilter.categoryId = categoryId;
+            // listingFilter.categoryId = categoryId;
+            listingFilters.push({
+                key: 'categoryId',
+                sign: '=',
+                value: categoryId
+            });
         } catch (err) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
@@ -52,11 +88,25 @@ const getFavoriteListingsForUser = async function (
 
     if (cityId) {
         try {
-            const cities = await citiesRepo.getCityWithId(cityId);
-            if (cities.length === 0) {
+            // const cities = await citiesRepo.getCityWithId(cityId);
+            const city = await citiesrepository.getOne({
+                filters: [
+                    {
+                        key: 'id',
+                        sign: '=',
+                        value: cityId
+                    }
+                ]
+            });
+            if (!city) {
                 throw new AppError(`Invalid CityId '${cityId}' given`, 400);
             }
-            favFilter.cityId = cityId;
+            // favFilter.cityId = cityId;
+            favFilters.push({
+                key: 'cityId',
+                sign: '=',
+                value: cityId
+            });
         } catch (err) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
@@ -64,9 +114,12 @@ const getFavoriteListingsForUser = async function (
     }
 
     try {
-        let response = await favoritesRepo.getFavoritesWithFilter(favFilter);
+        // let response = await favoritesRepo.getFavoritesWithFilter(favFilter);
+        let response = await favoritesRepository.getAll({
+            filters: favFilters
+        });
         const favDict = {};
-        response.forEach((fav) => {
+        response.rows.forEach((fav) => {
             const cityId = fav.cityId;
             const listingId = fav.listingId;
             if (favDict[cityId]) {
@@ -77,11 +130,21 @@ const getFavoriteListingsForUser = async function (
         });
         listings = [];
         for (const cityId in favDict) {
-            listingFilter.id = favDict[cityId];
-            response = await listingRepo.getAllListingsWithFiltersQuery(
-                listingFilter,
-                cityId,
-            );
+            // listingFilter.id = favDict[cityId];
+            const tempLisitngFilters = [...listingFilters];
+            tempLisitngFilters.push({
+                key: 'id',
+                sign: '=',
+                value: favDict[cityId]
+            });
+            // response = await listingRepo.getAllListingsWithFiltersQuery(
+            //     listingFilter,
+            //     cityId,
+            // );
+            response = await listingRepository.getAll({
+                filters: tempLisitngFilters,
+                cityId
+            });
             response.forEach((l) => (l.cityId = cityId));
             listings.push(...response);
         }
@@ -109,7 +172,15 @@ const addNewFavoriteForUser = async function (
         throw new AppError(`Invalid cityId`, 400);
     } else {
         try {
-            const response = await citiesRepo.getCityWithId(cityId);
+            const response = await citiesrepository.getOne({
+                filters: [
+                    {
+                        key: 'id',
+                        sign: '=',
+                        value: cityId
+                    }
+                ]
+            });
             if (!response) {
                 throw new AppError(`Invalid City '${cityId}' given`, 400);
             }
@@ -122,10 +193,24 @@ const addNewFavoriteForUser = async function (
         throw new AppError(`Invalid ListingsId ${listingId}`, 400);
     } else {
         try {
-            const response = await listingRepo.getCityListingWithId(
-                listingId,
-                cityId,
-            );
+            // const response = await listingRepo.getCityListingWithId(
+            //     listingId,
+            //     cityId,
+            // );
+            const response = await listingRepository.getOne({
+                filters: [
+                    {
+                        key: 'id',
+                        sign: '=',
+                        value: listingId
+                    },
+                    {
+                        key: 'cityId',
+                        sign: '=',
+                        value: cityId
+                    }
+                ]
+            });
             if (!response) {
                 throw new AppError(`Invalid listing '${listingId}' given`, 400);
             }
@@ -135,11 +220,18 @@ const addNewFavoriteForUser = async function (
         }
     }
     try {
-        return await favoritesRepo.addFavoriteForUser(
-            paramUserId,
-            cityId,
-            listingId,
-        );
+        // return await favoritesRepo.addFavoriteForUser(
+        //     paramUserId,
+        //     cityId,
+        //     listingId,
+        // );
+        return await favoritesRepository.create({
+            data: {
+                userId: paramUserId,
+                cityId,
+                listingId
+            }
+        });
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -161,13 +253,31 @@ const deleteFavoriteListingForUser = async function (
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
     try {
-        const response = await favoritesRepo.getFavoritesWithFilter({
-            id: favoriteId,
+        // const response = await favoritesRepo.getFavoritesWithFilter({
+        //     id: favoriteId,
+        // });
+        const response = await favoritesRepository.getAll({
+            filters: [
+                {
+                    key: 'id',
+                    sign: '=',
+                    value: favoriteId
+                }
+            ]
         });
         if (response.length === 0) {
             throw new AppError(`Favorites with id ${favoriteId} does not exist`, 404);
         }
-        await favoritesRepo.deleteFavorite(favoriteId);
+        // await favoritesRepo.deleteFavorite(favoriteId);
+        await favoritesRepository.delete({
+            filters: [
+                {
+                    key: 'id',
+                    sign: '=',
+                    value: favoriteId
+                }
+            ]
+        });
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);

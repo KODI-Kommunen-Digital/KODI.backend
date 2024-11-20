@@ -2,6 +2,7 @@ const database = require("../utils/database");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 
+// to refactor
 async function getUserListings(req, userId) {
     const pageNo = Number(req.query.pageNo) || 1;
     const pageSize = Number(req.query.pageSize) || 9;

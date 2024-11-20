@@ -13,6 +13,7 @@ const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const sendPushNotification = require("../services/sendPushNotification");
 
+// to refactor
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
     let user = {};
