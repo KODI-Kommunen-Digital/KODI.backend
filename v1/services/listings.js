@@ -1,9 +1,6 @@
 const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
-const listingRepo = require("../repository/listings");
-const cityRepo = require("../repository/cities");
-const databaseUtil = require("../utils/database");
 
 const listingRepository = require("../repository/listingsRepo");
 const cityRepository = require("../repository/citiesRepo");
@@ -311,32 +308,50 @@ const createListing = async ({ cityIds, listingData, userId, roleId }) => {
         const transactionMap = {};
         await Promise.all(
             cityIds.map(async (cityId) => {
-                const city = await cityRepo.getCityWithId(cityId);
+                // const city = await cityRepo.getCityWithId(cityId);
+                const city = await cityRepository.getOne({
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: cityId
+                        }
+                    ]
+                });
                 if (!city) {
                     throw new AppError(`City with id ${cityId} not found`, 404);
                 }
-                transactionMap[cityId] = await databaseUtil.createTransaction();
+                // transactionMap[cityId] = await databaseUtil.createTransaction();
+                transactionMap[cityId] = await listingRepository.createTransaction(cityId);
             }),
         );
 
         try {
             const createdListings = await Promise.all(
                 cityIds.map((cityId) =>
-                    listingRepo.createListingWithTransaction(
-                        listingData,
-                        transactionMap[cityId],
-                    ),
+                    // listingRepo.createListingWithTransaction(
+                    //     listingData,
+                    //     transactionMap[cityId],
+                    // ),
+                    listingRepository.create({
+                        data: listingData,
+                    }, transactionMap[cityId]),
                 ),
             );
-            Object.values(transactionMap).forEach((trasaction) => {
-                databaseUtil.commitTransaction(trasaction);
-            });
+            await Promise.all(
+                Object.values(transactionMap).map((transaction) =>
+                    listingRepository.commitTransaction(transaction),
+                )
+            );
             return createdListings;
         } catch (error) {
             try {
-                Object.values(transactionMap).forEach((trasaction) => {
-                    databaseUtil.rollbackTransaction(trasaction);
-                });
+                await Promise.all(
+                    Object.values(transactionMap).map((transaction) =>
+                        // databaseUtil.rollbackTransaction(transaction),
+                        listingRepository.rollbackTransaction(transaction),
+                    ),
+                );
             } catch (e) { }
             throw new AppError(`Error creating listings: ${error.message}`);
         }
