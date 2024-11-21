@@ -73,10 +73,12 @@ router.get("/list", async function (req, res, next) {
         let cityId = req.query.cityId ? Number(req.query.cityId) : null;
 
         const queryParams = [];
+        const countQueryParams = [];
         if (!cityId || isNaN(cityId)) {
             cityId = null;
         } else {
             queryParams.push(cityId);
+            countQueryParams.push(cityId);
         }
 
         let skipAdIds = skipAdIdsStr ? skipAdIdsStr.split(",").map(Number) : [];
@@ -89,14 +91,13 @@ router.get("/list", async function (req, res, next) {
             ${cityId ? "cityId = ?" : "1=1"}
         AND enabled = True`
 
-        let countQuery = `SELECT COUNT(*) as count FROM ${tables.ADVERTISEMENTS}
+        const countQuery = `SELECT COUNT(*) as count FROM ${tables.ADVERTISEMENTS}
         WHERE 
             ${cityId ? "cityId = ?" : "1=1"}
             AND enabled = True
         `
         if (skipAdIds.length > 0) {
             query += ` AND id NOT IN (${skipAdIds.map(() => '?').join(",")})`
-            countQuery += ` AND id NOT IN (${skipAdIds.map(() => '?').join(",")})`
             queryParams.push(...skipAdIds);
         }
 
@@ -106,7 +107,7 @@ router.get("/list", async function (req, res, next) {
         const response = await database.callQuery(query, queryParams)
         const data = response.rows;
 
-        const countResponse = await database.callQuery(countQuery, queryParams)
+        const countResponse = await database.callQuery(countQuery, countQueryParams)
         const count = countResponse.rows[0].count;
 
         Promise.all(
