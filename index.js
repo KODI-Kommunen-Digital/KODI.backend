@@ -76,15 +76,6 @@ if (process.env.API_VERSION === 'v1') {
     app.get("/test", (req, res) => {
         res.send('testing pipeline!!');
     });
-
-    app.use("/users", usersRouter);
-    app.use("/cities", citiesRouter);
-    app.use("/listings", listingsRouter);
-    app.use("/categories", categoriesRouter);
-    app.use("/status", statusRouter);
-    app.use("/citizenServices", citizenServicesRouter);
-    app.use("/contactUs", contactUsRouter);
-    app.use("/moreInfo", moreInfoRouter);
     app.use(
         "/users/:userId/favorites",
         function (req, res, next) {
