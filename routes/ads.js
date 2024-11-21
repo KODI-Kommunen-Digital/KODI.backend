@@ -116,7 +116,7 @@ router.get("/list", async function (req, res, next) {
         res.status(200).json({
             status: "success",
             data,
-            count,
+            totalCount: count,
         });
     } catch (error) {
         console.error(error);
