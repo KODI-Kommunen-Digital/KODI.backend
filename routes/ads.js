@@ -110,8 +110,10 @@ router.get("/list", async function (req, res, next) {
         const countResponse = await database.callQuery(countQuery, countQueryParams)
         const count = countResponse.rows[0].count;
 
-        const updateQuery = `UPDATE ${tables.ADVERTISEMENTS} SET lastShown = ? WHERE id IN (${data.map(() => '?').join(",")})`
-        await database.callQuery(updateQuery, [currentDate, ...data.map((ad) => ad.id)])
+        if (data.length > 0) {
+            const updateQuery = `UPDATE ${tables.ADVERTISEMENTS} SET lastShown = ? WHERE id IN (${data.map(() => '?').join(",")})`
+            await database.callQuery(updateQuery, [currentDate, ...data.map((ad) => ad.id)])
+        }
 
         res.status(200).json({
             status: "success",
