@@ -110,11 +110,8 @@ router.get("/list", async function (req, res, next) {
         const countResponse = await database.callQuery(countQuery, countQueryParams)
         const count = countResponse.rows[0].count;
 
-        Promise.all(
-            data.map(async (ad) =>
-                database.update(tables.ADVERTISEMENTS, { lastShown: currentDate }, { id: ad.id })
-            )
-        );
+        const updateQuery = `UPDATE ${tables.ADVERTISEMENTS} SET lastShown = ? WHERE id IN (${data.map(() => '?').join(",")})`
+        await database.callQuery(updateQuery, [currentDate, ...data.map((ad) => ad.id)])
 
         res.status(200).json({
             status: "success",
@@ -122,6 +119,7 @@ router.get("/list", async function (req, res, next) {
             count,
         });
     } catch (error) {
+        console.error(error);
         return next(new AppError(error));
     }
 });
