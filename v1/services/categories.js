@@ -38,7 +38,7 @@ const getListingCount = async function (cityId) {
             // const citiesData = await cityRepo.getCities(null, "id", ["id"]);
             const citiesResp = await cityRepository.getAll({
                 columns: "id",
-                orderBy: "id",
+                orderBy: ["id"],
             });
             const citiesData = citiesResp.rows;
             cityIds = citiesData.map((cityData) => cityData.id);
