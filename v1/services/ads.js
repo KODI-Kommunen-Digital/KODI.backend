@@ -116,6 +116,84 @@ const getRandomAds = async function (cityId, listingId) {
     }
 };
 
+const getAdLists = async function (cityId, skipAdIds, returnAdsCount, sort, sortDesc) {
+    try {
+        const currentDate = new Date();
+        if (cityId) {
+            const city = await citiesRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: cityId,
+                    },
+                ]
+            });
+            if (!city) {
+                throw new AppError(`Invalid City '${cityId}' given`, 400);
+            }
+        }
+        // get ads
+        const filters = [{
+            key: "enabled",
+            sign: "=",
+            value: 1,
+        }];
+        if (cityId) {
+            filters.push({
+                key: "cityId",
+                sign: "=",
+                value: cityId,
+            });
+        }
+
+        const countFilters = [...filters];
+
+        if (skipAdIds.length > 0) {
+            filters.push({
+                key: "id",
+                sign: "NOT IN",
+                value: skipAdIds,
+            });
+        }
+        const ads = await adsRepository.getAll({
+            filters,
+            columns: "id, cityId, image, link, createdAt",
+            orderBy: [sort],
+        });
+
+        const countResponse = await adsRepository.getOne({
+            filters: countFilters,
+            columns: "COUNT(*) as totalCount",
+        });
+
+        if (ads.count > 0) {
+            await adsRepository.update({
+                data: {
+                    lastShown: currentDate,
+                },
+                filters: [
+                    {
+                        key: "id",
+                        sign: "IN",
+                        value: ads.rows.map((ad) => ad.id),
+                    },
+                ]
+            });
+        }
+
+        return {
+            ads: ads.rows,
+            totalCount: countResponse.totalCount,
+        };
+
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+}
+
 module.exports = {
     getRandomAds,
+    getAdLists,
 };
