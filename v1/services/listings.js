@@ -5,8 +5,8 @@ const deepl = require("deepl-node");
 const listingRepository = require("../repository/listingsRepo");
 const cityRepository = require("../repository/citiesRepo");
 const statusRepository = require("../repository/statusRepo");
-const categoriesRepo = require("../repository/categoriesRepo");
-const subcategoriesRepo = require("../repository/subcategoriesRepo");
+const categoriesRepository = require("../repository/categoriesRepo");
+const subcategoriesRepository = require("../repository/subcategoriesRepo");
 
 const getAllListings = async ({
     pageNo,
@@ -65,7 +65,7 @@ const getAllListings = async ({
 
     if (categoryId) {
         // const category = await cityListingRepo.getCategoryById(categoryId);
-        const categoryResp = await categoriesRepo.getAll({
+        const categoryResp = await categoriesRepository.getAll({
             filters: [
                 {
                     key: "id",
@@ -81,7 +81,7 @@ const getAllListings = async ({
         if (subcategoryId) {
             const subcategory =
                 // await cityListingRepo.getSubCategoryById(subcategoryId);
-                await subcategoriesRepo.getAll({
+                await subcategoriesRepository.getAll({
                     filters: [
                         {
                             key: "id",

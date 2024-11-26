@@ -1,8 +1,8 @@
 const AppError = require("../utils/appError");
-const statusRepo = require("../repository/statusRepo");
-const categoriesRepo = require("../repository/categoriesRepo");
-const citiesRepo = require("../repository/citiesRepo");
-const listingsRepo = require("../repository/listingsRepo");
+const statusRepository = require("../repository/statusRepo");
+const categoriesRepository = require("../repository/categoriesRepo");
+const citiesRepository = require("../repository/citiesRepo");
+const listingsRepository = require("../repository/listingsRepo");
 
 // to refactor
 async function getUserListings(userId, statusId, categoryId, subcategoryId, pageNo, pageSize) {
@@ -33,7 +33,7 @@ async function getUserListings(userId, statusId, categoryId, subcategoryId, page
         }
 
         try {
-            const statuses = await statusRepo.getOne({
+            const statuses = await statusRepository.getOne({
                 filters: [
                     {
                         key: "id",
@@ -59,7 +59,7 @@ async function getUserListings(userId, statusId, categoryId, subcategoryId, page
         }
 
         try {
-            const categories = await categoriesRepo.getAll({
+            const categories = await categoriesRepository.getAll({
                 filters: [
                     {
                         key: "id",
@@ -83,7 +83,7 @@ async function getUserListings(userId, statusId, categoryId, subcategoryId, page
                     }
 
                     try {
-                        const subcategories = await categoriesRepo.getOne({
+                        const subcategories = await categoriesRepository.getOne({
                             filters: [
                                 {
                                     key: "categoryId",
@@ -117,8 +117,8 @@ async function getUserListings(userId, statusId, categoryId, subcategoryId, page
     }
 
     try {
-        const cityMappings = await citiesRepo.getUserCityMapping(userId);
-        return await listingsRepo.retrieveCityListingsWithFilters(cityMappings, filters, pageNo, pageSize);
+        const cityMappings = await citiesRepository.getUserCityMapping(userId);
+        return await listingsRepository.retrieveCityListingsWithFilters(cityMappings, filters, pageNo, pageSize);
     } catch (err) {
         throw new AppError(err);
     }

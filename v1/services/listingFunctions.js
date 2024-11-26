@@ -10,17 +10,17 @@ const showdown = require("showdown");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const sendPushNotification = require("../services/sendPushNotification");
-const citiesRepo = require("../repository/citiesRepo");
-const userRepo = require("../repository/userRepo");
-const villageRepo = require("../repository/villageRepo");
-const categoriesRepo = require("../repository/categoriesRepo");
-const statusRepo = require("../repository/statusRepo");
-const subcategoriesRepo = require("../repository/subcategoriesRepo");
-const userCityuserMappingRepo = require("../repository/userCityuserMappingRepo");
-const listingsRepo = require("../repository/listingsRepo");
-const listingsImagesRepo = require("../repository/listingsImagesRepo");
-const userListingMappingRepo = require("../repository/userListingMappingRepo");
-const pollOptionsRepo = require("../repository/pollOptionsRepo");
+const citiesRepository = require("../repository/citiesRepo");
+const userRepository = require("../repository/userRepo");
+const villageRepository = require("../repository/villageRepo");
+const categoriesRepository = require("../repository/categoriesRepo");
+const statusRepository = require("../repository/statusRepo");
+const subcategoriesRepository = require("../repository/subcategoriesRepo");
+const userCityuserMappingRepository = require("../repository/userCityuserMappingRepo");
+const listingsRepository = require("../repository/listingsRepo");
+const listingsImageRepository = require("../repository/listingsImagesRepo");
+const userListingMappingRepository = require("../repository/userListingMappingRepo");
+const pollOptionsRepository = require("../repository/pollOptionsRepo");
 
 // to refactor
 async function createListing(cityIds, payload, userId, roleId) {
@@ -41,7 +41,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         throw new AppError(`City is not present`, 404);
     } else {
         try {
-            const response = await citiesRepo.getAll({
+            const response = await citiesRepository.getAll({
                 filters: [
                     {
                         key: "id",
@@ -70,7 +70,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         // if (data && data.length === 0) {
         //     throw new AppError(`Invalid User '${userId}' given`, 400);
         // }
-        user = await userRepo.getOne({
+        user = await userRepository.getOne({
             filters: [
                 {
                     key: "id",
@@ -102,7 +102,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             //     null,
             //     cityIds[0],
             // );
-            const response = await villageRepo.getOne({
+            const response = await villageRepository.getOne({
                 filters: [
                     {
                         key: "id",
@@ -174,7 +174,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             //     isEnabled: true,
             // });
 
-            const response = await categoriesRepo.getOne({
+            const response = await categoriesRepository.getOne({
                 filters: [
                     {
                         key: "id",
@@ -226,7 +226,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             //     { id: payload.subcategoryId },
             //     null,
             // );
-            const subCategoryData = await subcategoriesRepo.getOne({
+            const subCategoryData = await subcategoriesRepository.getOne({
                 filters: [
                     {
                         key: "id",
@@ -270,7 +270,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 //     { id: payload.statusId },
                 //     null,
                 // );
-                const statusData = await statusRepo.getOne({
+                const statusData = await statusRepository.getOne({
                     filters: [
                         {
                             key: "id",
@@ -402,7 +402,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 //     cityId,
                 //     userId,
                 // });
-                response = await userCityuserMappingRepo.getAll({
+                response = await userCityuserMappingRepository.getAll({
                     filters: [
                         {
                             key: "cityId",
@@ -424,7 +424,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                     delete user.socialMedia;
                     delete user.emailVerified;
                     // response = await database.create(tables.USER_TABLE, user, cityId);
-                    response = await userRepo.create({
+                    response = await userRepository.create({
                         data: user,
                         cityId,
                     });
@@ -435,7 +435,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                     //     userId,
                     //     cityUserId,
                     // });
-                    await userCityuserMappingRepo.create({
+                    await userCityuserMappingRepository.create({
                         data: {
                             cityUserId,
                             userId,
@@ -454,7 +454,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             //     insertionData,
             //     cityId,
             // );
-            response = await listingsRepo.create({
+            response = await listingsRepository.create({
                 data: insertionData,
                 cityId,
             })
@@ -465,7 +465,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             //     userId,
             //     listingId,
             // });
-            await userListingMappingRepo.create({
+            await userListingMappingRepository.create({
                 data: {
                     userId,
                     listingId,
@@ -512,7 +512,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                         //     },
                         //     cityId,
                         // );
-                        await pollOptionsRepo.create({
+                        await pollOptionsRepository.create({
                             data: {
                                 listingId,
                                 title: option.title,
@@ -572,7 +572,7 @@ async function addDefaultImage(cityId, listingId, categoryId) {
     // const categoryImage = await database.callQuery(query);
     // const categoryCount =
     //     (categoryImage.rows.length > 0 && categoryImage.rows[0].LICount) || 0;
-    const countQuery = await listingsImagesRepo.getOne({
+    const countQuery = await listingsImageRepository.getOne({
         filters: [
             {
                 key: "logo",
@@ -596,7 +596,7 @@ async function addDefaultImage(cityId, listingId, categoryId) {
     //     },
     //     cityId,
     // );
-    return await listingsImagesRepo.create({
+    return await listingsImageRepository.create({
         data: {
             listingId,
             imageOrder,

@@ -8,8 +8,8 @@ const getDateInFormate = require("../utils/getDateInFormate");
 const roles = require("../constants/roles");
 // const userRepo = require("../repository/users");
 // const cityRepo = require("../repository/cities");
-const cityListingRepo = require("../repository/cityListing");
-const listingRepo = require("../repository/listings");
+// const cityListingRepo = require("../repository/cityListing");
+// const listingRepo = require("../repository/listings");
 const imageUpload = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload");
@@ -34,7 +34,7 @@ const listingImagesRepository = require("../repository/listingsImagesRepo");
 const { createListing } = require("../services/listingFunctions");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
-const userCityuserMappingRepo = require("../repository/userCityuserMappingRepo");
+const userCityuserMappingRepository = require("../repository/userCityuserMappingRepo");
 
 const DEFAULTIMAGE = "Defaultimage";
 
@@ -111,7 +111,17 @@ const getCityListingWithId = async function (
             throw new AppError(`Listings with id ${id} does not exist`, 404);
         }
 
-        const listingImageList = await listingRepo.getCityListingImage(id, cityId);
+        const listingImageListResp = await listingImagesRepository.getAll({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: id,
+                },
+            ],
+            cityId,
+        });
+        const listingImageList = listingImageListResp.rows;
         const logo = listingImageList ? listingImageList[0].logo : null;
 
         if (process.env.IS_LISTING_VIEW_COUNT && !repeatedRequest) {
@@ -307,7 +317,7 @@ const getAllCityListings = async function (params, cityId) {
     if (params.userId) {
         try {
             // const user = await userRepo.getCityUserCityMapping(cityId, params.userId);
-            const user = await userCityuserMappingRepo.getOne({
+            const user = await userCityuserMappingRepository.getOne({
                 filters: [
                     {
                         key: "cityId",
@@ -413,7 +423,7 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
         throw new AppError(`Invalid ListingsId ${id}`, 404);
     }
 
-    const response = await userCityuserMappingRepo.getOne({
+    const response = await userCityuserMappingRepository.getOne({
         filters: [
             {
                 key: "cityId",
@@ -429,7 +439,16 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
     });
     const cityUserId = response ? response.cityUserId : null;
 
-    const currentListingData = await listingRepo.getCityListingWithId(id, cityId);
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: id,
+            },
+        ],
+        cityId,
+    });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
     }
@@ -739,7 +758,7 @@ const uploadImageForCityListing = async function (
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
 
-    const response = await userCityuserMappingRepo.getOne({
+    const response = await userCityuserMappingRepository.getOne({
         filters: [
             {
                 key: "cityId",
@@ -1023,7 +1042,7 @@ const uploadPDFForCityListing = async function (
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
 
-    const response = await userCityuserMappingRepo.getOne({
+    const response = await userCityuserMappingRepository.getOne({
         filters: [
             {
                 key: "cityId",
@@ -1204,7 +1223,7 @@ const deleteImageForCityListing = async function (id, cityId, userId, roleId) {
         throw new AppError(`Invalid ListingsId ${id}`, 404);
     }
 
-    const response = await userCityuserMappingRepo.getOne({
+    const response = await userCityuserMappingRepository.getOne({
         filters: [
             {
                 key: "cityId",
@@ -1308,7 +1327,7 @@ const deletePDFForCityListing = async function (id, cityId, userId, roleId) {
         throw new AppError(`Invalid ListingsId ${id}`, 404);
     }
 
-    const response = await userCityuserMappingRepo.getOne({
+    const response = await userCityuserMappingRepository.getOne({
         filters: [
             {
                 key: "cityId",
@@ -1410,7 +1429,7 @@ const deleteCityListing = async function (id, cityId, userId, roleId) {
 
     const userImageList = await bucketClient.fetchUserImages(userId, cityId, id);
 
-    const response = await userCityuserMappingRepo.getOne({
+    const response = await userCityuserMappingRepository.getOne({
         filters: [
             {
                 key: "cityId",
@@ -1514,20 +1533,31 @@ async function addDefaultImageWithTransaction(
         (key) => categories[key] === +categoryId,
     );
 
-    const categoryCount = await cityListingRepo.getCountByCategory(
+    const categoryCountResponse = await listingImagesRepository.getCount({
+        filters: [
+            {
+                key: "logo",
+                sign: "LIKE",
+                value: `%${categoryName}%`,
+            },
+        ],
         cityId,
-        categoryName,
-    );
+        columns: "COUNT(id) AS count",
+    });
+    const categoryCount = categoryCountResponse.count;
     const moduloValue = (categoryCount % defaultImageCount[categoryName]) + 1;
     const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
 
     // Create listing image
-    return await cityListingRepo.createListingImageWithTransaction(
-        listingId,
-        imageOrder,
-        imageName,
+    return await listingImagesRepository.create({
+        data: {
+            listingId,
+            imageOrder,
+            logo: imageName,
+        },
+        cityId,
         transaction,
-    );
+    });
 }
 
 module.exports = {
