@@ -4,6 +4,19 @@ const createCityListingSwagger = {
     summary: "Create a new listing",
     description: "Allows users to create a new listing in a specified city.",
     tags: ["City Listings"],
+    parameters: [
+        {
+            in: "path",
+            name: "cityId",
+            required: true,
+            schema: {
+                type: "integer",
+                required: true,
+                description: "The city id",
+                example: 1,
+            },
+        },
+    ],
     requestBody: {
         required: true,
         content: {
