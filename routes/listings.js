@@ -339,29 +339,28 @@ router.get("/search", async function (req, res, next) {
     }
 
     const queryParams = [];
-    if (params.statusId) {
-        if (isNaN(Number(params.statusId)) || Number(params.statusId) <= 0) {
-            next(new AppError(`Invalid status ${params.statusId}`, 400));
-            return;
-        }
-        try {
-            const response = await database.get(
-                tables.STATUS_TABLE,
-                { id: params.statusId },
-                null
-            );
-            const data = response.rows;
-            if (data && data.length === 0) {
-                return next(
-                    new AppError(`Invalid Status '${params.statusId}' given`, 400)
-                );
-            }
-        } catch (err) {
-            return next(new AppError(err));
-        }
-        filters.push(`L.statusId = ?`);
-        queryParams.push(params.statusId);
+    params.statusId = params.statusId || 1;
+    if (isNaN(Number(params.statusId)) || Number(params.statusId) <= 0) {
+        next(new AppError(`Invalid status ${params.statusId}`, 400));
+        return;
     }
+    try {
+        const response = await database.get(
+            tables.STATUS_TABLE,
+            { id: params.statusId },
+            null
+        );
+        const data = response.rows;
+        if (data && data.length === 0) {
+            return next(
+                new AppError(`Invalid Status '${params.statusId}' given`, 400)
+            );
+        }
+    } catch (err) {
+        return next(new AppError(err));
+    }
+    filters.push(`L.statusId = ?`);
+    queryParams.push(params.statusId);
 
     const individualQueries = cities.map(city => {
         let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`]; 
