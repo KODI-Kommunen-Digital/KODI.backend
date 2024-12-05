@@ -11,11 +11,11 @@ module.exports = {
     CompanyPortraits: 10,
     CarpoolingOrPublicTransport: 11,
     Offers: 12,
-    EatOrDrink: 13,
-    Rathaus: 14,
-    Newsletter: 15,
-    OfficialNotification: 16,
-    FreetimeAndTourisms: 17,
+    eatOrDrink: 13,
+    rathaus: 14,
+    newsletter: 15,
+    officialnotification: 16,
+    freetimeAndTourisms: 17,
     AppointmentBooking: 18,
     DefectReporter: 19,
     Applicants: 20,
@@ -40,5 +40,6 @@ module.exports = {
     Abfallwirtschaft: 39,
     Bürgerbeteiligung: 40,
     Highlights: 41,
-    Project: 42
+    Project: 42,
+    Coupons: 43
 };
