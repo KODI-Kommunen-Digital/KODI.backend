@@ -68,6 +68,10 @@ const apiDocumentation = {
         {
             url: process.env.BASE_URL,
             description: 'Local Server',
+        },
+        {
+            url: process.env.VERSION_BASE_URL,
+            description: `Version ${process.env.API_VERSION} Server`,
         }
     ],
     tags: [
@@ -203,7 +207,7 @@ const apiDocumentation = {
         '/cities/{cityId}/villages': {
             'get': getVillegesSwagger,
         },
-        '/ads/' :{
+        '/ads/': {
             'get': getAds,
         },
         ...(process.env.ENABLE_WASTE_CALENDER === 'True' && {
