@@ -6,7 +6,8 @@ const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
 const authentication = require("../middlewares/authentication");
-const { createListing } = require('../services/listingFunctions')
+const { createListing } = require('../services/listingFunctions');
+const status = require("../constants/status");
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -72,6 +73,9 @@ router.get("/", async function (req, res, next) {
         }
         queryFilters += ` AND L.statusId = ? `;
         queryFilterParams.push(Number(params.statusId));
+    } else {
+        queryFilters += ` AND L.statusId = ? `;
+        queryFilterParams.push(status.Active);
     }
 
     // Validate categoryId and subcategoryId

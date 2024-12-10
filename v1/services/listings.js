@@ -7,6 +7,7 @@ const cityRepository = require("../repository/citiesRepo");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
+const status = require("../constants/status");
 
 const getAllListings = async ({
     pageNo,
@@ -61,6 +62,8 @@ const getAllListings = async ({
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
         filters.push(`L.statusId = ${statusId}`);
+    } else {
+        filters.push(`L.statusId = ${status.Active}`);
     }
 
     if (categoryId) {
