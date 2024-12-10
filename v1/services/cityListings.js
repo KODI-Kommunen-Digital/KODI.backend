@@ -35,6 +35,7 @@ const { createListing } = require("../services/listingFunctions");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const userCityuserMappingRepository = require("../repository/userCityuserMappingRepo");
+const status = require("../constants/status");
 
 const DEFAULTIMAGE = "Defaultimage";
 
@@ -164,7 +165,7 @@ const getCityListingWithId = async function (
     }
 };
 
-const getAllCityListings = async function (params, cityId) {
+const getAllCityListings = async function (params, cityId, isAdmin) {
     const listingFilters = [];
     const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
 
@@ -212,7 +213,7 @@ const getAllCityListings = async function (params, cityId) {
         );
     }
 
-    if (params.statusId) {
+    if (isAdmin && params.statusId) {
         try {
             const status = await statusRepository.getOne({
                 filters: [
@@ -236,6 +237,12 @@ const getAllCityListings = async function (params, cityId) {
             key: "statusId",
             sign: "=",
             value: params.statusId,
+        });
+    } else {
+        listingFilters.push({
+            key: "statusId",
+            sign: "=",
+            value: status.Active
         });
     }
 

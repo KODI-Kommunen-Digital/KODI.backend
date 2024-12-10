@@ -1,3 +1,4 @@
+const roles = require("../constants/roles");
 const listingService = require("../services/listings");
 
 const getAllListings = async (req, res, next) => {
@@ -13,7 +14,7 @@ const getAllListings = async (req, res, next) => {
         translate,
         showExternalListings,
     } = params;
-
+    const isAdmin = req.roleId === roles.Admin;
     try {
         const listings = await listingService.getAllListings({
             pageNo,
@@ -25,6 +26,7 @@ const getAllListings = async (req, res, next) => {
             cityId,
             translate,
             showExternalListings,
+            isAdmin
         });
         res.status(200).json({
             status: "success",

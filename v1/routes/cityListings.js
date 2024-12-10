@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authentication = require("../middlewares/authentication");
+const optionalAuthentication = require("../middlewares/optionalAuthentication");
 const cityListingController = require("../controllers/cityListings");
 // const database = require("../services/database");
 // const tables = require("../constants/tableNames");
@@ -39,7 +40,7 @@ const rateLogger = rateLimit({
     skipSuccessfulRequests: false, // Skip counting successful requests
 });
 
-router.get("/", cityListingController.getAllCityListings);
+router.get("/", optionalAuthentication, cityListingController.getAllCityListings);
 
 router.get("/:id", rateLogger, cityListingController.getCityListingWithId);
 

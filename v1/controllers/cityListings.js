@@ -1,3 +1,4 @@
+const roles = require("../constants/roles");
 const cityListingService = require("../services/cityListings");
 
 const createCityListing = async function (req, res, next) {
@@ -51,11 +52,12 @@ const getCityListingWithId = async function (req, res, next) {
 const getAllCityListings = async function (req, res, next) {
     const params = req.query;
     const cityId = req.cityId;
-
+    const isAdmin = req.roleId === roles.Admin
     try {
         const listings = await cityListingService.getAllCityListings(
             params,
             cityId,
+            isAdmin
         );
         res.status(200).json({
             status: "success",

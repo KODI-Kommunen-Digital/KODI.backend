@@ -24,6 +24,7 @@ const { createListing } = require('../services/listingFunctions');
 const rateLimit = require('express-rate-limit');
 // const createRateLimitMiddleware = require("./rateLimitMiddleware");
 const sendPushNotification = require("../services/sendPushNotification");
+const optionalAuthentication = require("../v1/middlewares/optionalAuthentication");
 
 // const radiusSearch = require('../services/handler')
 
@@ -42,7 +43,7 @@ const rateLogger = rateLimit({
     skipSuccessfulRequests: false, // Skip counting successful requests
 });
 
-router.get("/", async function (req, res, next) {
+router.get("/", optionalAuthentication, async function (req, res, next) {
     const params = req.query;
     const cityId = req.cityId;
     const filters = {};
@@ -89,7 +90,7 @@ router.get("/", async function (req, res, next) {
         );
     }
 
-    if (params.statusId) {
+    if (req.roleId === roles.Admin && params.statusId) {
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -108,6 +109,8 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         }
         filters.statusId = params.statusId;
+    } else {
+        filters.statusId = status.Active;
     }
 
     if (params.categoryId) {

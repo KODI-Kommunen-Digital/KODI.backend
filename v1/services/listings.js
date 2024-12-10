@@ -19,6 +19,7 @@ const getAllListings = async ({
     cityId,
     reqTranslate,
     showExternalListings,
+    isAdmin
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -47,7 +48,7 @@ const getAllListings = async ({
         }
     }
 
-    if (statusId) {
+    if (isAdmin && statusId) {
         // const response = await cityListingRepo.getStatusById(statusId);
         const response = await statusRepository.getAll({
             filters: [
