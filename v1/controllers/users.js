@@ -63,7 +63,7 @@ const login = async function (req, res, next) {
 const getUserById = async function (req, res, next) {
     let userId = req.params.id;
     const reqUserId = parseInt(req.userId);
-    const cityUser = req.query.cityUser || false;
+    const cityUser = req.query.cityUser === 'true';
     const cityId = req.query.cityId;
 
     try {
