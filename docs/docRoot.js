@@ -3,7 +3,7 @@ const getCategoriesListingCountSwagger = require("./categories/getCategoriesList
 const getSubCategoriesSwagger = require("./categories/getSubCategories");
 const getAllCitiesSwagger = require("./cities/getAllCities");
 const getAllCitizenServicesSwagger = require("./citizenService/getCitizenServices");
-const getDigitalManagementSwagger = require("./citizenService/getDigitalManagement");
+const getCitizenServiceDataSwagger = require("./citizenService/getCitizenServiceData");
 const createCityListingSwagger = require("./cityListings/createCityListing");
 const deleteCityListingSchemaSwagger = require("./cityListings/deleteCityListing");
 const deleteImageSchemaSwagger = require("./cityListings/deleteImage");
@@ -192,8 +192,8 @@ const apiDocumentation = {
         '/citizenServices': {
             'get': getAllCitizenServicesSwagger,
         },
-        '/citizenServices/digitalManagement': {
-            'get': getDigitalManagementSwagger,
+        '/citizenServices/citizenServiceData': {
+            'get': getCitizenServiceDataSwagger,
         },
         '/contactUs': {
             'post': contactUsSwagger,
