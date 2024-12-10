@@ -62,8 +62,8 @@ app.get("/", (req, res) => {
     res.send(message);
 });
 
-if (process.env.API_VERSION) {
-    app.use(`/${process.env.API_VERSION}`, v1Routes);
+if (process.env.API_VERSION === 'v1') {
+    app.use("/v1", v1Routes);
 } else {
     app.use("/users", usersRouter);
     app.use("/cities", citiesRouter);
