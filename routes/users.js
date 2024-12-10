@@ -353,7 +353,7 @@ router.get("/myListings", authentication, async function(req, res, next){
 
 router.get("/:id", optionalAuthentication, async function (req, res, next) {
     let userId = req.params.id;
-    const cityUser = req.query.cityUser || false;
+    const cityUser = req.query.cityUser === 'true';
     const cityId = req.query.cityId;
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         next(new AppError(`Invalid UserId ${userId}`, 400));

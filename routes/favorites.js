@@ -178,15 +178,38 @@ router.post("/", authentication, async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-    const response = await database.create(tables.FAVORITES_TABLE, {
-        userId,
-        cityId,
-        listingId,
-    });
-    res.status(200).json({
-        status: "success",
-        id: response.id,
-    });
+
+    try {
+        // Check if the favorite already exists
+        const favoriteResponse = await database.get(tables.FAVORITES_TABLE, {
+            userId,
+            cityId,
+            listingId,
+        });
+
+        if (favoriteResponse.rows && favoriteResponse.rows.length > 0) {
+            // If the favorite exists, return the existing ID
+            return res.status(200).json({
+                status: "success",
+                id: favoriteResponse.rows[0].id, // Return the existing favorite ID
+            });
+        }
+
+        // If not, create a new favorite
+        const newFavorite = await database.create(tables.FAVORITES_TABLE, {
+            userId,
+            cityId,
+            listingId,
+        });
+
+        res.status(200).json({
+            status: "success",
+            id: newFavorite.id,
+        });
+    } catch (err) {
+        return next(new AppError(err));
+    }
+    
 });
 
 // To delete  a favorite listing from favorite table

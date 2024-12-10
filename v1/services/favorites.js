@@ -219,6 +219,42 @@ const addNewFavoriteForUser = async function (
             throw new AppError(err);
         }
     }
+
+
+    // Check if the favorite already exists
+    try {
+        const existingFavorite = await favoritesRepository.getOne({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: paramUserId,
+                },
+                {
+                    key: "cityId",
+                    sign: "=",
+                    value: cityId,
+                },
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: listingId,
+                },
+            ],
+        });
+
+        if (existingFavorite) {
+            return {
+                status: "success",
+                message: "Favorite already exists",
+                id: existingFavorite.id,
+            };
+        }
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err.message || "An error occurred while checking for existing favorite");
+    }
+    
     try {
         // return await favoritesRepo.addFavoriteForUser(
         //     paramUserId,
