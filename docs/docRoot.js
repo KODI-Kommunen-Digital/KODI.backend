@@ -48,6 +48,8 @@ const getPickupDatesSwagger = require('./wasteCalender/getPickupDatesSwagger');
 const createDefectReport = require('./defectReport/createDefectReport');
 const voteOnListingSwagger = require('./cityListings/voteOnListingSwagger')
 
+const apiVersions = require('../constants/apiVersions');
+
 const apiDocumentation = {
     openapi: '3.0.1',
     info: {
@@ -69,10 +71,15 @@ const apiDocumentation = {
             url: process.env.BASE_URL,
             description: 'Base Server',
         },
-        ...process.env.API_VERSIONS.split(',').map((version) => ({
+        // ...process.env.API_VERSIONS.split(',').map((version) => ({
+        //     url: `${process.env.BASE_URL}/${version}`,
+        //     description: `${version} Server`,
+        // })),
+        ...Object.keys(apiVersions).map((version) => ({
             url: `${process.env.BASE_URL}/${version}`,
             description: `${version} Server`,
         })),
+
     ],
     tags: [
         {

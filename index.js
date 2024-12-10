@@ -23,9 +23,9 @@ const wasteCalender = require("./routes/wasteCalender");
 const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers");
-const v1Routes = require("./v1/routes/index");
 const swaggerUi = require('swagger-ui-express');
 const apiDocumentation = require('./docs/docRoot');
+const apiVersions = require('./constants/apiVersions');
 
 // defining the Express app
 const app = express();
@@ -62,14 +62,10 @@ app.get("/", (req, res) => {
     res.send(message);
 });
 
-if (process.env.API_VERSIONS) {
-    const apiVersions = process.env.API_VERSIONS.split(",");
-    for (const version of apiVersions) {
-        if (version === "v1") {
-            app.use(`/${version}`, v1Routes);
-        }
-    }
+for (const version in apiVersions) {
+    app.use(`/${version}`, apiVersions[version].router);
 }
+
 app.use("/users", usersRouter);
 app.use("/cities", citiesRouter);
 app.use("/listings", listingsRouter);
