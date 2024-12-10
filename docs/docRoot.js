@@ -67,12 +67,12 @@ const apiDocumentation = {
     servers: [
         {
             url: process.env.BASE_URL,
-            description: 'Local Server',
+            description: 'Base Server',
         },
-        {
-            url: process.env.VERSION_BASE_URL,
-            description: `Version ${process.env.API_VERSION} Server`,
-        }
+        ...process.env.API_VERSIONS.split(',').map((version) => ({
+            url: `${process.env.BASE_URL}/${version}`,
+            description: `${version} Server`,
+        })),
     ],
     tags: [
         {
