@@ -40,33 +40,46 @@ async function get(
     }
 }
 
-function buildQueryWithFilters(filters, query, countQuery, joinFiltersBy) {
+function buildQueryWithFilters(filters, query, countQuery, joinFiltersBy = "AND") {
     const queryParams = [];
 
-    if (filters && filters.length > 0) {
-        query += "WHERE ";
-        countQuery += "WHERE ";
-
-        filters.forEach((filter, index) => {
-            if (Array.isArray(filter.value)) {
-                const placeholders = filter.value.map(() => "?").join(",");
-                query += `${filter.key} ${filter.sign} (${placeholders}) ${joinFiltersBy} `;
-                countQuery += `${filter.key} ${filter.sign} (${placeholders}) ${joinFiltersBy} `;
-                queryParams.push(...filter.value);
-            } else if (filter.sign === "IS" && (filter.value === "NULL" || filter.value === "NOT NULL" || filter.value === null)) {
-                filter.value = filter.value || "NULL";
-                query += `${filter.key} ${filter.sign} ${filter.value} ${joinFiltersBy} `;
-                countQuery += `${filter.key} ${filter.sign} ${filter.value} ${joinFiltersBy} `;
-            } else {
-                query += `${filter.key} ${filter.sign} ? ${joinFiltersBy} `;
-                countQuery += `${filter.key} ${filter.sign} ? ${joinFiltersBy} `;
-                queryParams.push(filter.value);
+    if (filters && Array.isArray(filters) && filters.length > 0) {
+        const filterConditions = filters.map((filter) => {
+            if (!filter.key || !filter.sign) {
+                throw new Error("Invalid filter object: Missing 'key' or 'sign'.");
             }
+
+            // Handle cases where filter value is an array (e.g., IN clause)
+            if (Array.isArray(filter.value)) {
+                const placeholders = filter.value.map(() => "?").join(", ");
+                queryParams.push(...filter.value);
+                return `${filter.key} ${filter.sign} (${placeholders})`;
+            }
+
+            // Handle NULL and NOT NULL cases
+            if (
+                filter.sign === "IS" &&
+                (filter.value === null || filter.value.toUpperCase() === "NULL" || filter.value.toUpperCase() === "NOT NULL")
+            ) {
+                return `${filter.key} ${filter.sign} ${filter.value || "NULL"}`;
+            }
+
+            // Handle standard cases with single values
+            if (filter.value !== undefined && filter.value !== null) {
+                queryParams.push(filter.value);
+                return `${filter.key} ${filter.sign} ?`;
+            }
+
+            throw new Error("Invalid filter object: Missing or unsupported 'value'.");
         });
 
-        query = query.slice(0, -(joinFiltersBy.length + 1));
-        countQuery = countQuery.slice(0, -(joinFiltersBy.length + 1));
+        const combinedConditions = filterConditions.join(` ${joinFiltersBy} `);
+
+        // Append conditions to query and countQuery
+        query += `WHERE ${combinedConditions} `;
+        countQuery += `WHERE ${combinedConditions} `;
     }
+
     return { queryParams, query, countQuery };
 }
 

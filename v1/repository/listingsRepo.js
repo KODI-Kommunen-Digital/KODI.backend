@@ -172,64 +172,71 @@ class ListingsRepo extends BaseRepo {
     retrieveCityListingsWithFilters = async (cityMappings, filters, pageNo, pageSize) => {
         const individualQueries = [];
         const queryParams = [];
-
+    
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
-            const listingImageTableName = `heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listing_images LI_${cityMapping.cityId}`;
+            const dbPrefix = cityMapping.inCityServer ? "_" : ".";
+            const listingsTable = `heidi_city_${cityMapping.cityId}${dbPrefix}listings`;
+            const listingImageTable = `heidi_city_${cityMapping.cityId}${dbPrefix}listing_images`;
             const cityListAlias = `L_${cityMapping.cityId}`;
-            let query = `SELECT  
-                sub.logo,
-                sub.logoCount,
-                ${cityListAlias}.*, ${cityMapping.cityId} as cityId,
-                otherLogos FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings ${cityListAlias}
+    
+            let query = `
+                SELECT  
+                    ${cityListAlias}.id,
+                    ${cityListAlias}.description,
+                    sub.logo,
+                    sub.logoCount,
+                    sub.otherLogos,
+                    ${cityMapping.cityId} as cityId,
+                    ${cityListAlias}.createdAt
+                FROM ${listingsTable} ${cityListAlias}
                 LEFT JOIN (
                     SELECT 
                         listingId,
                         MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
-                        COUNT(*) as logoCount
-                    FROM ${listingImageTableName}
+                        COUNT(*) as logoCount,
+                        JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder, 'id', id, 'listingId', listingId)) as otherLogos
+                    FROM ${listingImageTable}
                     GROUP BY listingId
                 ) sub ON ${cityListAlias}.id = sub.listingId
-                LEFT JOIN (
-                    SELECT
-                        listingId,
-                        JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder,'id',id,'listingId', listingId )) as otherLogos
-                    FROM ${listingImageTableName}
-                    GROUP BY listingId
-                ) other ON ${cityListAlias}.id = other.listingId
                 WHERE ${cityListAlias}.userId = ?`;
-            queryParams.push(cityMapping.cityUserId);
-
-            // Handle filters with dynamic parameterization
-            if (filters.categoryId || filters.statusId) {
-                if (filters.categoryId) {
-                    query += ` AND ${cityListAlias}.categoryId = ?`;
-                    queryParams.push(filters.categoryId);
-                }
-                if (filters.subcategoryId) {
-                    query += ` AND ${cityListAlias}.subcategoryId = ?`;
-                    queryParams.push(filters.subcategoryId);
-                }
-                if (filters.statusId) {
-                    query += ` AND ${cityListAlias}.statusId = ?`;
-                    queryParams.push(filters.statusId);
-                }
+            queryParams.push(cityMapping.cityUserId); // Add userId to query parameters
+    
+            // Append filters
+            if (filters.categoryId) {
+                query += ` AND ${cityListAlias}.categoryId = ?`;
+                queryParams.push(filters.categoryId);
             }
+            if (filters.subcategoryId) {
+                query += ` AND ${cityListAlias}.subcategoryId = ?`;
+                queryParams.push(filters.subcategoryId);
+            }
+            if (filters.statusId) {
+                query += ` AND ${cityListAlias}.statusId = ?`;
+                queryParams.push(filters.statusId);
+            }
+    
             individualQueries.push(query);
         }
-
+    
+        // Combine queries with UNION ALL and apply pagination
         if (individualQueries.length > 0) {
             const unionQuery = individualQueries.join(" UNION ALL ");
             const paginationQuery = `SELECT * FROM (${unionQuery}) a ORDER BY createdAt DESC LIMIT ?, ?;`;
             queryParams.push((pageNo - 1) * pageSize, pageSize);
-
-            const response = await database.callQuery(paginationQuery, queryParams);
-            return response.rows;
+    
+            try {
+                console.log(paginationQuery, queryParams)
+                const response = await database.callQuery(paginationQuery, queryParams);
+                return response.rows;
+            } catch (error) {
+                throw new Error('Error retrieving city listings');
+            }
         }
-        return false
+        return [];
     }
-
+    
 }
 
 module.exports = new ListingsRepo();
