@@ -1,6 +1,6 @@
 const { DigitalManagement } = require("../models/CitizenService");
 
-const getDigitalManagementSwagger = {
+const getCitizenServiceData = {
     summary: "Get Digital management",
     description: "Retrieve Digital management from the database",
     tags: ["Citizen Services"],
@@ -79,4 +79,4 @@ const getDigitalManagementSwagger = {
     },
 };
 
-module.exports = getDigitalManagementSwagger;
+module.exports = getCitizenServiceData;

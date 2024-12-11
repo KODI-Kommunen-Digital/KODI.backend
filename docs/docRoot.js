@@ -3,7 +3,7 @@ const getCategoriesListingCountSwagger = require("./categories/getCategoriesList
 const getSubCategoriesSwagger = require("./categories/getSubCategories");
 const getAllCitiesSwagger = require("./cities/getAllCities");
 const getAllCitizenServicesSwagger = require("./citizenService/getCitizenServices");
-const getDigitalManagementSwagger = require("./citizenService/getDigitalManagement");
+const getCitizenServiceDataSwagger = require("./citizenService/getCitizenServiceData");
 const createCityListingSwagger = require("./cityListings/createCityListing");
 const deleteCityListingSchemaSwagger = require("./cityListings/deleteCityListing");
 const deleteImageSchemaSwagger = require("./cityListings/deleteImage");
@@ -48,6 +48,8 @@ const getPickupDatesSwagger = require('./wasteCalender/getPickupDatesSwagger');
 const createDefectReport = require('./defectReport/createDefectReport');
 const voteOnListingSwagger = require('./cityListings/voteOnListingSwagger')
 
+const apiVersions = require('../constants/apiVersions');
+
 const apiDocumentation = {
     openapi: '3.0.1',
     info: {
@@ -67,8 +69,17 @@ const apiDocumentation = {
     servers: [
         {
             url: process.env.BASE_URL,
-            description: 'Local Server',
-        }
+            description: 'Base Server',
+        },
+        // ...process.env.API_VERSIONS.split(',').map((version) => ({
+        //     url: `${process.env.BASE_URL}/${version}`,
+        //     description: `${version} Server`,
+        // })),
+        ...Object.keys(apiVersions).map((version) => ({
+            url: `${process.env.BASE_URL}/${version}`,
+            description: `${version} Server`,
+        })),
+
     ],
     tags: [
         {
@@ -181,8 +192,8 @@ const apiDocumentation = {
         '/citizenServices': {
             'get': getAllCitizenServicesSwagger,
         },
-        '/citizenServices/digitalManagement': {
-            'get': getDigitalManagementSwagger,
+        '/citizenServices/citizenServiceData': {
+            'get': getCitizenServiceDataSwagger,
         },
         '/contactUs': {
             'post': contactUsSwagger,
@@ -203,7 +214,7 @@ const apiDocumentation = {
         '/cities/{cityId}/villages': {
             'get': getVillegesSwagger,
         },
-        '/ads/' :{
+        '/ads/': {
             'get': getAds,
         },
         ...(process.env.ENABLE_WASTE_CALENDER === 'True' && {
