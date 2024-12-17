@@ -825,7 +825,7 @@ const uploadImageForCityListing = async function (
         cityId,
     });
     const listingImages = listingImagesResp.rows;
-    if (listingImages[0].logo.startsWith("admin/")) {
+    if (listingImages && listingImages.length > 0 && listingImages[0].logo.startsWith("admin/")) {
         // await cityListingRepo.deleteListingImage(listingId, cityId);
         await listingImagesRepository.delete({
             filters: [
@@ -1496,7 +1496,7 @@ async function addDefaultImage(cityId, listingId, categoryId) {
     );
 
     // const categoryCount = await cityListingRepo.getCountByCategory(
-    const categoryCountResponse = await listingImagesRepository.getCount({
+    const categoryCountResponse = await listingImagesRepository.getAll({
         filters: [
             {
                 key: "logo",

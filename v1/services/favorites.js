@@ -215,13 +215,9 @@ const addNewFavoriteForUser = async function (
                         key: 'id',
                         sign: '=',
                         value: listingId
-                    },
-                    {
-                        key: 'cityId',
-                        sign: '=',
-                        value: cityId
                     }
-                ]
+                ],
+                cityId
             });
             if (!response) {
                 throw new AppError(`Invalid listing '${listingId}' given`, 400);
