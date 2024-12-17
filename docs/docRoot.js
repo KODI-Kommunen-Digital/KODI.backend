@@ -38,6 +38,7 @@ const resetPasswordSwagger = require("./users/resetPassword");
 const sendVerificaltionEmailSwagger = require("./users/sendVerificationEmail");
 const updateUserSwagger = require("./users/updateUser");
 const verifyEmailSwagger = require("./users/verifyEmail");
+const getMyListingsSwagger = require("./users/getMyListings");
 const getVillegesSwagger = require("./villages/getVillages");
 const getAds = require("./ads/getAds");
 const getSearchListingsSwagger = require("./listings/getSearchListingsSwagger");
@@ -127,6 +128,9 @@ const apiDocumentation = {
         },
         '/users/{id}/listings': {
             'get': getUserListings,
+        },
+        '/users/myListings': {
+            'get': getMyListingsSwagger,
         },
         '/users/{id}/loginDevices': {
             'post': getLoginDevicesSwagger,
