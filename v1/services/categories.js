@@ -5,14 +5,11 @@ const categoriesRepository = require("../repository/categoriesRepo");
 const cityRepository = require("../repository/citiesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
 
-const getAllCategories = async function (req, res, next) {
+const getAllCategories = async function () {
     try {
         // return await categoryRepo.getCategories();
         const categories = await categoriesRepository.getAll();
-        res.status(200).json({
-            status: "success",
-            data: categories.rows,
-        });
+        return categories.rows
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);

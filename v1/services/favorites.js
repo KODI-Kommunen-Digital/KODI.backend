@@ -134,7 +134,7 @@ const getFavoriteListingsForUser = async function (
             const tempLisitngFilters = [...listingFilters];
             tempLisitngFilters.push({
                 key: 'id',
-                sign: '=',
+                sign: 'IN',
                 value: favDict[cityId]
             });
             // response = await listingRepo.getAllListingsWithFiltersQuery(
@@ -145,8 +145,20 @@ const getFavoriteListingsForUser = async function (
                 filters: tempLisitngFilters,
                 cityId
             });
-            response.forEach((l) => (l.cityId = cityId));
-            listings.push(...response);
+
+            // Check if no listings were returned for a specific favorite entry
+            if (!response.rows || response.rows.length === 0) {
+                // Delete the favorite entry with the specific listingId
+                await favoritesRepository.delete({
+                    filters: [
+                        { key: 'userId', sign: '=', value: paramUserId },
+                        { key: 'listingId', sign: 'IN', value: favDict[cityId] }
+                    ]
+                });
+            } else {
+                response.rows.forEach((l) => (l.cityId = cityId));
+                listings.push(...response.rows);
+            }
         }
     } catch (err) {
         if (err instanceof AppError) throw err;

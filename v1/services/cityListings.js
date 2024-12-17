@@ -123,7 +123,7 @@ const getCityListingWithId = async function (
             cityId,
         });
         const listingImageList = listingImageListResp.rows;
-        const logo = listingImageList ? listingImageList[0].logo : null;
+        const logo = listingImageList && listingImageList.length > 0 ? listingImageList[0].logo : null;
 
         if (process.env.IS_LISTING_VIEW_COUNT && !repeatedRequest) {
             // await listingRepo.setViewCount(id, data.viewCount + 1, cityId);
@@ -360,7 +360,7 @@ const getAllCityListings = async function (params, cityId, isAdmin) {
         //     pageSize,
         // );
         const response = await listingRepository.getAll({
-            listingFilters,
+            filters: listingFilters,
             cityId,
             pageNo,
             pageSize,
