@@ -40,5 +40,8 @@ module.exports = {
     Abfallwirtschaft: 39,
     Bürgerbeteiligung: 40,
     Highlights: 41,
-    Project: 42
+    Project: 42,
+    Gastro: 43,
+    Jobbörse: 44,
+    Dienstleister: 45,
 };
