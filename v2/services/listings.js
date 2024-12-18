@@ -8,6 +8,7 @@ const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const status = require("../constants/status");
+const listingFunctions = require("../services/listingFunctions");
 
 const getAllListings = async ({
     pageNo,
@@ -308,57 +309,8 @@ const createListing = async ({ cityIds, listingData, userId, roleId }) => {
     });
 
     try {
-        // First verify all cities exist
-        const transactionMap = {};
-        await Promise.all(
-            cityIds.map(async (cityId) => {
-                // const city = await cityRepo.getCityWithId(cityId);
-                const city = await cityRepository.getOne({
-                    filters: [
-                        {
-                            key: "id",
-                            sign: "=",
-                            value: cityId
-                        }
-                    ]
-                });
-                if (!city) {
-                    throw new AppError(`City with id ${cityId} not found`, 404);
-                }
-                // transactionMap[cityId] = await databaseUtil.createTransaction();
-                transactionMap[cityId] = await listingRepository.createTransaction(cityId);
-            }),
-        );
-
-        try {
-            const createdListings = await Promise.all(
-                cityIds.map((cityId) =>
-                    // listingRepo.createListingWithTransaction(
-                    //     listingData,
-                    //     transactionMap[cityId],
-                    // ),
-                    listingRepository.create({
-                        data: listingData,
-                    }, transactionMap[cityId]),
-                ),
-            );
-            await Promise.all(
-                Object.values(transactionMap).map((transaction) =>
-                    listingRepository.commitTransaction(transaction),
-                )
-            );
-            return createdListings;
-        } catch (error) {
-            try {
-                await Promise.all(
-                    Object.values(transactionMap).map((transaction) =>
-                        // databaseUtil.rollbackTransaction(transaction),
-                        listingRepository.rollbackTransaction(transaction),
-                    ),
-                );
-            } catch (e) { }
-            throw new AppError(`Error creating listings: ${error.message}`);
-        }
+        const createdListings = await listingFunctions.createListing(cityIds, listingData, userId, roleId)
+        return createdListings;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(`Error creating listing: ${err.message}`);
