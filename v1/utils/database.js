@@ -102,7 +102,7 @@ async function update(table, data, filters, cityId, joinFiltersBy = "AND") {
     return response;
 }
 
-async function deleteData(table, filters, cityId, joinFiltersBy = "AND") {
+async function deleteData(table, cityId, filters, joinFiltersBy = "AND") {
     try {
         const connection = await getConnection(cityId);
         let query = `DELETE FROM ${table} `;
