@@ -1357,23 +1357,15 @@ const getUserListings = async function (
         filters.categoryId = categoryId;
     }
 
+    if (userId) {
+        filters.userId = userId;
+    }
     try {
-        // const cityMappings = await getCityUserCityMapping(userId);
-        const cityMappings = await userCityUserMappingRepository.getCityUserCityMapping(userId);
-        // const data = await userRepo.getUserListingsFromDatabase(
-        //     userId,
-        //     filters,
-        //     cityMappings,
-        //     pageNo,
-        //     pageSize,
-        // );
-        const data = await listingRepository.getUserListingsFromDatabase(
-            userId,
+        const data = await listingRepository.retrieveListings({
             filters,
-            cityMappings,
             pageNo,
             pageSize,
-        )
+        })
         return data;
     } catch (err) {
         if (err instanceof AppError) throw err;

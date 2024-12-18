@@ -1,7 +1,6 @@
 const AppError = require("../utils/appError");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
-const citiesRepository = require("../repository/citiesRepo");
 const listingsRepository = require("../repository/listingsRepo");
 
 // to refactor
@@ -116,9 +115,9 @@ async function getUserListings(userId, statusId, categoryId, subcategoryId, page
         filters.categoryId = categoryId;
     }
 
+    filters.userId = userId;
     try {
-        const cityMappings = await citiesRepository.getUserCityMapping(userId);
-        return await listingsRepository.retrieveCityListingsWithFilters(cityMappings, filters, pageNo, pageSize);
+        return await listingsRepository.retrieveListings({filters, pageNo, pageSize});
     } catch (err) {
         throw new AppError(err);
     }

@@ -36,7 +36,16 @@ async function createListing(cityIds, payload, userId, roleId) {
 
     if (!cityIds) {
         throw new AppError(`City is not present`, 404);
+    } else if (!Array.isArray(cityIds)) {
+        throw new AppError("CityIds should be an array", 400);
     } else {
+        // Validate each cityId
+        cityIds.forEach((cityId) => {
+            if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+                throw new AppError(`Invalid City '${cityId}' given`, 400);
+            }
+        });
+
         try {
             const response = await citiesRepository.getAll({
                 filters: [
