@@ -669,6 +669,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 
     if (
+        payload.statusId &&
         payload.statusId !== currentListingData.statusId &&
         req.roleId === roles.Admin
     ) {

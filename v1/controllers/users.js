@@ -362,7 +362,7 @@ const deleteUserProfileImage = async function (req, res, next) {
 
 const getUserListings = async function (req, res, next) {
     try {
-        const userId = req.userId;
+        const userId = req.params.id;
         const pageNo = req.query.pageNo || 1;
         const pageSize = req.query.pageSize || 9;
         const categoryId = req.query.categoryId;

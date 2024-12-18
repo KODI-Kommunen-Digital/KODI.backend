@@ -684,6 +684,7 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
     }
 
     if (
+        payload.statusId &&
         payload.statusId !== currentListingData.statusId &&
         roleId === roles.Admin
     ) {
