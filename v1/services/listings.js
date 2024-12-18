@@ -7,6 +7,7 @@ const cityRepository = require("../repository/citiesRepo");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
+const status = require("../constants/status");
 
 const getAllListings = async ({
     pageNo,
@@ -18,6 +19,7 @@ const getAllListings = async ({
     cityId,
     reqTranslate,
     showExternalListings,
+    isAdmin
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -46,7 +48,7 @@ const getAllListings = async ({
         }
     }
 
-    if (statusId) {
+    if (isAdmin && statusId) {
         // const response = await cityListingRepo.getStatusById(statusId);
         const response = await statusRepository.getAll({
             filters: [
@@ -61,6 +63,8 @@ const getAllListings = async ({
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
         filters.push(`L.statusId = ${statusId}`);
+    } else {
+        filters.push(`L.statusId = ${status.Active}`);
     }
 
     if (categoryId) {

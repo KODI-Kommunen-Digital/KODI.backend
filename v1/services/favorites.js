@@ -134,7 +134,7 @@ const getFavoriteListingsForUser = async function (
             const tempLisitngFilters = [...listingFilters];
             tempLisitngFilters.push({
                 key: 'id',
-                sign: '=',
+                sign: 'IN',
                 value: favDict[cityId]
             });
             // response = await listingRepo.getAllListingsWithFiltersQuery(
@@ -145,8 +145,20 @@ const getFavoriteListingsForUser = async function (
                 filters: tempLisitngFilters,
                 cityId
             });
-            response.forEach((l) => (l.cityId = cityId));
-            listings.push(...response);
+
+            // Check if no listings were returned for a specific favorite entry
+            if (!response.rows || response.rows.length === 0) {
+                // Delete the favorite entry with the specific listingId
+                await favoritesRepository.delete({
+                    filters: [
+                        { key: 'userId', sign: '=', value: paramUserId },
+                        { key: 'listingId', sign: 'IN', value: favDict[cityId] }
+                    ]
+                });
+            } else {
+                response.rows.forEach((l) => (l.cityId = cityId));
+                listings.push(...response.rows);
+            }
         }
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -203,13 +215,9 @@ const addNewFavoriteForUser = async function (
                         key: 'id',
                         sign: '=',
                         value: listingId
-                    },
-                    {
-                        key: 'cityId',
-                        sign: '=',
-                        value: cityId
                     }
-                ]
+                ],
+                cityId
             });
             if (!response) {
                 throw new AppError(`Invalid listing '${listingId}' given`, 400);
@@ -219,6 +227,42 @@ const addNewFavoriteForUser = async function (
             throw new AppError(err);
         }
     }
+
+
+    // Check if the favorite already exists
+    try {
+        const existingFavorite = await favoritesRepository.getOne({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: paramUserId,
+                },
+                {
+                    key: "cityId",
+                    sign: "=",
+                    value: cityId,
+                },
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: listingId,
+                },
+            ],
+        });
+
+        if (existingFavorite) {
+            return {
+                status: "success",
+                message: "Favorite already exists",
+                id: existingFavorite.id,
+            };
+        }
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err.message || "An error occurred while checking for existing favorite");
+    }
+    
     try {
         // return await favoritesRepo.addFavoriteForUser(
         //     paramUserId,

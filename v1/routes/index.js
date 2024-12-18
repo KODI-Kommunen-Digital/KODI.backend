@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+
 const router = express.Router();
 const AppError = require("../utils/appError");
 const cityListingsRouter = require("./cityListings");
@@ -16,6 +17,10 @@ const moreInfoRouter = require("./moreInfo");
 const advertisement = require("./ads");
 const wasteCalender = require("./wasteCalender");
 const defectReportRouter = require("./defectReporter");
+
+router.get("/", (req, res) => {
+    res.json({ message: "Hello world!! Welcome to HEIDI!!" });
+});
 
 router.use("/users", usersRouter);
 router.use("/cities", citiesRouter);
@@ -85,5 +90,4 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
 }
 router.use("/ads", advertisement)
 router.use("/reportDefect", defectReportRouter); // TODO: convert to service-repository pattern
-
 module.exports = router;

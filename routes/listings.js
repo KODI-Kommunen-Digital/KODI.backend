@@ -6,9 +6,12 @@ const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
 const authentication = require("../middlewares/authentication");
-const { createListing } = require('../services/listingFunctions')
+const optionalAuthentication = require("../middlewares/optionalAuthentication");
+const { createListing } = require('../services/listingFunctions');
+const status = require("../constants/status");
+const roles = require("../constants/roles");
 
-router.get("/", async function (req, res, next) {
+router.get("/", optionalAuthentication, async function (req, res, next) {
     const params = req.query;
     const pageNo = Number(params.pageNo) || 1;
     const pageSize = Number(params.pageSize) || 9;
@@ -50,7 +53,7 @@ router.get("/", async function (req, res, next) {
     }
 
     // Validate statusId
-    if (params.statusId) {
+    if (req.roleId === roles.Admin && params.statusId) {
         if (isNaN(Number(params.statusId)) || Number(params.statusId) <= 0) {
             return next(new AppError(`Invalid status ${params.statusId}`, 400));
         }
@@ -72,6 +75,9 @@ router.get("/", async function (req, res, next) {
         }
         queryFilters += ` AND L.statusId = ? `;
         queryFilterParams.push(Number(params.statusId));
+    } else {
+        queryFilters += ` AND L.statusId = ? `;
+        queryFilterParams.push(status.Active);
     }
 
     // Validate categoryId and subcategoryId

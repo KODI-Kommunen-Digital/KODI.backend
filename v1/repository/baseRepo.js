@@ -47,7 +47,7 @@ class BaseRepo {
     async delete(params) {
         const { cityId, filters, joinFiltersBy } = params;
 
-        return await deleteData(this.tableName, cityId, filters, joinFiltersBy);
+        return await deleteData(this.tableName, filters, cityId, joinFiltersBy);
     }
 
     async createTransaction(cityId) {
@@ -72,13 +72,13 @@ class BaseRepo {
     async updateWithTransaction(params, transaction) {
         const { data, filters, joinFiltersBy } = params;
 
-        return await updateWithTransaction(this.tableName, data, filters, joinFiltersBy, transaction);
+        return await updateWithTransaction(this.tableName, data, filters, transaction, joinFiltersBy);
     }
 
     async deleteWithTransaction(params, transaction) {
-        const { cityId, filters, joinFiltersBy } = params;
+        const { filters, joinFiltersBy } = params;
 
-        return await deleteDataWithTransaction(this.tableName, cityId, filters, joinFiltersBy, transaction);
+        return await deleteDataWithTransaction(this.tableName, filters, transaction, joinFiltersBy);
     }
 }
 

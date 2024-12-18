@@ -1092,14 +1092,20 @@ const getUsers = async function (userIds, username, reqUserId) {
         "description",
         "roleId",
     ];
-    let filter = {};
+    const filter = [];
     if (userIds) {
-        filter = {
-            id: userIds,
-        };
+        filter.push({
+            key: 'id',
+            sign: 'IN',
+            value: userIds
+        });
     }
     if (username) {
-        filter.username = username;
+        filter.push({
+            key: 'username',
+            sign: '=',
+            value: username
+        });
     }
     if (!filter) {
         throw new AppError("You need to send some params to filter");

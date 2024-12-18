@@ -35,6 +35,7 @@ const { createListing } = require("../services/listingFunctions");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const userCityuserMappingRepository = require("../repository/userCityuserMappingRepo");
+const status = require("../constants/status");
 
 const DEFAULTIMAGE = "Defaultimage";
 
@@ -122,7 +123,7 @@ const getCityListingWithId = async function (
             cityId,
         });
         const listingImageList = listingImageListResp.rows;
-        const logo = listingImageList ? listingImageList[0].logo : null;
+        const logo = listingImageList && listingImageList.length > 0 ? listingImageList[0].logo : null;
 
         if (process.env.IS_LISTING_VIEW_COUNT && !repeatedRequest) {
             // await listingRepo.setViewCount(id, data.viewCount + 1, cityId);
@@ -164,7 +165,7 @@ const getCityListingWithId = async function (
     }
 };
 
-const getAllCityListings = async function (params, cityId) {
+const getAllCityListings = async function (params, cityId, isAdmin) {
     const listingFilters = [];
     const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
 
@@ -212,7 +213,7 @@ const getAllCityListings = async function (params, cityId) {
         );
     }
 
-    if (params.statusId) {
+    if (isAdmin && params.statusId) {
         try {
             const status = await statusRepository.getOne({
                 filters: [
@@ -236,6 +237,12 @@ const getAllCityListings = async function (params, cityId) {
             key: "statusId",
             sign: "=",
             value: params.statusId,
+        });
+    } else {
+        listingFilters.push({
+            key: "statusId",
+            sign: "=",
+            value: status.Active
         });
     }
 
@@ -353,7 +360,7 @@ const getAllCityListings = async function (params, cityId) {
         //     pageSize,
         // );
         const response = await listingRepository.getAll({
-            listingFilters,
+            filters: listingFilters,
             cityId,
             pageNo,
             pageSize,
@@ -818,7 +825,7 @@ const uploadImageForCityListing = async function (
         cityId,
     });
     const listingImages = listingImagesResp.rows;
-    if (listingImages[0].logo.startsWith("admin/")) {
+    if (listingImages && listingImages.length > 0 && listingImages[0].logo.startsWith("admin/")) {
         // await cityListingRepo.deleteListingImage(listingId, cityId);
         await listingImagesRepository.delete({
             filters: [
@@ -1489,7 +1496,7 @@ async function addDefaultImage(cityId, listingId, categoryId) {
     );
 
     // const categoryCount = await cityListingRepo.getCountByCategory(
-    const categoryCountResponse = await listingImagesRepository.getCount({
+    const categoryCountResponse = await listingImagesRepository.getAll({
         filters: [
             {
                 key: "logo",

@@ -63,7 +63,7 @@ const login = async function (req, res, next) {
 const getUserById = async function (req, res, next) {
     let userId = req.params.id;
     const reqUserId = parseInt(req.userId);
-    const cityUser = req.query.cityUser || false;
+    const cityUser = req.query.cityUser === 'true';
     const cityId = req.query.cityId;
 
     try {
@@ -293,7 +293,7 @@ const listLoginDevices = async function (req, res, next) {
 };
 
 const deleteLoginDevices = async function (req, res, next) {
-    const userId = req.params.id;
+    const userId = parseInt(req.params.id);
     const id = req.query.id;
     if (userId !== req.userId) {
         return next(
@@ -301,7 +301,7 @@ const deleteLoginDevices = async function (req, res, next) {
         );
     }
     try {
-        await userService.deleteLoginDevices(parseInt(userId), id);
+        await userService.deleteLoginDevices(userId, id);
         res.status(200).json({
             status: "success",
         });
@@ -362,40 +362,13 @@ const deleteUserProfileImage = async function (req, res, next) {
 
 const getUserListings = async function (req, res, next) {
     try {
-        const userId = req.params.id;
-        //     const pageNo = req.query.pageNo || 1;
-        //     const pageSize = req.query.pageSize || 9;
-        //     const categoryId = req.query.categoryId;
-        //     const statusId = req.query.statusId;
-        //     const subcategoryId = req.query.subcategoryId;
-
-        //     if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        //         throw new AppError(`Invalid UserId ${userId}`, 400);
-        //     }
-
-        //     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
-        //         throw new AppError(`Please enter a positive integer for pageNo`, 400);
-        //     }
-
-        //     if (
-        //         isNaN(Number(pageSize)) ||
-        //   Number(pageSize) <= 0 ||
-        //   Number(pageSize) > 20
-        //     ) {
-        //         throw new AppError(
-        //             `Please enter a positive integer less than or equal to 20 for pageSize`,
-        //             400,
-        //         );
-        //     }
-        //     const data = await userService.getUserListings(
-        //         userId,
-        //         pageNo,
-        //         pageSize,
-        //         statusId,
-        //         categoryId,
-        //         subcategoryId,
-        //     );
-        const listings = await getUserListingService.getUserListings(req, userId);
+        const userId = req.userId;
+        const pageNo = req.query.pageNo || 1;
+        const pageSize = req.query.pageSize || 9;
+        const categoryId = req.query.categoryId;
+        const statusId = req.query.statusId;
+        const subcategoryId = req.query.subcategoryId;
+        const listings = await getUserListingService.getUserListings(userId, statusId, categoryId, subcategoryId, pageNo, pageSize);
         listings.forEach((listing) => delete listing.viewCount);
         return res.status(200).json({
             status: "success",
