@@ -8,6 +8,8 @@ const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const status = require("../constants/status");
+const source = require("../constants/source");
+const listingFunctions = require("../services/listingFunctions");
 
 const getAllListings = async ({
     pageNo,
@@ -21,7 +23,7 @@ const getAllListings = async ({
     showExternalListings,
     isAdmin
 }) => {
-    const filters = [];
+    const filters = {};
     let sortByStartDateBool = false;
     let cities = [];
 
@@ -62,9 +64,9 @@ const getAllListings = async ({
         if (!response || !response.rows || !response.rows.length) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
-        filters.push(`L.statusId = ${statusId}`);
+        filters.statusId = statusId;
     } else {
-        filters.push(`L.statusId = ${status.Active}`);
+        filters.statusId = status.Active;
     }
 
     if (categoryId) {
@@ -98,26 +100,45 @@ const getAllListings = async ({
             if (!subcategory || !subcategory.rows || !subcategory.rows.length) {
                 throw new AppError(`Invalid subCategory '${subcategoryId}' given`, 400);
             }
-            filters.push(`L.subcategoryId = ${subcategoryId}`);
+            filters.subcategoryId = subcategoryId;
         }
-        filters.push(`L.categoryId = ${categoryId}`);
+        filters.categoryId = categoryId;
     }
 
     if (cityId) {
         // const city = await cityRepo.getCityWithId(cityId);
-        const city = await cityRepository.getOne({
+        // Validate the cityId input to ensure it only contains integers separated by commas
+        if (!/^\d+(,\d+)*$/.test(cityId)) {
+            throw new AppError(`Invalid format for CityId '${cityId}'. Please provide a comma-separated list of integers.`, 400);
+        }
+
+        // Parse the cityId string to an array of integers
+        const cityIds = cityId.split(',').map(id => parseInt(id.trim(), 10));
+
+        // Retrieve cities using the parsed array of IDs
+        const citiesResp = await cityRepository.getAll({
             filters: [
                 {
                     key: "id",
-                    sign: "=",
-                    value: cityId
+                    sign: "IN",
+                    value: cityIds
                 }
             ]
         });
-        if (!city) {
-            throw new AppError(`Invalid CityId '${cityId}' given`, 400);
+
+        // Throw an error if no cities are found
+        if (!citiesResp.length) {
+            throw new AppError(`No cities found for provided CityId(s) '${cityId}'`, 400);
         }
-        cities = [city];
+
+        // Check if the number of cities retrieved matches the number of IDs provided
+        if (citiesResp.length !== cityIds.length) {
+            // Find missing IDs by filtering out those that were found in the database
+            const foundIds = citiesResp.map(city => city.id);
+            const missingIds = cityIds.filter(id => !foundIds.includes(id));
+            throw new AppError(`The following CityId(s) are invalid: ${missingIds.join(', ')}`, 404);
+        }
+        cities = cityIds;
     } else {
         // cities = await cityRepo.getCities();
         const citiesResp = await cityRepository.getAll({
@@ -128,11 +149,11 @@ const getAllListings = async ({
     }
 
     if (showExternalListings !== "true") {
-        filters.push(`L.sourceId = 1`);
+        filters.sourceId = source.UserEntry;
     }
 
     try {
-        const listings = await listingRepository.getCityListingsWithFiltersAndPagination({
+        const listings = await listingRepository.retrieveListings({
             filters,
             pageNo,
             pageSize,
@@ -187,6 +208,7 @@ const searchListings = async ({
     statusId,
     cityId,
     searchQuery,
+    isAdmin
 }) => {
     const filters = [];
     let cities = [];
@@ -248,7 +270,7 @@ const searchListings = async ({
     }
 
     // Validate and add status filter
-    if (statusId) {
+    if (isAdmin && statusId) {
         if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
             throw new AppError(`Invalid status ${statusId}`, 400);
         }
@@ -265,18 +287,19 @@ const searchListings = async ({
         if (!status) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
-        filters.push(`L.statusId = ?`);
+        filters.statusId = statusId;
+    } else {
+        filters.statusId = status.Active;
     }
 
     try {
-        const listings = await listingRepository.searchListingsWithFilters({
+        const listings = await listingRepository.retrieveListings({
             filters,
             cities,
             searchQuery,
             pageNo,
             pageSize,
-            sortByStartDate: sortByStartDateBool,
-            statusId,
+            sortByStartDate: sortByStartDateBool
         });
 
         // Remove viewCount from listings
@@ -291,74 +314,10 @@ const searchListings = async ({
 };
 
 const createListing = async ({ cityIds, listingData, userId, roleId }) => {
-    // Validate cityIds
-    if (!cityIds) {
-        throw new AppError("CityIds not present", 400);
-    }
-
-    if (!Array.isArray(cityIds)) {
-        throw new AppError("CityIds should be an array", 400);
-    }
-
-    // Validate each cityId
-    cityIds.forEach((cityId) => {
-        if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-            throw new AppError(`Invalid City '${cityId}' given`, 400);
-        }
-    });
 
     try {
-        // First verify all cities exist
-        const transactionMap = {};
-        await Promise.all(
-            cityIds.map(async (cityId) => {
-                // const city = await cityRepo.getCityWithId(cityId);
-                const city = await cityRepository.getOne({
-                    filters: [
-                        {
-                            key: "id",
-                            sign: "=",
-                            value: cityId
-                        }
-                    ]
-                });
-                if (!city) {
-                    throw new AppError(`City with id ${cityId} not found`, 404);
-                }
-                // transactionMap[cityId] = await databaseUtil.createTransaction();
-                transactionMap[cityId] = await listingRepository.createTransaction(cityId);
-            }),
-        );
-
-        try {
-            const createdListings = await Promise.all(
-                cityIds.map((cityId) =>
-                    // listingRepo.createListingWithTransaction(
-                    //     listingData,
-                    //     transactionMap[cityId],
-                    // ),
-                    listingRepository.create({
-                        data: listingData,
-                    }, transactionMap[cityId]),
-                ),
-            );
-            await Promise.all(
-                Object.values(transactionMap).map((transaction) =>
-                    listingRepository.commitTransaction(transaction),
-                )
-            );
-            return createdListings;
-        } catch (error) {
-            try {
-                await Promise.all(
-                    Object.values(transactionMap).map((transaction) =>
-                        // databaseUtil.rollbackTransaction(transaction),
-                        listingRepository.rollbackTransaction(transaction),
-                    ),
-                );
-            } catch (e) { }
-            throw new AppError(`Error creating listings: ${error.message}`);
-        }
+        const createdListings = await listingFunctions.createListing(cityIds, listingData, userId, roleId)
+        return createdListings;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(`Error creating listing: ${err.message}`);
