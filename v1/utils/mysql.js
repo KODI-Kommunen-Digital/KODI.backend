@@ -14,12 +14,11 @@ function getCorePool() {
 const pool = { 0: getCorePool() };
 
 async function getConnection(cityId) {
-    let coreConnection ;
+    if (!pool[0]) {
+        pool[0] = getCorePool();
+    }
+    const coreConnection =  await pool[0].getConnection()
     if (!cityId) {
-        if (!pool[0]) {
-            pool[0] = getCorePool();
-        }
-        coreConnection =  await pool[0].getConnection()
         return coreConnection;
     }
     if (pool[cityId]) {

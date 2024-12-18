@@ -47,7 +47,7 @@ class BaseRepo {
     async delete(params) {
         const { cityId, filters, joinFiltersBy } = params;
 
-        return await deleteData(this.tableName, filters, cityId, joinFiltersBy);
+        return await deleteData(this.tableName, cityId, filters, joinFiltersBy);
     }
 
     async createTransaction(cityId) {
