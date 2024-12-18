@@ -848,7 +848,7 @@ const resetPassword = async function (userId, language, token, password) {
             ]
         })
         if (!tokenData) {
-            throw new AppError(`Invalid data sent`, 400);
+            throw new AppError(`Invalid token sent`, 400);
         }
         // await tokenRepo.deleteForgotPasswordToken(userId, token);
         await forgotPasswordTokenRepository.delete({
