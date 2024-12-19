@@ -25,6 +25,7 @@ const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers");
 const swaggerUi = require('swagger-ui-express');
 const apiDocumentation = require('./docs/docRoot');
+const apiVersions = require('./constants/apiVersions');
 
 // defining the Express app
 const app = express();
@@ -48,7 +49,6 @@ app.use(morgan("combined"));
 
 app.use(headers)
 
-app.use("/reportDefect", defectReportRouter);
 app.use(
     fileUpload({
         limits: {
@@ -62,9 +62,9 @@ app.get("/", (req, res) => {
     res.send(message);
 });
 
-app.get("/test", (req, res) => {
-    res.send('testing pipeline!!');
-});
+for (const version in apiVersions) {
+    app.use(`/${version}`, apiVersions[version].router);
+}
 
 app.use("/users", usersRouter);
 app.use("/cities", citiesRouter);
@@ -74,6 +74,9 @@ app.use("/status", statusRouter);
 app.use("/citizenServices", citizenServicesRouter);
 app.use("/contactUs", contactUsRouter);
 app.use("/moreInfo", moreInfoRouter);
+app.get("/test", (req, res) => {
+    res.send('testing pipeline!!');
+});
 app.use(
     "/users/:userId/favorites",
     function (req, res, next) {
@@ -118,7 +121,21 @@ app.use(
 );
 if (process.env.WASTE_CALENDER_ENABLED === 'True') {
     app.use(
-        "/cities/:cityId/wasteCalender",
+        "/users/:userId/favorites",
+        function (req, res, next) {
+            if (
+                isNaN(Number(req.params.userId)) ||
+                Number(req.params.userId) <= 0
+            ) {
+                return next(new AppError(`Invalid user id given`, 400));
+            }
+            req.paramUserId = req.params.userId;
+            next();
+        },
+        favoriteRouter
+    );
+    app.use(
+        "/cities/:cityId/villages",
         function (req, res, next) {
             if (
                 isNaN(Number(req.params.cityId)) ||
@@ -129,11 +146,44 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
             req.cityId = req.params.cityId;
             next();
         },
-        wasteCalender
+        villageRouter
     );
+    app.use(
+        "/cities/:cityId/listings",
+        function (req, res, next) {
+            if (
+                isNaN(Number(req.params.cityId)) ||
+                Number(req.params.cityId) <= 0
+            ) {
+                return next(new AppError(`Invalid city id given`, 400));
+            }
+            req.cityId = req.params.cityId;
+            next();
+        },
+        cityListingsRouter
+    );
+    if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+        app.use(
+            "/cities/:cityId/wasteCalender",
+            function (req, res, next) {
+                if (
+                    isNaN(Number(req.params.cityId)) ||
+                    Number(req.params.cityId) <= 0
+                ) {
+                    return next(new AppError(`Invalid city id given`, 400));
+                }
+                req.cityId = req.params.cityId;
+                next();
+            },
+            wasteCalender
+        );
+    }
+    app.use("/ads", advertisement)
+    app.use("/reportDefect", defectReportRouter);
 }
-app.use("/ads", advertisement)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(apiDocumentation));
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(apiDocumentation));
+
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
@@ -148,8 +198,7 @@ app.listen(process.env.PORT, () => {
 
 process.on("uncaughtException", function (err) {
     console.error(
-        `${new Date().toUTCString()}: UncaughtException: ${err.message}\n${
-            err.stack
+        `${new Date().toUTCString()}: UncaughtException: ${err.message}\n${err.stack
         }`
     );
     process.exit(1);

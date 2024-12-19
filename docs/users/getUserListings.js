@@ -119,7 +119,11 @@ const getUserListings = {
             },
         },
     },
-
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ]
 };
 
 module.exports = getUserListings;
