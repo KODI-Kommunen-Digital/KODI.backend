@@ -20,6 +20,7 @@ const {
     deleteUserProfileImage,
     getUserListings,
     deleteUser,
+    getMyListings
 } = require("../controllers/users");
 
 const filterNonPostRequests = (req, res, next) => {
@@ -36,7 +37,7 @@ router.post("/login", login);
 
 router.post("/register", register);
 
-router.get("/myListings", authentication, getUserListings);
+router.get("/myListings", authentication, getMyListings);
 
 router.get("/:id", optionalAuthentication, getUserById);
 
