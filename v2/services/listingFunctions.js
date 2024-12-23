@@ -26,7 +26,7 @@ const pollOptionsRepository = require("../repository/pollOptionsRepo");
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
     let user = {};
-    const cities = {};
+    let cities = [];
     const hasDefaultImage =
         (payload.logo !== undefined && payload.logo !== null) ||
             payload.hasAttachment
@@ -56,6 +56,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 });
                 throw new AppError(`Invalid City '${invalidCityIds[0]}' given`, 400);
             }
+            cities = response.rows
         } catch (err) {
             if (err instanceof AppError) {
                 return err;
@@ -392,9 +393,9 @@ async function createListing(cityIds, payload, userId, roleId) {
     const allResponses = [];
 
     try {
-        for (const cityId of cityIds) {
+        for (const city of cities) {
             let response = {};
-            const city = cities[cityId];
+            const cityId = city.id;
             if (city.isAdminListings) {
                 // If the city is admin listings, we need directly set the user id of the listing as 1 (i.e. admin's id)
                 insertionData.userId = 1;
@@ -470,8 +471,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 data: {
                     userId,
                     listingId,
-                },
-                cityId,
+                }
             })
 
             // verify if the listing is a poll and has poll options
