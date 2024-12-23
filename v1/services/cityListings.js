@@ -738,7 +738,8 @@ const uploadImageForCityListing = async function (
     cityId,
     userId,
     roleId,
-    files,
+    images,
+    uploadedImages
 ) {
     if (!cityId) {
         throw new AppError(`City is not present`, 404);
@@ -806,8 +807,7 @@ const uploadImageForCityListing = async function (
         );
     }
 
-    const image = files?.image;
-    const imageArr = image ? (image.length > 1 ? image : [image]) : [];
+    const imageArr = images ? (images.length > 1 ? images : [images]) : [];
     const hasIncorrectMime = imageArr.some((i) => !i.mimetype.includes("image/"));
     if (hasIncorrectMime) {
         throw new AppError(`Invalid Image type`, 403);
@@ -840,7 +840,7 @@ const uploadImageForCityListing = async function (
         });
     } else {
         const imagesToRetain = listingImages.filter((value) =>
-            (image || []).includes(value.logo),
+            (uploadedImages || []).includes(value.logo),
         );
         const imagesToDelete = listingImages.filter(
             (value) => !imagesToRetain.map((i2r) => i2r.logo).includes(value.logo),
