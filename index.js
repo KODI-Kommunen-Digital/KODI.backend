@@ -29,6 +29,8 @@ const apiVersions = require('./constants/apiVersions');
 
 // defining the Express app
 const app = express();
+app.set('trust proxy', true);
+
 
 // defining an array to work as the database (temporary solution)
 const message = {
