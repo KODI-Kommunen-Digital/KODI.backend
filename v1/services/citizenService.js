@@ -1,7 +1,7 @@
 const AppError = require("../utils/appError");
 const cityRepository = require("../repository/citiesRepo");
 const citizenServiceRepository = require("../repository/citizenServicesRepo");
-const citizenServicesDataRepoRepository = require("../repository/CitizenServicesDataRepo");
+const citizenServicesDataRepoRepository = require("../repository/citizenServicesDataRepo");
 
 const getCitizenServices = async function () {
     try {
