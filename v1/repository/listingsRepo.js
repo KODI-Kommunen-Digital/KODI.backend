@@ -227,7 +227,6 @@ class ListingsRepo extends BaseRepo {
             queryParams.push((pageNo - 1) * pageSize, pageSize);
     
             try {
-                console.log(paginationQuery, queryParams)
                 const response = await database.callQuery(paginationQuery, queryParams);
                 return response.rows;
             } catch (error) {

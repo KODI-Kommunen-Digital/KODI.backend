@@ -14,14 +14,17 @@ function getCorePool() {
 const pool = { 0: getCorePool() };
 
 async function getConnection(cityId) {
-    if (!cityId && !pool[0]) {
+    if (!pool[0]) {
         pool[0] = getCorePool();
     }
-    if (pool[cityId || 0]) {
-        const connection = await pool[cityId || 0].getConnection();
+    const coreConnection =  await pool[0].getConnection()
+    if (!cityId) {
+        return coreConnection;
+    }
+    if (pool[cityId]) {
+        const connection = await pool[cityId].getConnection();
         return connection;
     }
-    const coreConnection = await pool[0].getConnection();
     const [rows] = await coreConnection.query(
         `SELECT * FROM cities WHERE id = ?;`,
         [cityId],

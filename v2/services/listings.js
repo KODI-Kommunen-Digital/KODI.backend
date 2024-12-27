@@ -7,9 +7,9 @@ const cityRepository = require("../repository/citiesRepo");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
+const listingFunctions = require("../services/listingFunctions");
 const status = require("../constants/status");
 const source = require("../constants/source");
-const listingFunctions = require("../services/listingFunctions");
 
 const getAllListings = async ({
     pageNo,

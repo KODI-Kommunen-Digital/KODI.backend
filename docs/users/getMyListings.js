@@ -139,6 +139,11 @@ const getMyListingsSwagger = {
             },
         },
     },
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
 };
 
 module.exports = getMyListingsSwagger;

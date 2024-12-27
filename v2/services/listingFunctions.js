@@ -23,7 +23,7 @@ const pollOptionsRepository = require("../repository/pollOptionsRepo");
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
     let user = {};
-    const cities = {};
+    let cities = [];
     const hasDefaultImage =
         (payload.logo !== undefined && payload.logo !== null) ||
             payload.hasAttachment
@@ -62,6 +62,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 });
                 throw new AppError(`Invalid City '${invalidCityIds[0]}' given`, 400);
             }
+            cities = response.rows
         } catch (err) {
             throw err instanceof AppError ? err : new AppError(err);
         }
