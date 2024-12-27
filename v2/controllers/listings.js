@@ -88,8 +88,33 @@ const createListing = async (req, res, next) => {
     }
 };
 
+const updateListing = async (req, res, next) => {
+    const listingId = req.params.listingId;
+    const { cityIds, ...listingData } = req.body;
+    const { userId, roleId } = req;
+
+    try {
+        const updatedListing = await listingService.updateListing({
+            listingId,
+            cityIds,
+            listingData,
+            userId,
+            roleId
+        });
+
+        res.status(200).json({
+            status:"success",
+            data: updatedListing
+        });
+    } catch (err) {
+        next(err);
+    }
+
+};
+
 module.exports = {
     getAllListings,
     searchListings,
     createListing,
+    updateListing
 };
