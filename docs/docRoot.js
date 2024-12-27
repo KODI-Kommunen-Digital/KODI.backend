@@ -211,7 +211,7 @@ const apiDocumentation = {
         '/users/{userId}/favorites/{id}': {
             'delete': deleteFavoriteListingSwagger,
         },
-        '/villages': {
+        '/cities/{cityId}/villages': {
             'get': getVillegesSwagger,
         },
         '/ads/': {
