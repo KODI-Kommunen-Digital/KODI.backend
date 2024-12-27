@@ -858,7 +858,6 @@ async function managePollOptions(pollOptions, listingId, transaction) {
     const existingIds = existingOptions.rows.map(opt => opt.id);
     const incomingIds = pollOptions.map(opt => opt.id).filter(Boolean);
 
-    // Delete missing options
     for (const id of existingIds) {
         if (!incomingIds.includes(id)) {
             await pollOptionsRepository.deleteWithTransaction({
@@ -872,7 +871,6 @@ async function managePollOptions(pollOptions, listingId, transaction) {
             }, transaction);
         }
     }
-    // Add or update options
     try {
         for (const option of pollOptions) {
             if (option.id && existingIds.includes(option.id)) {
