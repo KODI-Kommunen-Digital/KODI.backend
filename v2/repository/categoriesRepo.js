@@ -8,14 +8,19 @@ class CategoriesRepo extends BaseRepo {
     }
 
     getCategoryListingCount = async (cityIds) => {
-        let query = `SELECT categoryId, COUNT(categoryId) AS totalCount FROM  (`;
-        let innerQuery = ``;
-        cityIds.forEach((cityId) => {
-            innerQuery += `SELECT categoryId FROM heidi_city_${cityId}.listings WHERE statusId = 1 UNION ALL `;
-        });
-        innerQuery = innerQuery.slice(0, -11);
-        query += innerQuery + `) AS combinedResults GROUP BY categoryId;`;
+        // Convert cityIds array to a comma-separated string to use in the SQL IN clause
+        // Also, handling the scenario where cityIds might be empty
+        const cityIdsString = cityIds.length > 0 ? cityIds.join(', ') : 'NULL';
 
+        // SQL query that dynamically includes or excludes the city filter based on whether cityIds are provided
+        const query = `
+            SELECT categoryId, COUNT(categoryId) AS totalCount
+            FROM listings
+            LEFT JOIN citylisting ON listings.id = city_listing_mappings.listingId
+            WHERE listings.statusId = 1
+            AND (${cityIds.length > 0 ? `city_listing_mappings.cityId IN (${cityIdsString})` : 'TRUE'})
+            GROUP BY categoryId;
+        `;
         const response = await database.callQuery(query);
         if (!response || !response.rows || response.rows.length === 0) {
             return [];
