@@ -8,7 +8,6 @@ const createCityListingSwagger = require("./cityListings/createCityListing");
 const deleteCityListingSchemaSwagger = require("./cityListings/deleteCityListing");
 const deleteImageSchemaSwagger = require("./cityListings/deleteImage");
 const deletePDFSchemaSwagger = require("./cityListings/deletePDF");
-const getAllCityListingsSwagger = require("./cityListings/getAllCityListings");
 const getCityListingByIdSwagger = require("./cityListings/getCityListingById");
 const updateCityListingSwagger = require("./cityListings/updateCityListing");
 const uploadImageSchemaSwagger = require("./cityListings/uploadImage");
@@ -148,32 +147,29 @@ const apiDocumentation = {
         '/cities': {
             'get': getAllCitiesSwagger,
         },
-        '/cities/{cityId}/listings': {
+        '/listings': {
             'post': createCityListingSwagger,
-            'get': getAllCityListingsSwagger,
+            'get': getAllListingsSwagger,
         },
-        '/cities/{cityId}/listings/{id}': {
+        '/listings/{id}': {
             'get': getCityListingByIdSwagger,
             'patch': updateCityListingSwagger,
             'delete': deleteCityListingSchemaSwagger,
         },
-        '/cities/{cityId}/listings/{id}/imageUpload': {
+        '/listings/{id}/imageUpload': {
             'post': uploadImageSchemaSwagger,
         },
-        '/cities/{cityId}/listings/{id}/imageDelete': {
+        '/listings/{id}/imageDelete': {
             'delete': deleteImageSchemaSwagger,
         },
-        '/cities/{cityId}/listings/{id}/pdfUpload': {
+        '/listings/{id}/pdfUpload': {
             'post': uploadPDFSwagger,
         },
-        '/cities/{cityId}/listings/{id}/pdfDelete': {
+        '/listings/{id}/pdfDelete': {
             'delete': deletePDFSchemaSwagger,
         },
-        '/cities/{cityId}/listings/:id/vote': {
+        '/listings/:id/vote': {
             'post': voteOnListingSwagger,
-        },
-        '/listings': {
-            'get': getAllListingsSwagger,
         },
         '/listings/search': {
             'get': getSearchListingsSwagger,
@@ -215,7 +211,7 @@ const apiDocumentation = {
         '/users/{userId}/favorites/{id}': {
             'delete': deleteFavoriteListingSwagger,
         },
-        '/cities/{cityId}/villages': {
+        '/villages': {
             'get': getVillegesSwagger,
         },
         '/ads/': {
