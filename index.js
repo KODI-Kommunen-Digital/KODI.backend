@@ -184,7 +184,28 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
     app.use("/reportDefect", defectReportRouter);
 }
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(apiDocumentation));
+app.use("/api-docs", swaggerUi.serve);
+app.get("/api-docs", (req, res) => {
+    const documentation = apiDocumentation();
+    swaggerUi.setup(documentation)(req, res);
+});
+
+// Version-specific Swagger docs
+Object.keys(apiVersions).forEach(version => {
+    app.use(`/api-docs/${version}`, swaggerUi.serve);
+    app.get(`/api-docs/${version}`, (req, res) => {
+        const documentation = apiDocumentation(version);
+        swaggerUi.setup(documentation)(req, res);
+    });
+});
+
+// Handle 404 for unknown API doc versions
+app.use('/api-docs/*', (req, res) => {
+    res.status(404).json({
+        status: 'error',
+        message: 'API documentation version not found'
+    });
+});
 
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
