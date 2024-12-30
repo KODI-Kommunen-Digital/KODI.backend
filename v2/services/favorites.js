@@ -114,8 +114,7 @@ const getFavoriteListingsForUser = async function (
     }
 
     try {
-        // let response = await favoritesRepo.getFavoritesWithFilter(favFilter);
-        let response = await favoritesRepository.getAll({
+        const response = await favoritesRepository.getAll({
             filters: favFilters
         });
         const favDict = {};
@@ -129,34 +128,35 @@ const getFavoriteListingsForUser = async function (
             }
         });
         listings = [];
-        for (const cityId in favDict) {
-            // listingFilter.id = favDict[cityId];
-            const tempLisitngFilters = [...listingFilters];
-            tempLisitngFilters.push({
-                key: 'id',
-                sign: 'IN',
-                value: favDict[cityId]
-            });
-            // response = await listingRepo.getAllListingsWithFiltersQuery(
-            //     listingFilter,
-            //     cityId,
-            // );
-            response = await listingRepository.getAll({
-                filters: tempLisitngFilters,
-                cityId
-            });
 
-            // Check if no listings were returned for a specific favorite entry
-            if (!response.rows || response.rows.length === 0) {
-                // Delete the favorite entry with the specific listingId
+        for (const [cityId, listingIds] of Object.entries(favDict)) {
+            if (!listingIds || listingIds.length === 0) {
+                continue; // Skip if no listingIds for the city
+            }
+            const filters = [
+                ...listingFilters, 
+                {
+                    key: 'id', 
+                    sign: 'IN',
+                    value: listingIds,
+                },
+            ];
+    
+            const response = await listingRepository.retrieveListings({
+                filters,
+                pageNo: 1,
+                pageSize: 10,
+            });
+    
+            if (!response || !response.rows || response.rows.length === 0) {
                 await favoritesRepository.delete({
                     filters: [
                         { key: 'userId', sign: '=', value: paramUserId },
-                        { key: 'listingId', sign: 'IN', value: favDict[cityId] }
-                    ]
+                        { key: 'listingId', sign: 'IN', value: listingIds },
+                    ],
                 });
             } else {
-                response.rows.forEach((l) => (l.cityId = cityId));
+                response.rows.forEach((l) => (l.cityId = +cityId));
                 listings.push(...response.rows);
             }
         }
@@ -209,15 +209,15 @@ const addNewFavoriteForUser = async function (
             //     listingId,
             //     cityId,
             // );
-            const response = await listingRepository.getOne({
+            const response = await listingRepository.retrieveListings({
                 filters: [
                     {
                         key: 'id',
                         sign: '=',
                         value: listingId
-                    }
+                    },
                 ],
-                cityId
+                cities: [cityId]
             });
             if (!response) {
                 throw new AppError(`Invalid listing '${listingId}' given`, 400);
