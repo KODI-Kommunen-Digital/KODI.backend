@@ -764,9 +764,14 @@ router.post(
     }
 );
 
-router.get("/:id/listings", async function (req, res, next) {
-    const userId = req.params.id
+router.get("/:id/listings", optionalAuthentication, async function (req, res, next) {
+    const userId = parseInt(req.params.id)
     try {
+        const response = await database.get(tables.USER_TABLE, { id: userId });
+        if (!response.rows || response.rows.length === 0) {
+            return next(new AppError(`User with id ${userId} does not exist`, 404));
+        }
+
         const listings = await getUserListings(req, userId);
         if(listings){
             listings.forEach(listing => delete listing.viewCount);
@@ -956,7 +961,7 @@ router.post("/resetPassword", async function (req, res, next) {
         });
         data = response.rows;
         if (data && data.length === 0) {
-            return next(new AppError(`Invalid data sent`, 400));
+            return next(new AppError(`Invalid token sent`, 400));
         }
         const tokenData = data[0];
         await database.deleteData(tables.FORGOT_PASSWORD_TOKENS_TABLE, {

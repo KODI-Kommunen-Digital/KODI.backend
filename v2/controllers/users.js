@@ -1,7 +1,6 @@
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const userService = require("../services/users");
-const getUserListingService = require("../services/getUserListings");
 
 const register = async function (req, res, next) {
     const payload = req.body;
@@ -362,13 +361,13 @@ const deleteUserProfileImage = async function (req, res, next) {
 
 const getUserListings = async function (req, res, next) {
     try {
-        const userId = req.userId;
+        const userId = req.params.id;
         const pageNo = req.query.pageNo || 1;
         const pageSize = req.query.pageSize || 9;
         const categoryId = req.query.categoryId;
         const statusId = req.query.statusId;
         const subcategoryId = req.query.subcategoryId;
-        const listings = await getUserListingService.getUserListings(userId, statusId, categoryId, subcategoryId, pageNo, pageSize);
+        const listings = await userService.getUserListings(userId, pageNo, pageSize, statusId, categoryId, subcategoryId);
         listings.forEach((listing) => delete listing.viewCount);
         return res.status(200).json({
             status: "success",
@@ -381,7 +380,7 @@ const getUserListings = async function (req, res, next) {
 
 const getMyListings = async function (req, res, next) {
     try {
-        const userId = req.params.id;
+        const userId = req.userId;
         const pageNo = req.query.pageNo || 1;
         const pageSize = req.query.pageSize || 9;
         const categoryId = req.query.categoryId;
@@ -398,8 +397,8 @@ const getMyListings = async function (req, res, next) {
 
         if (
             isNaN(Number(pageSize)) ||
-      Number(pageSize) <= 0 ||
-      Number(pageSize) > 20
+            Number(pageSize) <= 0 ||
+            Number(pageSize) > 20
         ) {
             throw new AppError(
                 `Please enter a positive integer less than or equal to 20 for pageSize`,

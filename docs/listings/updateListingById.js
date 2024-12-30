@@ -1,61 +1,37 @@
-const { UserCityListing } = require("../models/cityListing");
+const { UpdateCityListing } = require("../models/cityListing");
 
-const getMyListingsSwagger = {
-    summary: "Get my listings",
-    description: "Fetches listings associated with my user, optionally filtered by category, status, and subcategory",
+const updateListingSwagger = {
+    summary: "Update a listing",
     tags: ["Listings"],
+    description: "Edit a particular listing",
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
     parameters: [
         {
-            in: "query",
-            name: "pageNo",
+            in: "path",
+            name: "id",
             schema: {
                 type: "integer",
-                default: 1,
+                required: true,
+                description: "The listing id",
+                example: 1,
             },
-            required: false,
-            description: "Page number of the listings result",
         },
-        {
-            in: "query",
-            name: "pageSize",
-            schema: {
-                type: "integer",
-                default: 9,
-            },
-            required: false,
-            description: "Number of listings per page",
-        },
-        {
-            in: "query",
-            name: "categoryId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description: "Filter listings by category ID",
-        },
-        {
-            in: "query",
-            name: "statusId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description: "Filter listings by status ID",
-        },
-        {
-            in: "query",
-            name: "subcategoryId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description: "Filter listings by subcategory ID",
-        }
     ],
+    requestBody: {
+        required: true,
+        content: {
+            "application/json": {
+                schema: UpdateCityListing,
+            },
+        },
+    },
     responses: {
-        "200": {
-            description: "Listings fetched successfully",
+        200: {
+            description: "The listing was successfully updated",
             content: {
                 "application/json": {
                     schema: {
@@ -64,21 +40,17 @@ const getMyListingsSwagger = {
                             status: {
                                 type: "string",
                                 example: "success",
-                                description: "The status of the response",
                             },
-                            data: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: UserCityListing,
-                                },
+                            id: {
+                                type: "integer",
+                                example: 1,
                             },
                         },
                     },
                 },
             },
         },
-        "400": {
+        400: {
             description: "Invalid input given",
             content: {
                 "application/json": {
@@ -91,15 +63,15 @@ const getMyListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Invalid page number",
+                                example: "Invalid Village id '2' given",
                             },
                         },
                     },
                 },
             },
         },
-        "401": {
-            description: "Unauthorized access",
+        401: {
+            description: "Unauthorized",
             content: {
                 "application/json": {
                     schema: {
@@ -111,15 +83,15 @@ const getMyListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Authentication token is missing or invalid",
+                                example: "Authorization token not present",
                             },
                         },
                     },
                 },
             },
         },
-        "500": {
-            description: "Internal server error",
+        403: {
+            description: "Invalid auth",
             content: {
                 "application/json": {
                     schema: {
@@ -131,7 +103,27 @@ const getMyListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Server error occurred",
+                                example: "You dont have access to change this option",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        500: {
+            description: "Internal Server Error",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "Internal server error",
                             },
                         },
                     },
@@ -139,11 +131,6 @@ const getMyListingsSwagger = {
             },
         },
     },
-    security: [
-        {
-            bearerAuth: [],
-        },
-    ],
 };
 
-module.exports = getMyListingsSwagger;
+module.exports = updateListingSwagger;

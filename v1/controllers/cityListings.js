@@ -97,6 +97,7 @@ const uploadImageForCityListing = async function (req, res, next) {
     const cityId = req.cityId;
     const userId = req.userId;
     const roleId = req.roleId;
+    const uploadedImages = req.body.image;
     const { image } = req.files;
     try {
         await cityListingService.uploadImageForCityListing(
@@ -105,6 +106,7 @@ const uploadImageForCityListing = async function (req, res, next) {
             userId,
             roleId,
             image,
+            uploadedImages
         );
         res.status(200).json({
             status: "success",

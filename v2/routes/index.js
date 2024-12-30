@@ -3,7 +3,6 @@ const express = require("express");
 
 const router = express.Router();
 const AppError = require("../utils/appError");
-const cityListingsRouter = require("./cityListings");
 const listingsRouter = require("./listings");
 const usersRouter = require("./users");
 const favoriteRouter = require("./favorites");
@@ -57,20 +56,6 @@ router.use(
         next();
     },
     villageRouter
-);
-router.use(
-    "/cities/:cityId/listings",
-    function (req, res, next) {
-        if (
-            isNaN(Number(req.params.cityId)) ||
-            Number(req.params.cityId) <= 0
-        ) {
-            return next(new AppError(`Invalid city id given`, 400));
-        }
-        req.cityId = req.params.cityId;
-        next();
-    },
-    cityListingsRouter
 );
 if (process.env.WASTE_CALENDER_ENABLED === 'True') {
     router.use(

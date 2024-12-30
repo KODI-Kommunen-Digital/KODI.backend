@@ -1,8 +1,7 @@
-// const citizenServiceRepo = require("../repository/citizenServices");
 const AppError = require("../utils/appError");
-// const cityRepo = require("../repository/cities");
 const cityRepository = require("../repository/citiesRepo");
 const citizenServiceRepository = require("../repository/citizenServicesRepo");
+const citizenServicesDataRepoRepository = require("../repository/citizenServicesDataRepo");
 
 const getCitizenServices = async function () {
     try {
@@ -19,14 +18,14 @@ const getCitizenServiceDataByCityId = async function (
     cityId,
     citizenServiceId,
 ) {
-    // const filters = { citizenServiceId };
-    const filters = [
-        {
+    const filters = []
+    if (citizenServiceId) {
+        filters.push({
             key: 'citizenServiceId',
             sign: '=',
             value: citizenServiceId
-        }
-    ]
+        })
+    }
     if (cityId) {
         const cityData = await cityRepository.getOne({
             filters: [
@@ -40,7 +39,6 @@ const getCitizenServiceDataByCityId = async function (
         if (!cityData) {
             throw new AppError(`Invalid City '${cityId}' given`, 400);
         }
-        filters.cityId = cityData.id;
         filters.push({
             key: 'cityId',
             sign: '=',
@@ -48,11 +46,10 @@ const getCitizenServiceDataByCityId = async function (
         })
     }
     try {
-        // return await citizenServiceRepo.getCitizenServiceTitles(filters);
-        const citizenServices = await citizenServiceRepository.getAll({
+        const citizenServicesData = await citizenServicesDataRepoRepository.getAll({
             filters
         });
-        return citizenServices.rows;
+        return citizenServicesData.rows;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);

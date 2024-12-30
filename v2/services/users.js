@@ -848,7 +848,7 @@ const resetPassword = async function (userId, language, token, password) {
             ]
         })
         if (!tokenData) {
-            throw new AppError(`Invalid data sent`, 400);
+            throw new AppError(`Invalid token sent`, 400);
         }
         // await tokenRepo.deleteForgotPasswordToken(userId, token);
         await forgotPasswordTokenRepository.delete({
@@ -1280,19 +1280,35 @@ const getUserListings = async function (
 ) {
     const filters = {};
 
+    // Validate userId, pageNo, and pageSize
+    if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        throw new AppError(`Invalid UserId ${userId}`, 400);
+    }
+    if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
+        throw new AppError(`Please enter a positive integer for pageNo`, 400);
+    }
+    if (
+        isNaN(Number(pageSize)) ||
+        Number(pageSize) <= 0 ||
+        Number(pageSize) > 20
+    ) {
+        throw new AppError(
+            `Please enter a positive integer less than or equal to 20 for pageSize`,
+            400,
+        );
+    }
+
+    // Validate and apply statusId filter
     if (statusId) {
+        if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
+            throw new AppError(`Invalid status ${statusId}`, 400);
+        }
+
         try {
-            // const data = await cityListings.getStatusById(statusId);
-            const data = await statusRepository.getOne({
-                filters: [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: statusId
-                    }
-                ]
+            const status = await statusRepository.getOne({
+                filters: [{ key: "id", sign: "=", value: statusId }]
             });
-            if (!data) {
+            if (!status) {
                 throw new AppError(`Invalid Status '${statusId}' given`, 400);
             }
         } catch (err) {
@@ -1302,10 +1318,14 @@ const getUserListings = async function (
         filters.statusId = statusId;
     }
 
+    // Validate and apply categoryId and subcategoryId filters
     if (categoryId) {
+        if (isNaN(Number(categoryId)) || Number(categoryId) <= 0) {
+            throw new AppError(`Invalid category ${categoryId}`, 400);
+        }
+
         try {
-            // const data = await cityListings.getCategoryById(categoryId);
-            const data = await categoryRepository.getOne({
+            const category = await categoryRepository.getOne({
                 filters: [
                     {
                         key: "id",
@@ -1314,72 +1334,63 @@ const getUserListings = async function (
                     }
                 ]
             });
-            if (!data) {
+            if (!category) {
                 throw new AppError(`Invalid Category '${categoryId}' given`, 400);
-            } else {
-                if (subcategoryId) {
-                    try {
-                        // const data = await cityListings.getSubCategoryWithFilter(
-                        //     categoryId,
-                        //     subcategoryId,
-                        // );
-                        const data = await subCategoryRepository.getOne({
-                            filters: [
-                                {
-                                    key: "id",
-                                    sign: "=",
-                                    value: subcategoryId
-                                },
-                                {
-                                    key: "categoryId",
-                                    sign: "=",
-                                    value: categoryId
-                                }
-                            ],
-                        });
-                        if (!data) {
-                            throw new AppError(
-                                `Invalid subCategory '${subcategoryId}' given`,
-                                400,
-                            );
-                        }
-                    } catch (err) {
-                        if (err instanceof AppError) throw err;
-                        throw new AppError(err);
-                    }
-                    filters.subcategoryId = subcategoryId;
+            }
+
+            filters.categoryId = categoryId;
+
+            if (subcategoryId) {
+                if (isNaN(Number(subcategoryId)) || Number(subcategoryId) <= 0) {
+                    throw new AppError(`Invalid subcategory ${subcategoryId}`, 400);
                 }
+
+                try {
+                    const subcategory = await subCategoryRepository.getOne({
+                        filters: [
+                            {
+                                key: "id",
+                                sign: "=",
+                                value: subcategoryId
+                            },
+                            {
+                                key: "categoryId",
+                                sign: "=",
+                                value: categoryId
+                            }
+                        ],
+                    });
+                    if (!subcategory) {
+                        throw new AppError(`Invalid subCategory '${subcategoryId}' given`, 400);
+                    }
+                } catch (err) {
+                    if (err instanceof AppError) throw err;
+                    throw new AppError(err);
+                }
+                filters.subcategoryId = subcategoryId;
             }
         } catch (err) {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        filters.categoryId = categoryId;
     }
 
+    if (userId) {
+        filters.userId = userId;
+    }
     try {
-        // const cityMappings = await getCityUserCityMapping(userId);
-        const cityMappings = await userCityUserMappingRepository.getCityUserCityMapping(userId);
-        // const data = await userRepo.getUserListingsFromDatabase(
-        //     userId,
-        //     filters,
-        //     cityMappings,
-        //     pageNo,
-        //     pageSize,
-        // );
-        const data = await listingRepository.getUserListingsFromDatabase(
-            userId,
+        const data = await listingRepository.retrieveListings({
             filters,
-            cityMappings,
             pageNo,
             pageSize,
-        )
+        })
         return data;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
-};
+}
+
 
 const deleteUser = async function (userId) {
     try {

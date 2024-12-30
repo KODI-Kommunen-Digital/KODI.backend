@@ -1,61 +1,26 @@
-const { UserCityListing } = require("../models/cityListing");
-
-const getMyListingsSwagger = {
-    summary: "Get my listings",
-    description: "Fetches listings associated with my user, optionally filtered by category, status, and subcategory",
-    tags: ["Listings"],
+const deletePDFSchemaSwagger = {
+    summary: "Delete pdf",
+    tags: ['Listings'],
+    description: "Delete pdf for a listing",
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
     parameters: [
         {
-            in: "query",
-            name: "pageNo",
+            in: "path",
+            name: "id",
+            required: true,
+            description: "The ID of the listing",
             schema: {
                 type: "integer",
-                default: 1,
             },
-            required: false,
-            description: "Page number of the listings result",
         },
-        {
-            in: "query",
-            name: "pageSize",
-            schema: {
-                type: "integer",
-                default: 9,
-            },
-            required: false,
-            description: "Number of listings per page",
-        },
-        {
-            in: "query",
-            name: "categoryId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description: "Filter listings by category ID",
-        },
-        {
-            in: "query",
-            name: "statusId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description: "Filter listings by status ID",
-        },
-        {
-            in: "query",
-            name: "subcategoryId",
-            schema: {
-                type: "integer",
-            },
-            required: false,
-            description: "Filter listings by subcategory ID",
-        }
     ],
     responses: {
-        "200": {
-            description: "Listings fetched successfully",
+        200: {
+            description: "Image deleted successfully",
             content: {
                 "application/json": {
                     schema: {
@@ -64,22 +29,14 @@ const getMyListingsSwagger = {
                             status: {
                                 type: "string",
                                 example: "success",
-                                description: "The status of the response",
-                            },
-                            data: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: UserCityListing,
-                                },
                             },
                         },
                     },
                 },
             },
         },
-        "400": {
-            description: "Invalid input given",
+        401: {
+            description: "Invalid token or token expired",
             content: {
                 "application/json": {
                     schema: {
@@ -91,15 +48,15 @@ const getMyListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Invalid page number",
+                                example: "Authorization token not present",
                             },
                         },
                     },
                 },
             },
         },
-        "401": {
-            description: "Unauthorized access",
+        403: {
+            description: "Forbidden access or invalid image type",
             content: {
                 "application/json": {
                     schema: {
@@ -111,14 +68,34 @@ const getMyListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Authentication token is missing or invalid",
+                                example: "You are not allowed to access this resource",
                             },
                         },
                     },
                 },
             },
         },
-        "500": {
+        404: {
+            description: "City or listing not found",
+            content: {
+                "application/json": {
+                    schema: {
+                        type: "object",
+                        properties: {
+                            status: {
+                                type: "string",
+                                example: "error",
+                            },
+                            message: {
+                                type: "string",
+                                example: "Listing with id 100 does not exist",
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        500: {
             description: "Internal server error",
             content: {
                 "application/json": {
@@ -131,7 +108,7 @@ const getMyListingsSwagger = {
                             },
                             message: {
                                 type: "string",
-                                example: "Server error occurred",
+                                example: "Internal server error",
                             },
                         },
                     },
@@ -139,11 +116,6 @@ const getMyListingsSwagger = {
             },
         },
     },
-    security: [
-        {
-            bearerAuth: [],
-        },
-    ],
 };
 
-module.exports = getMyListingsSwagger;
+module.exports = deletePDFSchemaSwagger;
