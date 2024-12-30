@@ -137,9 +137,15 @@ const apiDocumentation = (selectedVersion = '') => {
             '/cities': {
                 'get': getAllCitiesSwagger,
             },
+            ...(selectedVersion !== 'v2' && {
+                '/cities/{cityId}/listings': {
+                    'post': createCityListingSwagger,
+                    'get': getAllCityListingsSwagger,
+                }
+            }),
             '/listings': {
-                'post': selectedVersion === 'v2' ? createCityListingSwagger : createListingSwagger,
-                'get': selectedVersion === 'v2' ? getAllCityListingsSwagger : getAllListingsSwagger
+                'post': createListingSwagger,
+                'get': getAllListingsSwagger
             },
             [selectedVersion === 'v2' ? '/listings/{id}' : '/cities/{cityId}/listings/{id}']: {
                 'get': getCityListingByIdSwagger,
