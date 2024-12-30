@@ -53,7 +53,6 @@ const getRandomAds = async function (cityId, listingId) {
             ],
             orderBy: ["createdAt"],
             pageSize: 1,
-            cityId,
         });
 
         const dataListings = responseListings.rows;
@@ -110,7 +109,6 @@ const getRandomAds = async function (cityId, listingId) {
         return dataReturn;
 
     } catch (err) {
-        console.error(err);
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
@@ -160,6 +158,8 @@ const getAdLists = async function (cityId, skipAdIds, returnAdsCount, sort, sort
             filters,
             columns: "id, cityId, image, link, createdAt",
             orderBy: [sort],
+            pageSize: returnAdsCount,
+            isDecending: sortDesc,
         });
 
         const countResponse = await adsRepository.getOne({
