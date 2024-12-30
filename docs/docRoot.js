@@ -143,10 +143,6 @@ const apiDocumentation = (selectedVersion = '') => {
                     'get': getAllCityListingsSwagger,
                 }
             }),
-            '/listings': {
-                'post': createListingSwagger,
-                'get': getAllListingsSwagger
-            },
             [selectedVersion === 'v2' ? '/listings/{id}' : '/cities/{cityId}/listings/{id}']: {
                 'get': getCityListingByIdSwagger,
                 'patch': updateCityListingSwagger,
@@ -166,6 +162,10 @@ const apiDocumentation = (selectedVersion = '') => {
             },
             [selectedVersion === 'v2' ? '/listings/{id}/vote' : '/cities/{cityId}/listings/{id}/vote']: {
                 'post': voteOnListingSwagger,
+            },
+            '/listings': {
+                'get': getAllListingsSwagger,
+                'post': createListingSwagger
             },
             '/listings/search': {
                 'get': getSearchListingsSwagger,
