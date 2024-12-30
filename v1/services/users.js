@@ -1244,6 +1244,10 @@ const deleteUserProfileImage = async function (userId) {
             throw new AppError(`User ${userId} does not exist`, 404);
         }
 
+        if (!user.image) {
+            throw new AppError(`User ${userId} does not have a profile picture to delete`, 400);
+        }
+
         const onSuccess = async () => {
             const updationData = {};
             updationData.image = "";

@@ -683,6 +683,9 @@ router.delete(
                 return next(new AppError(`User ${id} does not exist`, 404));
             }
 
+            if(response.rows[0].image === ""){
+                throw new AppError(`User ${id} does not have a profile picture to delete`, 400);
+            }
 
             const onSucccess = async () => {
                 const updationData = {};
