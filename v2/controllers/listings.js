@@ -88,8 +88,125 @@ const createListing = async (req, res, next) => {
     }
 };
 
+const getListingWithId = async function (req, res, next) {
+    const id = req.params.id;
+    const repeatedRequest = req.repeatedRequest;
+
+    try {
+        await listingService.getListingWithId(
+            id,
+            repeatedRequest
+        );
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+
+const deleteListing = async function (req, res, next) {
+    const id = req.params.id;
+    const userId = req.userId;
+    const roleId = req.roleId;
+    try {
+        await listingService.deleteListing(id, userId, roleId);
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const uploadImage = async function (req, res, next) {
+    const listingId = req.params.id;
+    const userId = req.userId;
+    const roleId = req.roleId;
+    const { image } = req.files;
+    try {
+        await listingService.uploadImage(
+            listingId,
+            userId,
+            roleId,
+            image,
+        );
+        res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const uploadPDF = async function (req, res, next) {
+    const listingId = req.params.id;
+    const userId = req.userId;
+    const roleId = req.roleId;
+    const { pdf } = req.files;
+
+    try {
+        await listingService.uploadPDF(
+            listingId,
+            userId,
+            roleId,
+            pdf,
+        );
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const deleteImage = async function (req, res, next) {
+    const id = req.params.id;
+    const userId = req.userId;
+    const roleId = req.roleId;
+
+    try {
+        await listingService.deleteImage(
+            id,
+            userId,
+            roleId,
+        );
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const deletePDF = async function (req, res, next) {
+    const id = req.params.id;
+    const userId = req.userId;
+    const roleId = req.roleId;
+
+    try {
+        await listingService.deletePDF(
+            id,
+            userId,
+            roleId,
+        );
+        return res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 module.exports = {
     getAllListings,
     searchListings,
     createListing,
+    getListingWithId,
+    deleteListing,
+    uploadImage,
+    uploadPDF,
+    deleteImage,
+    deletePDF
 };

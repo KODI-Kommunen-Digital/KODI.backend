@@ -31,14 +31,6 @@ const getListingCount = async function (cityId) {
                 ],
             });
             cityIds = [cityData.id];
-        } else {
-            // const citiesData = await cityRepo.getCities(null, "id", ["id"]);
-            const citiesResp = await cityRepository.getAll({
-                columns: "id",
-                orderBy: ["id"],
-            });
-            const citiesData = citiesResp.rows;
-            cityIds = citiesData.map((cityData) => cityData.id);
         }
         // return await categoryRepo.getCategoryListingCount(cityIds);
         return await categoriesRepository.getCategoryListingCount(cityIds);

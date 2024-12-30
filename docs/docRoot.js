@@ -6,12 +6,15 @@ const getAllCitizenServicesSwagger = require("./citizenService/getCitizenService
 const getCitizenServiceDataSwagger = require("./citizenService/getCitizenServiceData");
 const createCityListingSwagger = require("./cityListings/createCityListing");
 const deleteCityListingSchemaSwagger = require("./cityListings/deleteCityListing");
-const deleteImageSchemaSwagger = require("./cityListings/deleteImage");
-const deletePDFSchemaSwagger = require("./cityListings/deletePDF");
-const getAllCityListingsSwagger = require("./cityListings/getAllCityListings");
+const deleteCityImageSchemaSwagger = require("./cityListings/deleteImage");
+const deleteCityPDFSchemaSwagger = require("./cityListings/deletePDF");
+const deleteImageSchemaSwagger = require("./listings/deleteImage");
+const deletePDFSchemaSwagger = require("./listings/deletePDF");
 const getCityListingByIdSwagger = require("./cityListings/getCityListingById");
 const updateCityListingSwagger = require("./cityListings/updateCityListing");
-const uploadImageSchemaSwagger = require("./cityListings/uploadImage");
+const uploadCityImageSchemaSwagger = require("./cityListings/uploadImage");
+const uploadCityPDFSwagger = require("./listings/uploadPDF");
+const uploadImageSchemaSwagger = require("./listings/uploadImage");
 const uploadPDFSwagger = require("./cityListings/uploadPDF");
 const contactUsSwagger = require("./contactUs/contactUs");
 const createFavoriteListingSwagger = require("./favorites/addNewFavoritesForUser");
@@ -19,6 +22,7 @@ const deleteFavoriteListingSwagger = require("./favorites/deleteFavoriteListings
 const getFavoriteListingsSwagger = require("./favorites/getAllFavoriteListingsForUser");
 const getFavoritesSwagger = require("./favorites/getAllFavoritesForUser");
 const getAllListingsSwagger = require("./listings/getAllListings");
+const getAllCityListingsSwagger = require("./cityListings/getAllCityListings");
 const getMoreInfoSwagger = require("./moreInfo/getMoreInfo");
 const getAllStatusesSwagger = require("./status/getAllStatuses");
 const deleteLoggedInDevicesSwagger = require("./users/deleteLoggedInDevices");
@@ -49,190 +53,203 @@ const getWasteTypesSwagger = require('./wasteCalender/getWasteTypesSwagger');
 const getPickupDatesSwagger = require('./wasteCalender/getPickupDatesSwagger');
 const createDefectReport = require('./defectReport/createDefectReport');
 const voteOnListingSwagger = require('./cityListings/voteOnListingSwagger')
+const deleteListingSwagger = require("./listings/deleteListing");
+const getListingByIdSwagger = require("./listings/getListingById");
+const updateListingByIdSwagger = require("./listings/updateListingById");
 
-const apiVersions = require('../constants/apiVersions');
-
-const apiDocumentation = {
-    openapi: '3.0.1',
-    info: {
-        version: '1.3.0',
-        title: 'KODI REST API - Documentation',
-        description: `KODI - Kommunen Digital is a REST API that will be used to fetch data to and from the frontend. It provides digital citizen services and participation opportunities for cities, counties, and municipalities.`,
-    },
-    components: {
-        securitySchemes: {
-            bearerAuth: {
-                type: 'http',
-                scheme: 'bearer',
-                bearerFormat: 'JWT',
+const apiDocumentation = (selectedVersion = '') => {
+    return {
+        openapi: '3.0.1',
+        info: {
+            version: '1.3.0',
+            title: 'KODI REST API - Documentation',
+            description: `KODI - Kommunen Digital is a REST API that will be used to fetch data to and from the frontend. It provides digital citizen services and participation opportunities for cities, counties, and municipalities.`,
+        },
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                },
             },
         },
-    },
-    servers: [
-        {
-            url: process.env.BASE_URL,
-            description: 'Base Server',
-        },
-        // ...process.env.API_VERSIONS.split(',').map((version) => ({
-        //     url: `${process.env.BASE_URL}/${version}`,
-        //     description: `${version} Server`,
-        // })),
-        ...Object.keys(apiVersions).map((version) => ({
-            url: `${process.env.BASE_URL}/${version}`,
-            description: `${version} Server`,
-        })),
-
-    ],
-    tags: [
-        {
-            name: 'Users',
-        },
-        {
-            name: 'Cities',
-        },
-        {
-            name: 'City Listings',
-        },
-        {
-            name: 'Ads',
-        },
-    ],
-    paths: {
-        '/users': {
-            'get': getAllUsersSwagger
-        },
-        '/users/{id}': {
-            'get': getUserByIdDoc,
-            'patch': updateUserSwagger,
-            'delete': deleteUserByIdSwagger,
-        },
-        '/users/login': {
-            'post': loginUser
-        },
-        '/users/register': {
-            'post': registerUserSwagger,
-        },
-        '/users/{id}/refresh': {
-            'post': refreshTokenSchema,
-        },
-        '/users/forgotPassword': {
-            'post': forgotPasswordSwagger,
-        },
-        '/users/resetPassword': {
-            'post': resetPasswordSwagger,
-        },
-        '/users/sendVerificationEmail': {
-            'post': sendVerificaltionEmailSwagger,
-        },
-        '/users/verifyEmail': {
-            'post': verifyEmailSwagger,
-        },
-        '/users/{id}/listings': {
-            'get': getUserListings,
-        },
-        '/users/myListings': {
-            'get': getMyListingsSwagger,
-        },
-        '/users/{id}/loginDevices': {
-            'post': getLoginDevicesSwagger,
-            'delete': deleteLoggedInDevicesSwagger,
-        },
-        '/users/{id}/imageUpload': {
-            'post': imageUpoadSwagger,
-        },
-        '/users/{id}/imageDelete': {
-            'delete': deleteUserProfilePicSwagger,
-        },
-        '/users/{id}/logout': {
-            'post': logoutSwagger,
-        },
-        '/cities': {
-            'get': getAllCitiesSwagger,
-        },
-        '/cities/{cityId}/listings': {
-            'post': createCityListingSwagger,
-            'get': getAllCityListingsSwagger,
-        },
-        '/cities/{cityId}/listings/{id}': {
-            'get': getCityListingByIdSwagger,
-            'patch': updateCityListingSwagger,
-            'delete': deleteCityListingSchemaSwagger,
-        },
-        '/cities/{cityId}/listings/{id}/imageUpload': {
-            'post': uploadImageSchemaSwagger,
-        },
-        '/cities/{cityId}/listings/{id}/imageDelete': {
-            'delete': deleteImageSchemaSwagger,
-        },
-        '/cities/{cityId}/listings/{id}/pdfUpload': {
-            'post': uploadPDFSwagger,
-        },
-        '/cities/{cityId}/listings/{id}/pdfDelete': {
-            'delete': deletePDFSchemaSwagger,
-        },
-        '/cities/{cityId}/listings/:id/vote': {
-            'post': voteOnListingSwagger,
-        },
-        '/listings': {
-            'get': getAllListingsSwagger,
-        },
-        '/listings/search': {
-            'get': getSearchListingsSwagger,
-        },
-        '/listings/': {
-            'post': createListingSwagger
-        },
-        '/categories': {
-            'get': getAllCategoriesSwagger,
-        },
-        '/categories/{id}/subcategories': {
-            'get': getSubCategoriesSwagger,
-        },
-        '/categories/listingsCount': {
-            'get': getCategoriesListingCountSwagger,
-        },
-        '/status': {
-            'get': getAllStatusesSwagger,
-        },
-        '/citizenServices': {
-            'get': getAllCitizenServicesSwagger,
-        },
-        '/citizenServices/citizenServiceData': {
-            'get': getCitizenServiceDataSwagger,
-        },
-        '/contactUs': {
-            'post': contactUsSwagger,
-        },
-        '/moreinfo': {
-            'get': getMoreInfoSwagger,
-        },
-        '/users/{userId}/favorites': {
-            'get': getFavoritesSwagger,
-            'post': createFavoriteListingSwagger,
-        },
-        '/users/{userId}/favorites/listings': {
-            'get': getFavoriteListingsSwagger,
-        },
-        '/users/{userId}/favorites/{id}': {
-            'delete': deleteFavoriteListingSwagger,
-        },
-        '/cities/{cityId}/villages': {
-            'get': getVillegesSwagger,
-        },
-        '/ads/': {
-            'get': getAds,
-        },
-        '/ads/list': {
-            'get': getAdsList,
-        },
-        ...(process.env.ENABLE_WASTE_CALENDER === 'True' && {
-            '/cities/:cityId/wasteCalender/streets': { 'get': getStreetsSwagger },
-            '/cities/:cityId/wasteCalender/wasteTypes': { 'get': getWasteTypesSwagger },
-            '/cities/:cityId/wasteCalender/streets/:streetId/pickupDates': { 'get': getPickupDatesSwagger },
-        }),
-        ...(process.env.ENABLE_DEFECT_REPORT === 'True' && {
-            '/reportDefect': { 'post': createDefectReport },
-        }),
+        servers: [
+            {
+                url: [process.env.BASE_URL, selectedVersion].join('/'),
+                description: `${selectedVersion || 'Base'} Server`,
+            },
+        ],
+        tags: [
+            {
+                name: 'Users',
+            },
+            {
+                name: 'Cities',
+            },
+            {
+                name: 'City Listings',
+            },
+            {
+                name: 'Ads',
+            },
+        ],
+        paths: {
+            '/users': {
+                'get': getAllUsersSwagger
+            },
+            '/users/{id}': {
+                'get': getUserByIdDoc,
+                'patch': updateUserSwagger,
+                'delete': deleteUserByIdSwagger,
+            },
+            '/users/login': {
+                'post': loginUser
+            },
+            '/users/register': {
+                'post': registerUserSwagger,
+            },
+            '/users/{id}/refresh': {
+                'post': refreshTokenSchema,
+            },
+            '/users/forgotPassword': {
+                'post': forgotPasswordSwagger,
+            },
+            '/users/resetPassword': {
+                'post': resetPasswordSwagger,
+            },
+            '/users/sendVerificationEmail': {
+                'post': sendVerificaltionEmailSwagger,
+            },
+            '/users/verifyEmail': {
+                'post': verifyEmailSwagger,
+            },
+            '/users/{id}/listings': {
+                'get': getUserListings,
+            },
+            '/users/myListings': {
+                'get': getMyListingsSwagger,
+            },
+            '/users/{id}/loginDevices': {
+                'post': getLoginDevicesSwagger,
+                'delete': deleteLoggedInDevicesSwagger,
+            },
+            '/users/{id}/imageUpload': {
+                'post': imageUpoadSwagger,
+            },
+            '/users/{id}/imageDelete': {
+                'delete': deleteUserProfilePicSwagger,
+            },
+            '/users/{id}/logout': {
+                'post': logoutSwagger,
+            },
+            '/cities': {
+                'get': getAllCitiesSwagger,
+            },
+            ...(selectedVersion !== 'v2' && {
+                '/cities/{cityId}/listings': {
+                    'post': createCityListingSwagger,
+                    'get': getAllCityListingsSwagger,
+                },
+                '/cities/{cityId}/listings/{id}': {
+                    'get': getCityListingByIdSwagger,
+                    'patch': updateCityListingSwagger,
+                    'delete': deleteCityListingSchemaSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/imageUpload': {
+                    'post': uploadCityImageSchemaSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/imageDelete': {
+                    'delete': deleteCityImageSchemaSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/pdfUpload': {
+                    'post': uploadCityPDFSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/pdfDelete': {
+                    'delete': deleteCityPDFSchemaSwagger,
+                }
+            }),
+            ...(selectedVersion === 'v2' && {
+                '/listings/{id}': {
+                    'get': getListingByIdSwagger,
+                    'patch': updateListingByIdSwagger,
+                    'delete': deleteListingSwagger,
+                },
+                '/listings/{id}/imageUpload': {
+                    'post': uploadImageSchemaSwagger,
+                },
+                '/listings/{id}/imageDelete': {
+                    'delete': deleteImageSchemaSwagger,
+                },
+                '/listings/{id}/pdfUpload': {
+                    'post': uploadPDFSwagger,
+                },
+                '/listings/{id}/pdfDelete': {
+                    'delete': deletePDFSchemaSwagger,
+                },
+            }),
+            [selectedVersion === 'v2' ? '/listings/{id}/vote' : '/cities/{cityId}/listings/{id}/vote']: {
+                'post': voteOnListingSwagger,
+            },
+            '/listings': {
+                'get': getAllListingsSwagger,
+                'post': createListingSwagger
+            },
+            '/listings/search': {
+                'get': getSearchListingsSwagger,
+            },
+            '/categories': {
+                'get': getAllCategoriesSwagger,
+            },
+            '/categories/{id}/subcategories': {
+                'get': getSubCategoriesSwagger,
+            },
+            '/categories/listingsCount': {
+                'get': getCategoriesListingCountSwagger,
+            },
+            '/status': {
+                'get': getAllStatusesSwagger,
+            },
+            '/citizenServices': {
+                'get': getAllCitizenServicesSwagger,
+            },
+            '/citizenServices/citizenServiceData': {
+                'get': getCitizenServiceDataSwagger,
+            },
+            '/contactUs': {
+                'post': contactUsSwagger,
+            },
+            '/moreinfo': {
+                'get': getMoreInfoSwagger,
+            },
+            '/users/{userId}/favorites': {
+                'get': getFavoritesSwagger,
+                'post': createFavoriteListingSwagger,
+            },
+            '/users/{userId}/favorites/listings': {
+                'get': getFavoriteListingsSwagger,
+            },
+            '/users/{userId}/favorites/{id}': {
+                'delete': deleteFavoriteListingSwagger,
+            },
+            '/cities/{cityId}/villages': {
+                'get': getVillegesSwagger,
+            },
+            '/ads/': {
+                'get': getAds,
+            },
+            '/ads/list': {
+                'get': getAdsList,
+            },
+            ...(process.env.ENABLE_WASTE_CALENDER === 'True' && {
+                '/cities/:cityId/wasteCalender/streets': { 'get': getStreetsSwagger },
+                '/cities/:cityId/wasteCalender/wasteTypes': { 'get': getWasteTypesSwagger },
+                '/cities/:cityId/wasteCalender/streets/:streetId/pickupDates': { 'get': getPickupDatesSwagger },
+            }),
+            ...(process.env.ENABLE_DEFECT_REPORT === 'True' && {
+                '/reportDefect': { 'post': createDefectReport },
+            }),
+        }
     }
 };
 

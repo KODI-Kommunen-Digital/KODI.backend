@@ -1,10 +1,10 @@
 const axios = require("axios");
 const parser = require("xml-js");
 
-async function fetchUserImages(userId, cityId, id) {
+async function fetchUserImages(userId, cityId, listingId) {
     const apiUrl = constructApiUrl();
     const imageList = await fetchImageList(apiUrl);
-    const userImageList = filterUserImages(imageList, userId, cityId, id);
+    const userImageList = filterUserImages(imageList, userId, cityId, listingId);
     return userImageList;
 }
 
@@ -21,9 +21,10 @@ async function fetchImageList(apiUrl) {
     return JSON.parse(jsonResult).ListBucketResult.Contents;
 }
 
-function filterUserImages(imageList, userId, cityId, id) {
-    const filterCondition = `user_${userId}/city_${cityId}_listing_${id}`;
-    return imageList.filter((obj) => obj.Key._text.includes(filterCondition));
+function filterUserImages(imageList, userId, cityId, listingId) {
+    const filterCondition = `user_${userId}/city_${cityId}_listing_${listingId}`;
+    const filterCondition2 = `user_${userId}/listing_${listingId}`;
+    return imageList.filter((obj) => obj.Key._text.includes(filterCondition) || obj.Key._text.includes(filterCondition2));
 }
 
 module.exports = {
