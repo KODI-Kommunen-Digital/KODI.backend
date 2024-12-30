@@ -41,6 +41,7 @@ const verifyEmailSwagger = require("./users/verifyEmail");
 const getMyListingsSwagger = require("./users/getMyListings");
 const getVillegesSwagger = require("./villages/getVillages");
 const getAds = require("./ads/getAds");
+const getAdsList = require("./ads/getAdsList");
 const getSearchListingsSwagger = require("./listings/getSearchListingsSwagger");
 const createListingSwagger = require("./listings/postListingSwagger");
 const getStreetsSwagger = require("./wasteCalender/getStreetsSwagger");
@@ -220,6 +221,9 @@ const apiDocumentation = {
         },
         '/ads/': {
             'get': getAds,
+        },
+        '/ads/list': {
+            'get': getAdsList,
         },
         ...(process.env.ENABLE_WASTE_CALENDER === 'True' && {
             '/cities/:cityId/wasteCalender/streets': { 'get': getStreetsSwagger },
