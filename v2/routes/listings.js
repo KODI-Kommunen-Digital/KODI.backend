@@ -6,6 +6,7 @@ const {
     getAllListings,
     searchListings,
     createListing,
+    updateListing,
     getListingWithId,
     uploadImage,
     uploadPDF,
@@ -35,6 +36,7 @@ router.get("/search", searchListings);
 
 router.post("/", authentication, createListing);
 
+router.patch("/:listingId", authentication, updateListing);
 router.post(
     "/:id/imageUpload",
     authentication,

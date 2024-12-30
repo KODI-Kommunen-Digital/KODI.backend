@@ -329,7 +329,7 @@ const searchListings = async ({
 const createListing = async ({ cityIds, listingData, userId, roleId }) => {
 
     try {
-        const createdListings = await listingFunctions.createListing(cityIds, listingData, userId, roleId)
+        const createdListings = await listingFunctions.createListing(cityIds, listingData, userId, roleId);
         return createdListings;
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -337,6 +337,15 @@ const createListing = async ({ cityIds, listingData, userId, roleId }) => {
     }
 };
 
+const updateListing = async ({ listingId, cityIds, listingData, userId, roleId}) => {
+    try {
+        const updatedListing = await listingFunctions.updateListing( listingId, cityIds, listingData, userId, roleId );
+        return updatedListing;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(`Error updating listing: ${err.message}`);
+    }
+}
 const getListingWithId = async function (
     id,
     repeatedRequest = false,
@@ -978,6 +987,7 @@ module.exports = {
     searchListings,
     createListing,
     deleteListing,
+    updateListing,
     getListingWithId,
     uploadImage,
     uploadPDF,
