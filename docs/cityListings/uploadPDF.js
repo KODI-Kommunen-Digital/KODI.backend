@@ -1,7 +1,7 @@
 const uploadPDFSwagger = {
     summary: "Upload pdf",
-    tags: ['City Listings'],
-    description: "Upload pdf for a city listing",
+    tags: ['Listings'],
+    description: "Upload pdf for a listing",
     security: [
         {
             bearerAuth: [],
@@ -10,18 +10,9 @@ const uploadPDFSwagger = {
     parameters: [
         {
             in: "path",
-            name: "cityId",
-            required: true,
-            description: "The ID of the city ",
-            schema: {
-                type: "integer",
-            },
-        },
-        {
-            in: "path",
             name: "id",
             required: true,
-            description: "The ID of the city listing",
+            description: "The ID of the listing",
             schema: {
                 type: "integer",
             },
