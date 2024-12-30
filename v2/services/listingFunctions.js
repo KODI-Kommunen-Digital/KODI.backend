@@ -12,18 +12,14 @@ const DEFAULTIMAGE = "Defaultimage";
 const sendPushNotification = require("../services/sendPushNotification");
 const citiesRepository = require("../repository/citiesRepo");
 const userRepository = require("../repository/userRepo");
-const villageRepository = require("../repository/villageRepo");
+const cityListingMappingRepo = require("../repository/cityListingMappingRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const statusRepository = require("../repository/statusRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
-const userCityuserMappingRepository = require("../repository/userCityuserMappingRepo");
 const listingsRepository = require("../repository/listingsRepo");
 const listingsImageRepository = require("../repository/listingsImagesRepo");
-const userListingMappingRepository = require("../repository/userListingMappingRepo");
 const pollOptionsRepository = require("../repository/pollOptionsRepo");
-const cityListingMappingRepo = require("../repository/cityListingMappingRepo");
 
-// to refactor
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
     let user = {};
@@ -40,86 +36,67 @@ async function createListing(cityIds, payload, userId, roleId) {
 
     if (!cityIds) {
         throw new AppError(`City is not present`, 404);
+    } else if (!Array.isArray(cityIds)) {
+        throw new AppError("CityIds should be an array", 400);
     } else {
-        cities = getCities(cityIds);
-        if (cities instanceof AppError) {
-            throw cities;
-        }
-    }
+        // Validate each cityId
+        cityIds.forEach((cityId) => {
+            if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
+                throw new AppError(`Invalid City '${cityId}' given`, 400);
+            }
+        });
 
-    if(!userId){
-        throw new AppError( `userId not present`, 404);
-    } else {
-        user = getUser(userId);
-        if (user instanceof AppError) {
-            throw user;
-        }
-    }
-
-    // this will only be available for single cities for now
-    if (
-        payload.villageId !== undefined &&
-        !isNaN(parseInt(payload.villageId)) &&
-        parseInt(payload.villageId) !== 0 &&
-        cityIds.length === 1
-    ) {
         try {
-            // const response = await database.get(
-            //     tables.VILLAGE_TABLE,
-            //     { id: payload.villageId },
-            //     null,
-            //     cityIds[0],
-            // );
-            const response = await villageRepository.getOne({
+            const response = await citiesRepository.getAll({
                 filters: [
                     {
                         key: "id",
-                        sign: "=",
-                        value: payload.villageId,
+                        sign: "IN",
+                        value: cityIds,
                     },
                 ],
-                cityId: cityIds[0],
             });
-
-            // const data = response.rows;
-            // if (data && data.length === 0) {
-            //     throw new AppError(
-            //         `Invalid Village id '${payload.villageId}' given`,
-            //         400,
-            //     );
-            // } else {
-            //     insertionData.villageId = payload.villageId;
-            // }
-            if (!response) {
-                throw new AppError(
-                    `Invalid Village id '${payload.villageId}' given`,
-                    400,
-                );
-            } else {
-                insertionData.villageId = payload.villageId;
+            if (response.rows && response.rows.length === 0 && response.rows.length !== cityIds.length) {
+                const invalidCityIds = cityIds.filter((cityId) => {
+                    return !response.rows.some((city) => city.id === cityId);
+                });
+                throw new AppError(`Invalid City '${invalidCityIds[0]}' given`, 400);
             }
+            cities = response.rows
         } catch (err) {
-            if (err instanceof AppError) {
-                return err;
-            }
-            throw new AppError(err);
+            throw err instanceof AppError ? err : new AppError(err);
         }
-    } else {
-        insertionData.villageId = null;
     }
 
-    if (!payload.title) {
+    try {
+        user = await userRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId,
+                },
+            ]
+        });
+        if (!user) {
+            throw new AppError(`Invalid User '${userId}' given`, 400);
+        }
+    } catch (err) {
+        throw err instanceof AppError ? err : new AppError(err);
+    }
+
+    if (!payload.title?.trim()) {
         throw new AppError(`Title is not present`, 400);
     } else if (payload.title.length > 255) {
         throw new AppError(`Length of Title cannot exceed 255 characters`, 400);
     } else {
-        insertionData.title = payload.title;
+        insertionData.title = payload.title.trim();
     }
-    if (!payload.place) {
-        insertionData.place = payload.place;
+    if (payload.place) {
+        insertionData.place = payload.place.trim();
     }
 
-    if (!payload.description) {
+    if (!payload.description?.trim()) {
         throw new AppError(`Description is not present`, 400);
     } else if (payload.description.length > 65535) {
         throw new AppError(
@@ -129,19 +106,16 @@ async function createListing(cityIds, payload, userId, roleId) {
     } else {
         insertionData.description = checkDesc(payload.description);
     }
+
     if (payload.media) {
         insertionData.media = payload.media;
     }
+
     let subcategory = false;
     if (!payload.categoryId) {
         throw new AppError(`Category is not present`, 400);
     } else {
         try {
-            // const response = await database.get(tables.CATEGORIES_TABLE, {
-            //     id: payload.categoryId,
-            //     isEnabled: true,
-            // });
-
             const response = await categoriesRepository.getOne({
                 filters: [
                     {
@@ -157,14 +131,6 @@ async function createListing(cityIds, payload, userId, roleId) {
                 ],
             });
 
-            // const data = response.rows;
-            // if (data && data.length === 0) {
-            //     throw new AppError(
-            //         `Invalid Category '${payload.categoryId}' given`,
-            //         400,
-            //     );
-            // }
-            // if (data[0].noOfSubcategories > 0) subcategory = true;
             if (!response) {
                 throw new AppError(
                     `Invalid Category '${payload.categoryId}' given`,
@@ -173,10 +139,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
             if (response.noOfSubcategories > 0) subcategory = true;
         } catch (err) {
-            if (err instanceof AppError) {
-                return err;
-            }
-            throw new AppError(err);
+            throw err instanceof AppError ? err : new AppError(err);
         }
         insertionData.categoryId = payload.categoryId;
     }
@@ -189,11 +152,6 @@ async function createListing(cityIds, payload, userId, roleId) {
             );
         }
         try {
-            // const response = await database.get(
-            //     tables.SUBCATEGORIES_TABLE,
-            //     { id: payload.subcategoryId },
-            //     null,
-            // );
             const subCategoryData = await subcategoriesRepository.getOne({
                 filters: [
                     {
@@ -209,19 +167,8 @@ async function createListing(cityIds, payload, userId, roleId) {
                     400,
                 );
             }
-
-            // const data = response.rows;
-            // if (data && data.length === 0) {
-            //     throw new AppError(
-            //         `Invalid Sub Category '${payload.subcategoryId}' given`,
-            //         400,
-            //     );
-            // }
         } catch (err) {
-            if (err instanceof AppError) {
-                return err;
-            }
-            throw new AppError(err);
+            throw err instanceof AppError ? err : new AppError(err);
         }
         insertionData.subcategoryId = payload.subcategoryId;
     }
@@ -233,11 +180,6 @@ async function createListing(cityIds, payload, userId, roleId) {
             insertionData.statusId = status.Pending;
         } else {
             try {
-                // const response = await database.get(
-                //     tables.STATUS_TABLE,
-                //     { id: payload.statusId },
-                //     null,
-                // );
                 const statusData = await statusRepository.getOne({
                     filters: [
                         {
@@ -248,19 +190,11 @@ async function createListing(cityIds, payload, userId, roleId) {
                     ],
                 });
 
-                // const data = response.rows;
-                // if (data && data.length === 0) {
-                //     throw new AppError(`Invalid Status '${payload.statusId}' given`, 400);
-                // }
-
                 if (!statusData) {
                     throw new AppError(`Invalid Status '${payload.statusId}' given`, 400);
                 }
             } catch (err) {
-                if (err instanceof AppError) {
-                    return err;
-                }
-                throw new AppError(err);
+                throw err instanceof AppError ? err : new AppError(err);
             }
             insertionData.statusId = payload.statusId;
         }
@@ -269,7 +203,7 @@ async function createListing(cityIds, payload, userId, roleId) {
     insertionData.sourceId = source.UserEntry;
 
     if (payload.address) {
-        insertionData.address = payload.address;
+        insertionData.address = payload.address.trim();
     }
 
     if (payload.email) {
@@ -277,7 +211,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         if (!regex.test(payload.email)) {
             throw new AppError(`Invalid email Id given`, 400);
         }
-        insertionData.email = payload.email;
+        insertionData.email = payload.email.toLowerCase();
     }
 
     if (payload.phone) {
@@ -289,26 +223,48 @@ async function createListing(cityIds, payload, userId, roleId) {
     }
 
     if (payload.website) {
-        insertionData.website = payload.website;
+        try {
+            const url = new URL(payload.website);
+            insertionData.website = url.toString();
+        } catch {
+            throw new AppError(`Invalid website URL`, 400);
+        }
     }
 
     if (payload.price) {
-        insertionData.price = payload.price;
+        const price = parseFloat(payload.price);
+        if (isNaN(price) || price < 0) {
+            throw new AppError('Price must be a positive number', 400);
+        }
+        insertionData.price = price;
     }
 
     if (payload.discountPrice) {
-        insertionData.discountPrice = payload.discountPrice;
+        const discountPrice = parseFloat(payload.discountPrice);
+        if (isNaN(discountPrice) || discountPrice < 0) {
+            throw new AppError('Discount price must be a positive number', 400);
+        }
+        insertionData.discountPrice = discountPrice;
     }
+
     if (payload.logo) {
         insertionData.logo = payload.logo;
     }
 
     if (payload.longitude) {
-        insertionData.longitude = payload.longitude;
+        const lon = parseFloat(payload.longitude);
+        if (isNaN(lon) || lon < -180 || lon > 180) {
+            throw new AppError('Invalid longitude value', 400);
+        }
+        insertionData.longitude = lon;
     }
 
     if (payload.latitude) {
-        insertionData.latitude = payload.latitude;
+        const lat = parseFloat(payload.latitude);
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+            throw new AppError('Invalid latitude value', 400);
+        }
+        insertionData.latitude = lat;
     }
 
     if (payload.zipcode) {
@@ -320,7 +276,11 @@ async function createListing(cityIds, payload, userId, roleId) {
     try {
         if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
             if (payload.expiryDate) {
-                insertionData.expiryDate = payload.expiryDate;
+                const expiryDate = new Date(payload.expiryDate);
+                if (isNaN(expiryDate.getTime())) {
+                    throw new AppError('Invalid expiry date format', 400);
+                }
+                insertionData.expiryDate = getDateInFormate(expiryDate);
             } else {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
@@ -333,13 +293,24 @@ async function createListing(cityIds, payload, userId, roleId) {
 
         if (parseInt(payload.categoryId) === categories.Events) {
             if (payload.startDate) {
-                insertionData.startDate = getDateInFormate(new Date(payload.startDate));
+                const startDate = new Date(payload.startDate);
+                if (isNaN(startDate.getTime())) {
+                    throw new AppError('Invalid start date format', 400);
+                }
+                insertionData.startDate = getDateInFormate(startDate);
             } else {
                 throw new AppError(`Start date is not present`, 400);
             }
 
             if (payload.endDate) {
-                insertionData.endDate = getDateInFormate(new Date(payload.endDate));
+                const endDate = new Date(payload.endDate);
+                if (isNaN(endDate.getTime())) {
+                    throw new AppError('Invalid end date format', 400);
+                }
+                if (endDate < new Date(payload.startDate)) {
+                    throw new AppError('End date cannot be before start date', 400);
+                }
+                insertionData.endDate = getDateInFormate(endDate);
                 insertionData.expiryDate = getDateInFormate(
                     new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24),
                 );
@@ -350,152 +321,82 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         }
     } catch (error) {
-        if (error instanceof AppError) {
-            return error;
-        }
-        throw new AppError(`Invalid time format ${error}`, 400);
+        throw error instanceof AppError ? error : new AppError(`Invalid time format ${error}`, 400);
     }
 
     const allResponses = [];
+    let transaction;
 
     try {
-        for (const city of cities) {
-            let response = {};
-            const cityId = city.id;
-            if (city.isAdminListings) {
-                // If the city is admin listings, we need directly set the user id of the listing as 1 (i.e. admin's id)
-                insertionData.userId = 1;
+        transaction = await listingsRepository.createTransaction();
+        insertionData.userId = userId;
+        const response = await listingsRepository.createWithTransaction({
+            data: insertionData,
+        }, transaction);
+
+        const listingId = response.id;
+
+
+        // verify if the listing is a poll and has poll options
+        // verify if the poll options are less than or equal to 10
+        // verify the poll options is an array
+        // verify the poll options is not empty
+        // verify if the listing is a poll
+        if (parseInt(payload.categoryId) === categories.Polls) {
+            if (
+                !payload.pollOptions ||
+                !Array.isArray(payload.pollOptions) ||
+                payload.pollOptions.length === 0
+            ) {
+                throw new AppError(`Invalid Poll Options`, 400);
+            } else if (payload.pollOptions.length > 10) {
+                throw new AppError(`Poll options length cannot exceed 10`);
             } else {
-                // response = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, {
-                //     cityId,
-                //     userId,
-                // });
-                response = await userCityuserMappingRepository.getAll({
-                    filters: [
-                        {
-                            key: "cityId",
-                            sign: "=",
-                            value: cityId,
-                        },
-                        {
-                            key: "userId",
-                            sign: "=",
-                            value: userId,
-                        },
-                    ],
-                })
-
-                if (!response.rows || response.rows.length === 0) {
-                    user.coreUserId = userId;
-                    delete user.id;
-                    delete user.password;
-                    delete user.socialMedia;
-                    delete user.emailVerified;
-                    // response = await database.create(tables.USER_TABLE, user, cityId);
-                    response = await userRepository.create({
-                        data: user,
-                        cityId,
-                    });
-
-                    const cityUserId = response.id;
-                    // await database.create(tables.USER_CITYUSER_MAPPING_TABLE, {
-                    //     cityId,
-                    //     userId,
-                    //     cityUserId,
-                    // });
-                    await userCityuserMappingRepository.create({
+                // verify that no two poll options have the same title
+                const pollOptions = payload.pollOptions.map((option) => option.title);
+                if (new Set(pollOptions).size !== pollOptions.length) {
+                    throw new AppError(`Poll Options cannot have the same title`, 400);
+                }
+                // assert polloption.title is not empty, is a string and is less than 255 characters
+                payload.pollOptions.forEach((option) => {
+                    if (
+                        !option.title ||
+                        typeof option.title !== "string" ||
+                        option.title.length > 255
+                    ) {
+                        throw new AppError(`Invalid Poll Option`, 400);
+                    }
+                });
+                for (const option of payload.pollOptions) {
+                    await pollOptionsRepository.createWithTransaction({
                         data: {
-                            cityUserId,
-                            userId,
-                            cityId,
-                        },
-                        cityId,
-                    });
-                    insertionData.userId = cityUserId;
-                } else {
-                    insertionData.userId = response.rows[0].cityUserId;
-                }
-            }
-
-            // response = await database.create(
-            //     tables.LISTINGS_TABLE,
-            //     insertionData,
-            //     cityId,
-            // );
-            response = await listingsRepository.create({
-                data: insertionData,
-                cityId,
-            })
-
-            const listingId = response.id;
-            // await database.create(tables.USER_LISTING_MAPPING_TABLE, {
-            //     cityId,
-            //     userId,
-            //     listingId,
-            // });
-            await userListingMappingRepository.create({
-                data: {
-                    userId,
-                    listingId,
-                }
-            })
-
-            // verify if the listing is a poll and has poll options
-            // verify if the poll options are less than or equal to 10
-            // verify the poll options is an array
-            // verify the poll options is not empty
-            // verify if the listing is a poll
-            if (parseInt(payload.categoryId) === categories.Polls) {
-                if (
-                    !payload.pollOptions ||
-                    !Array.isArray(payload.pollOptions) ||
-                    payload.pollOptions.length === 0
-                ) {
-                    throw new AppError(`Invalid Poll Options`, 400);
-                } else if (payload.pollOptions.length > 10) {
-                    throw new AppError(`Poll options length cannot exceed 10`);
-                } else {
-                    // verify that no two poll options have the same title
-                    const pollOptions = payload.pollOptions.map((option) => option.title);
-                    if (new Set(pollOptions).size !== pollOptions.length) {
-                        throw new AppError(`Poll Options cannot have the same title`, 400);
-                    }
-                    // assert polloption.title is not empty, is a string and is less than 255 characters
-                    payload.pollOptions.forEach((option) => {
-                        if (
-                            !option.title ||
-                            typeof option.title !== "string" ||
-                            option.title.length > 255
-                        ) {
-                            throw new AppError(`Invalid Poll Option`, 400);
+                            listingId,
+                            title: option.title.trim(),
                         }
-                    });
-                    for (const option of payload.pollOptions) {
-                        // await database.create(
-                        //     tables.POLL_OPTIONS_TABLE,
-                        //     {
-                        //         listingId,
-                        //         title: option.title,
-                        //     },
-                        //     cityId,
-                        // );
-                        await pollOptionsRepository.create({
-                            data: {
-                                listingId,
-                                title: option.title,
-                            },
-                            cityId,
-                        });
-                    }
+                    }, transaction);
                 }
             }
+
+        }
+    
+        for (const cityId of cityIds) {
+            const city = cities[cityId];
+
+            const response = await cityListingMappingRepo.createWithTransaction({
+                data: {
+                    cityId,
+                    listingId
+                }
+            }, transaction);
+
             allResponses.push({
                 cityId: Number(cityId),
                 listingId,
+                mappingId: response.id
             });
 
             if (hasDefaultImage) {
-                addDefaultImage(cityId, listingId, payload.categoryId);
+                await addDefaultImage(transaction, listingId, payload.categoryId);
             }
 
             if (
@@ -512,13 +413,12 @@ async function createListing(cityIds, payload, userId, roleId) {
                 );
             }
         }
+        await listingsRepository.commitTransaction(transaction);
 
         return allResponses;
     } catch (err) {
-        if (err instanceof AppError) {
-            throw err;
-        }
-        throw new AppError(err);
+        await listingsRepository.rollbackTransaction(transaction);
+        throw err instanceof AppError ? err : new AppError(err);
     }
 }
 
@@ -744,7 +644,7 @@ const checkDesc = (desc) => {
     return html;
 };
 
-async function addDefaultImage(cityId, listingId, categoryId) {
+async function addDefaultImage(transaction, listingId, categoryId) {
     const imageOrder = 1;
     const categoryName = Object.keys(categories).find(
         (key) => categories[key] === +categoryId,
@@ -757,20 +657,18 @@ async function addDefaultImage(cityId, listingId, categoryId) {
                 value: `%${categoryName}%`,
             }
         ],
-        columns: ["count(id) as LICount"],
-        cityId,
+        columns: ["count(id) as LICount"]
     });
     const categoryCount = countQuery.LICount;
-    const moduloValue =
-        (categoryCount % defaultImageCount[categoryName] || 0) + 1;
+    const moduloValue = ((categoryCount % defaultImageCount[categoryName]) || 0) + 1;
     const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
-    return await listingsImageRepository.create({
+
+    return await listingsImageRepository.createWithTransaction(transaction, {
         data: {
             listingId,
             imageOrder,
             logo: imageName,
-        },
-        cityId,
+        }
     });
 }
 

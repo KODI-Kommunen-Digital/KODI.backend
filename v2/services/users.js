@@ -1375,16 +1375,16 @@ const getUserListings = async function (
         }
     }
 
-    // Fetch listings based on filters and city mapping
+    if (userId) {
+        filters.userId = userId;
+    }
     try {
-        const cityMappings = await userCityUserMappingRepository.getCityUserCityMapping(userId);
-        return await listingRepository.getUserListingsFromDatabase(
-            userId,
+        const data = await listingRepository.retrieveListings({
             filters,
-            cityMappings,
             pageNo,
-            pageSize
-        );
+            pageSize,
+        })
+        return data;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
