@@ -6,11 +6,15 @@ const getAllCitizenServicesSwagger = require("./citizenService/getCitizenService
 const getCitizenServiceDataSwagger = require("./citizenService/getCitizenServiceData");
 const createCityListingSwagger = require("./cityListings/createCityListing");
 const deleteCityListingSchemaSwagger = require("./cityListings/deleteCityListing");
-const deleteImageSchemaSwagger = require("./cityListings/deleteImage");
-const deletePDFSchemaSwagger = require("./cityListings/deletePDF");
+const deleteCityImageSchemaSwagger = require("./cityListings/deleteImage");
+const deleteCityPDFSchemaSwagger = require("./cityListings/deletePDF");
+const deleteImageSchemaSwagger = require("./listings/deleteImage");
+const deletePDFSchemaSwagger = require("./listings/deletePDF");
 const getCityListingByIdSwagger = require("./cityListings/getCityListingById");
 const updateCityListingSwagger = require("./cityListings/updateCityListing");
-const uploadImageSchemaSwagger = require("./cityListings/uploadImage");
+const uploadCityImageSchemaSwagger = require("./cityListings/uploadImage");
+const uploadCityPDFSwagger = require("./listings/uploadPDF");
+const uploadImageSchemaSwagger = require("./listings/uploadImage");
 const uploadPDFSwagger = require("./cityListings/uploadPDF");
 const contactUsSwagger = require("./contactUs/contactUs");
 const createFavoriteListingSwagger = require("./favorites/addNewFavoritesForUser");
@@ -48,6 +52,10 @@ const getWasteTypesSwagger = require('./wasteCalender/getWasteTypesSwagger');
 const getPickupDatesSwagger = require('./wasteCalender/getPickupDatesSwagger');
 const createDefectReport = require('./defectReport/createDefectReport');
 const voteOnListingSwagger = require('./cityListings/voteOnListingSwagger')
+const deleteListingSwagger = require("./listings/deleteListing");
+const getListingByIdSwagger = require("./listings/getListingById");
+const updateListingByIdSwagger = require("./listings/updateListingById");
+
 const apiDocumentation = (selectedVersion = '') => {
     return {
         openapi: '3.0.1',
@@ -141,25 +149,44 @@ const apiDocumentation = (selectedVersion = '') => {
                 '/cities/{cityId}/listings': {
                     'post': createCityListingSwagger,
                     'get': getAllCityListingsSwagger,
+                },
+                '/cities/{cityId}/listings/{id}': {
+                    'get': getCityListingByIdSwagger,
+                    'patch': updateCityListingSwagger,
+                    'delete': deleteCityListingSchemaSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/imageUpload': {
+                    'post': uploadCityImageSchemaSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/imageDelete': {
+                    'delete': deleteCityImageSchemaSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/pdfUpload': {
+                    'post': uploadCityPDFSwagger,
+                },
+                '/cities/{cityId}/listings/{id}/pdfDelete': {
+                    'delete': deleteCityPDFSchemaSwagger,
                 }
             }),
-            [selectedVersion === 'v2' ? '/listings/{id}' : '/cities/{cityId}/listings/{id}']: {
-                'get': getCityListingByIdSwagger,
-                'patch': updateCityListingSwagger,
-                'delete': deleteCityListingSchemaSwagger,
-            },
-            [selectedVersion === 'v2' ? '/listings/{id}/imageUpload' : '/cities/{cityId}/listings/{id}/imageUpload']: {
-                'post': uploadImageSchemaSwagger,
-            },
-            [selectedVersion === 'v2' ? '/listings/{id}/imageDelete' : '/cities/{cityId}/listings/{id}/imageDelete']: {
-                'delete': deleteImageSchemaSwagger,
-            },
-            [selectedVersion === 'v2' ? '/listings/{id}/pdfUpload' : '/cities/{cityId}/listings/{id}/pdfUpload']: {
-                'post': uploadPDFSwagger,
-            },
-            [selectedVersion === 'v2' ? '/listings/{id}/pdfDelete' : '/cities/{cityId}/listings/{id}/pdfDelete']: {
-                'delete': deletePDFSchemaSwagger,
-            },
+            ...(selectedVersion === 'v2' && {
+                '/listings/{id}': {
+                    'get': getListingByIdSwagger,
+                    'patch': updateListingByIdSwagger,
+                    'delete': deleteListingSwagger,
+                },
+                '/listings/{id}/imageUpload': {
+                    'post': uploadImageSchemaSwagger,
+                },
+                '/listings/{id}/imageDelete': {
+                    'delete': deleteImageSchemaSwagger,
+                },
+                '/listings/{id}/pdfUpload': {
+                    'post': uploadPDFSwagger,
+                },
+                '/listings/{id}/pdfDelete': {
+                    'delete': deletePDFSchemaSwagger,
+                },
+            }),
             [selectedVersion === 'v2' ? '/listings/{id}/vote' : '/cities/{cityId}/listings/{id}/vote']: {
                 'post': voteOnListingSwagger,
             },
