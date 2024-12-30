@@ -7,4 +7,5 @@ class CityListingMappingRepo extends BaseRepo {
     }
 }
 
+
 module.exports = new CityListingMappingRepo();

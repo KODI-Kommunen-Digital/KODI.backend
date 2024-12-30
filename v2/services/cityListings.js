@@ -27,6 +27,7 @@ const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const userCityuserMappingRepository = require("../repository/userCityuserMappingRepo");
 const status = require("../constants/status");
+const cityListingMappingRepo =require("../repository/cityListingMappingRepo")
 
 const DEFAULTIMAGE = "Defaultimage";
 
@@ -87,6 +88,23 @@ const getCityListingWithId = async function (
                 throw new AppError(err);
             }
         }
+        const listingData = await cityListingMappingRepo.getOne({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: id,
+                },
+                {
+                    key: "cityId",
+                    sign: "=",
+                    value: cityId,
+                },
+            ]
+        });
+        if (!listingData) {
+            throw new AppError(`Listings with id ${id} does not exist`, 404);
+        }
 
         // const data = await listingRepo.getCityListingWithId(id, cityId);
         const data = await listingRepository.getOne({
@@ -97,7 +115,6 @@ const getCityListingWithId = async function (
                     value: id,
                 },
             ],
-            cityId,
         });
         if (!data) {
             throw new AppError(`Listings with id ${id} does not exist`, 404);
@@ -111,7 +128,6 @@ const getCityListingWithId = async function (
                     value: id,
                 },
             ],
-            cityId,
         });
         const listingImageList = listingImageListResp.rows;
         const logo = listingImageList && listingImageList.length > 0 ? listingImageList[0].logo : null;
@@ -129,7 +145,6 @@ const getCityListingWithId = async function (
                         value: id,
                     },
                 ],
-                cityId,
             });
         }
 
@@ -143,7 +158,6 @@ const getCityListingWithId = async function (
                         value: id,
                     },
                 ],
-                cityId,
             });
             data.pollOptions = pollOptionResp?.rows ?? [];
         }
