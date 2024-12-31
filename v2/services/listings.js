@@ -36,7 +36,7 @@ const getAllListings = async ({
     showExternalListings,
     isAdmin
 }) => {
-    const filters = {};
+    const filters = [];
     let sortByStartDateBool = false;
     let cities = [];
 
@@ -77,9 +77,19 @@ const getAllListings = async ({
         if (!response || !response.rows || !response.rows.length) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
-        filters.statusId = statusId;
+        // filters.statusId = statusId;
+        filters.push({
+            key: "statusId",
+            sign: "=",
+            value: statusId
+        });
     } else {
-        filters.statusId = status.Active;
+        // filters.statusId = status.Active;
+        filters.push({
+            key: "statusId",
+            sign: "=",
+            value: status.Active
+        });
     }
 
     if (categoryId) {
@@ -113,9 +123,19 @@ const getAllListings = async ({
             if (!subcategory || !subcategory.rows || !subcategory.rows.length) {
                 throw new AppError(`Invalid subCategory '${subcategoryId}' given`, 400);
             }
-            filters.subcategoryId = subcategoryId;
+            // filters.subcategoryId = subcategoryId;
+            filters.push({
+                key: "subcategoryId",
+                sign: "=",
+                value: subcategoryId
+            });
         }
-        filters.categoryId = categoryId;
+        // filters.categoryId = categoryId;
+        filters.push({
+            key: "categoryId",
+            sign: "=",
+            value: categoryId
+        });
     }
 
     if (cityId) {
@@ -162,7 +182,12 @@ const getAllListings = async ({
     }
 
     if (showExternalListings !== "true") {
-        filters.sourceId = source.UserEntry;
+        // filters.sourceId = source.UserEntry;
+        filters.push({
+            key: "sourceId",
+            sign: "=",
+            value: source.UserEntry
+        });
     }
 
     try {
@@ -300,9 +325,19 @@ const searchListings = async ({
         if (!status) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
-        filters.statusId = statusId;
+        // filters.statusId = statusId;
+        filters.push({
+            key: "statusId",
+            sign: "=",
+            value: statusId
+        });
     } else {
-        filters.statusId = status.Active;
+        // filters.statusId = status.Active;
+        filters.push({
+            key: "statusId",
+            sign: "=",
+            value: status.Active
+        });
     }
 
     try {
