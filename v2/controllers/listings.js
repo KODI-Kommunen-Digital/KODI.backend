@@ -116,12 +116,13 @@ const getListingWithId = async function (req, res, next) {
     const repeatedRequest = req.repeatedRequest;
 
     try {
-        await listingService.getListingWithId(
+        const data = await listingService.getListingWithId(
             id,
             repeatedRequest
         );
         return res.status(200).json({
             status: "success",
+            data
         });
     } catch (err) {
         return next(err);

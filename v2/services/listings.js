@@ -381,6 +381,7 @@ const updateListing = async ({ listingId, cityIds, listingData, userId, roleId})
         throw new AppError(`Error updating listing: ${err.message}`);
     }
 }
+
 const getListingWithId = async function (
     id,
     repeatedRequest = false,
