@@ -12,7 +12,6 @@ const {
     uploadImage,
     uploadPDF,
     deleteImage,
-    deleteListing,
     deletePDF
 } = require("../controllers/listings");
 const rateLimit = require("express-rate-limit");
