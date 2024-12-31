@@ -178,7 +178,7 @@ const getAllListings = async ({
             columns: "id,name,image, hasForum",
             sort: ["name"]
         });
-        cities = citiesResp?.rows ?? [];
+        cities = citiesResp?.rows?.map(city => city.id) ?? [];
     }
 
     if (showExternalListings !== "true") {

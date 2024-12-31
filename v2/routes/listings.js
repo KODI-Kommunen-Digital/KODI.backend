@@ -8,6 +8,7 @@ const {
     createListing,
     updateListing,
     getListingWithId,
+    deleteListing,
     uploadImage,
     uploadPDF,
     deleteImage,
@@ -36,6 +37,8 @@ router.get("/", optionalAuthentication, getAllListings);
 router.get("/search", searchListings);
 
 router.post("/", authentication, createListing);
+
+router.delete("/:id", authentication, deleteListing);
 
 router.patch("/:listingId", authentication, updateListing);
 

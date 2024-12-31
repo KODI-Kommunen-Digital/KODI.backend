@@ -379,6 +379,10 @@ async function createListing(cityIds, payload, userId, roleId) {
 
         }
 
+        if (hasDefaultImage) {
+            await addDefaultImage(transaction, listingId, payload.categoryId);
+        }
+    
         for (const cityId of cityIds) {
             const city = cities[cityId];
 
@@ -394,10 +398,6 @@ async function createListing(cityIds, payload, userId, roleId) {
                 listingId,
                 mappingId: response.id
             });
-
-            if (hasDefaultImage) {
-                await addDefaultImage(transaction, listingId, payload.categoryId);
-            }
 
             if (
                 parseInt(insertionData.categoryId) === categories.News &&
@@ -673,13 +673,13 @@ async function addDefaultImage(transaction, listingId, categoryId) {
     const moduloValue = ((categoryCount % defaultImageCount[categoryName]) || 0) + 1;
     const imageName = `admin/${categoryName}/${DEFAULTIMAGE}${moduloValue}.png`;
 
-    return await listingsImageRepository.createWithTransaction(transaction, {
+    return await listingsImageRepository.createWithTransaction({
         data: {
             listingId,
             imageOrder,
             logo: imageName,
         }
-    });
+    }, transaction);
 }
 
 async function getUser(userId) {

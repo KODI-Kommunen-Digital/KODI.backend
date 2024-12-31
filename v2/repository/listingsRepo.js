@@ -13,7 +13,7 @@ class ListingsRepo extends BaseRepo {
         pageNo = 1,
         pageSize = 10,
         searchQuery = null,
-        sortByStartDate = false
+        sortByStartDate = false,
     }) => {
         const queryParams = [];
 
@@ -24,6 +24,15 @@ class ListingsRepo extends BaseRepo {
                 L.description,
                 L.createdAt,
                 L.userId,
+                L.startDate,
+                L.endDate,
+                L.statusId,
+                L.categoryId,
+                L.showExternal,
+                L.appointmentId,
+                L.viewCount,
+                L.externalId,
+                L.sourceId,
                 C.cityId,
                 C.cityCount,
                 C.allCities,
@@ -62,7 +71,7 @@ class ListingsRepo extends BaseRepo {
             queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
         }
 
-        filters.forEach(filter => {
+        filters.forEach((filter) => {
             if (filter.value !== undefined) {
                 query += ` AND L.${filter.key} = ?`;
                 queryParams.push(filter.value);
@@ -71,15 +80,18 @@ class ListingsRepo extends BaseRepo {
 
         const orderByClause = sortByStartDate ? " ORDER BY L.startDate, L.createdAt DESC" : " ORDER BY L.createdAt DESC";
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
-        queryParams.push((pageNo - 1) * pageSize, pageSize);
-
+        const offset = (pageNo - 1) * pageSize;
+        queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
+    
         try {
             const response = await database.callQuery(paginationQuery, queryParams);
             return response.rows;
         } catch (error) {
-            throw new Error('Error retrieving listings');
+            console.error("Error executing query:", error.message);
+            throw new Error("Error retrieving listings");
         }
-    }
+    };
+    
 }
 
 module.exports = new ListingsRepo();
