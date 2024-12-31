@@ -131,7 +131,7 @@ const getListingWithId = async function (req, res, next) {
 
 
 const deleteListing = async function (req, res, next) {
-    const id = req.params.id;
+    const id = req.params.listingId;
     const userId = req.userId;
     const roleId = req.roleId;
     try {

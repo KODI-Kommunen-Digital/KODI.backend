@@ -11,6 +11,7 @@ const {
     uploadImage,
     uploadPDF,
     deleteImage,
+    deleteListing,
     deletePDF
 } = require("../controllers/listings");
 const rateLimit = require("express-rate-limit");
@@ -37,6 +38,9 @@ router.get("/search", searchListings);
 router.post("/", authentication, createListing);
 
 router.patch("/:listingId", authentication, updateListing);
+
+router.delete("/:listingId", authentication, deleteListing);
+
 router.post(
     "/:id/imageUpload",
     authentication,
