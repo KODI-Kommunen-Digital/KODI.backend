@@ -378,7 +378,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
 
         }
-    
+
         for (const cityId of cityIds) {
             const city = cities[cityId];
 
@@ -422,44 +422,50 @@ async function createListing(cityIds, payload, userId, roleId) {
     }
 }
 
-const updateListing = async(listingId, cityIds, listingData, userId, roleId) =>{
+const updateListing = async (listingId, cityIds, listingData, userId, roleId) => {
     let cities = [];
     const updationData = {};
     let user = {};
 
-    if (!cityIds) {
-        throw new AppError(`City is not present`, 404);
-    } else {
-        cities = getCities(cityIds);
-        if (cities instanceof AppError) {
-            throw cities;
+    if (cityIds) {
+        try {
+            cities = await getCities(cityIds);
+            if (!cities.length) {
+                throw new AppError(`Invalid Cities '${cityIds}' given`, 400);
+            }
+        } catch (err) {
+            throw err instanceof AppError ? err : new AppError(err);
         }
     }
 
-    if(!userId){
-        throw new AppError( `userId not present`, 404);
+    if (!userId) {
+        throw new AppError(`userId not present`, 404);
     } else {
-        user = getUser(userId);
-        if (user instanceof AppError) {
-            throw user;
+        try {
+            user = await getUser(userId);
+            if (!user) {
+                throw new AppError(`Invalid User '${userId}' given`, 400);
+            }
+        } catch (err) {
+            throw err instanceof AppError ? err : new AppError(err);
         }
     }
-    let currentListingData ={};
-    if(!listingId){
+    let currentListingData = {};
+    if (!listingId) {
         throw new AppError('listingId not present', 404);
     } else {
-        const response = await listingsRepository.getOne({
-            filters:[
+        currentListingData = await listingsRepository.getOne({
+            filters: [
                 {
                     key: 'id',
-                    value: listingId
+                    value: listingId,
+                    sign: "="
                 }
             ]
         });
-        if(!response.rows?.length) {
+        if (!currentListingData) {
             throw new AppError(`Listing with id = ${listingId} does not exist`, 404);
         }
-        currentListingData = response.rows[0];
     }
 
     if (currentListingData.userId !== userId && roleId !== roles.Admin) {
@@ -469,23 +475,25 @@ const updateListing = async(listingId, cityIds, listingData, userId, roleId) =>{
     let subcategory = false;
     if (listingData.categoryId) {
         try {
-            const response = await categoriesRepository.getOne({
-                filters:[
+            const categoryData = await categoriesRepository.getOne({
+                filters: [
                     {
                         key: 'id',
-                        value: listingData.categoryId
+                        value: listingData.categoryId,
+                        sign: "="
                     },
                     {
                         key: 'isEnabled',
                         value: true,
+                        sign: "="
                     }
                 ]
             });
 
-            if (!response.rows?.length) {
+            if (!categoryData) {
                 throw new AppError(`Invalid Category '${listingData.categoryId}'`, 400);
             }
-            if (response.rows[0].noOfSubcategories>0){
+            if (categoryData.noOfSubcategories > 0) {
                 subcategory = true;
             } else {
                 updationData.subcategoryId = null;
@@ -604,22 +612,24 @@ const updateListing = async(listingId, cityIds, listingData, userId, roleId) =>{
     }
 
     updationData.updatedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
-    validateAndAssign(updationData, listingData);
+    validateAndAssignListingParameters(updationData, listingData);
     let transaction;
     try {
         transaction = await listingsRepository.createTransaction();
         await listingsRepository.updateWithTransaction({
-            data:updationData,
-            filters:[
+            data: updationData,
+            filters: [
                 {
-                    key:"id",
-                    sign:"=",
+                    key: "id",
+                    sign: "=",
                     value: listingId
                 }
             ]
         }, transaction);
 
-        await updateCityMappings(updationData, listingId, cityIds, transaction, roleId);
+        if (cityIds) {
+            await updateCityMappings(updationData, listingId, cityIds, transaction, roleId);
+        }
         const isPollCategory = listingData.categoryId === categories.Polls;
         if (isPollCategory) {
             validatePollOptions(listingData.pollOptions);
@@ -715,7 +725,7 @@ async function getCities(cityIds) {
         return response.rows;
     } catch (err) {
         if (err instanceof AppError) {
-            return err;
+            throw err;
         }
         throw new AppError(err, 500);
     }
@@ -761,7 +771,7 @@ async function managePollOptions(pollOptions, listingId, transaction) {
             await pollOptionsRepository.deleteWithTransaction({
                 filters: [
                     {
-                        key:"id",
+                        key: "id",
                         sign: "=",
                         value: id
                     }
@@ -773,20 +783,20 @@ async function managePollOptions(pollOptions, listingId, transaction) {
         for (const option of pollOptions) {
             if (option.id && existingIds.includes(option.id)) {
                 await pollOptionsRepository.updateWithTransaction({
-                    data:{
-                        title:option.title
+                    data: {
+                        title: option.title
                     },
                     filters: [
                         {
-                            key:"id",
-                            sign:"=",
-                            value:option.id
+                            key: "id",
+                            sign: "=",
+                            value: option.id
                         }
                     ]
                 }, transaction);
             } else {
                 await pollOptionsRepository.createWithTransaction({
-                    data:{
+                    data: {
                         listingId,
                         title: option.title
                     }
@@ -801,7 +811,7 @@ async function managePollOptions(pollOptions, listingId, transaction) {
     }
 }
 
-function validateAndAssign(updationData, payload, next) {
+function validateAndAssignListingParameters(updationData, payload, next) {
     if (payload.description && payload.description.length > 65535) {
         throw next(new AppError(`Description length exceeds limit`, 400));
     } else if (payload.description) {
@@ -888,11 +898,11 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
                 ],
             }, transaction);
         }
-    
+
         // Perform add operations
         for (const cityId of cityIdsToAdd) {
             await cityListingMappingRepo.createWithTransaction({
-                data:{
+                data: {
                     listingId,
                     cityId,
                 }
@@ -901,14 +911,14 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
             const cityResponse = await citiesRepository.getOne({
                 filters: [
                     {
-                        key:"id",
-                        sign:"=",
-                        value:cityId
+                        key: "id",
+                        sign: "=",
+                        value: cityId
                     }
                 ],
                 columns: "name",
             });
-            const cityName = cityResponse.rows?.[0]?.name;
+            const cityName = cityResponse.name;
             if (
                 parseInt(updationData.categoryId) === categories.News &&
                 parseInt(updationData.subcategoryId) === subcategories.newsflash &&
