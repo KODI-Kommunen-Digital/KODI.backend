@@ -1278,7 +1278,7 @@ const getUserListings = async function (
     categoryId,
     subcategoryId,
 ) {
-    const filters = {};
+    const filters = [];
 
     // Validate userId, pageNo, and pageSize
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -1315,7 +1315,12 @@ const getUserListings = async function (
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        filters.statusId = statusId;
+        // filters.statusId = statusId;
+        filters.push({
+            key: "statusId",
+            sign: "=",
+            value: statusId
+        });
     }
 
     // Validate and apply categoryId and subcategoryId filters
@@ -1338,7 +1343,12 @@ const getUserListings = async function (
                 throw new AppError(`Invalid Category '${categoryId}' given`, 400);
             }
 
-            filters.categoryId = categoryId;
+            // filters.categoryId = categoryId;
+            filters.push({
+                key: "categoryId",
+                sign: "=",
+                value: categoryId
+            });
 
             if (subcategoryId) {
                 if (isNaN(Number(subcategoryId)) || Number(subcategoryId) <= 0) {
@@ -1367,7 +1377,12 @@ const getUserListings = async function (
                     if (err instanceof AppError) throw err;
                     throw new AppError(err);
                 }
-                filters.subcategoryId = subcategoryId;
+                // filters.subcategoryId = subcategoryId;
+                filters.push({
+                    key: "subcategoryId",
+                    sign: "=",
+                    value: subcategoryId
+                });
             }
         } catch (err) {
             if (err instanceof AppError) throw err;
@@ -1376,7 +1391,12 @@ const getUserListings = async function (
     }
 
     if (userId) {
-        filters.userId = userId;
+        // filters.userId = userId;
+        filters.push({
+            key: "userId",
+            sign: "=",
+            value: userId
+        });
     }
     try {
         const data = await listingRepository.retrieveListings({
