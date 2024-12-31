@@ -160,12 +160,12 @@ const getAllListings = async ({
         });
 
         // Throw an error if no cities are found
-        if (!citiesResp.length) {
+        if (!citiesResp.count) {
             throw new AppError(`No cities found for provided CityId(s) '${cityId}'`, 400);
         }
 
         // Check if the number of cities retrieved matches the number of IDs provided
-        if (citiesResp.length !== cityIds.length) {
+        if (citiesResp.count !== cityIds.length) {
             // Find missing IDs by filtering out those that were found in the database
             const foundIds = citiesResp.map(city => city.id);
             const missingIds = cityIds.filter(id => !foundIds.includes(id));
@@ -290,7 +290,7 @@ const searchListings = async ({
             sort: ["name"]
         });
         cities = citiesResp?.rows ?? [];
-        if (cities.length === 0) {
+        if (cities.count === 0) {
             throw new AppError("No cities found", 404);
         }
     }
