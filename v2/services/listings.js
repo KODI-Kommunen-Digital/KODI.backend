@@ -526,7 +526,8 @@ const uploadImage = async function (
     listingId,
     userId,
     roleId,
-    files,
+    imageFiles,
+    imageList
 ) {
 
     if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
@@ -557,8 +558,7 @@ const uploadImage = async function (
         );
     }
 
-    const image = files?.image;
-    const imageArr = image ? (image.length > 1 ? image : [image]) : [];
+    const imageArr = imageFiles ? (imageFiles.length > 1 ? imageFiles : [imageFiles]) : [];
     const hasIncorrectMime = imageArr.some((i) => !i.mimetype.includes("image/"));
     if (hasIncorrectMime) {
         throw new AppError(`Invalid Image type`, 403);
@@ -589,7 +589,7 @@ const uploadImage = async function (
         });
     } else {
         const imagesToRetain = listingImages.filter((value) =>
-            (image || []).includes(value.logo),
+            (imageList || []).includes(value.logo),
         );
         const imagesToDelete = listingImages.filter(
             (value) => !imagesToRetain.map((i2r) => i2r.logo).includes(value.logo),

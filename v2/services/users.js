@@ -16,7 +16,6 @@ const usersRepository = require("../repository/userRepo");
 const tokenRepository = require("../repository/tokenRepo");
 const userCityUserMappingRepository = require("../repository/cityUserMappingRepo");
 const verificationTokenRepository = require("../repository/verificationTokensRepo");
-const cityRepository = require("../repository/cityRepo");
 const forgotPasswordTokenRepository = require("../repository/forgotPasswordTokensRepo");
 const statusRepository = require("../repository/statusRepo");
 const listingRepository = require("../repository/listingsRepo");
@@ -388,55 +387,6 @@ const register = async function (payload) {
 };
 
 const getUserById = async function (userId, cityUser, cityId, reqUserId) {
-    if (cityUser) {
-        if (!cityId) {
-            throw new AppError(`City id not given`, 400);
-        }
-        if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
-            throw new AppError(`Invalid cityId ${cityId}`, 400);
-        }
-        try {
-            // const city = await getCityWithId(cityId);
-            const city = await cityRepository.getOne({
-                filters: [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: cityId
-                    }
-                ]
-            });
-            if (!city) {
-                throw new AppError(`City with id ${cityId} does not exist`, 400);
-            }
-
-            // const cityUser = await userRepo.getCityUser(cityId, userId);
-            const cityUser = await userCityUserMappingRepository.getOne({
-                filters: [
-                    {
-                        key: "cityId",
-                        sign: "=",
-                        value: cityId
-                    },
-                    {
-                        key: "cityUserId",
-                        sign: "=",
-                        value: userId
-                    }
-                ]
-            });
-            if (!cityUser) {
-                throw new AppError(
-                    `User ${userId} is not found in city ${cityId}`,
-                    404,
-                );
-            }
-            userId = cityUser.userId;
-        } catch (err) {
-            if (err instanceof AppError) throw err;
-            throw new AppError(err);
-        }
-    }
 
     try {
         // const userData = await userRepo.getUserWithId(userId);

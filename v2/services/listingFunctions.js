@@ -427,7 +427,7 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
     const updationData = {};
     let user = {};
 
-    if (cityIds) {
+    if (cityIds && cityIds.length > 0) {
         try {
             cities = await getCities(cityIds);
             if (!cities.length) {
@@ -627,7 +627,7 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
             ]
         }, transaction);
 
-        if (cityIds) {
+        if (cityIds && cityIds.length > 0) {
             await updateCityMappings(updationData, listingId, cityIds, transaction, roleId);
         }
         const isPollCategory = listingData.categoryId === categories.Polls;
@@ -827,7 +827,7 @@ function validateAndAssignListingParameters(updationData, payload, next) {
     }
 
     if (payload.phone) {
-        const phoneRegex = /^[+][0-9]{1,3}[-\s./0-9]*$/;
+        const phoneRegex = /^[+]*[(]{0,1}[0-9]{1,3}[)]{0,1}[-\s\./0-9]*$/g;
         if (!phoneRegex.test(payload.phone)) {
             throw next(new AppError(`Invalid phone number format`, 400));
         }

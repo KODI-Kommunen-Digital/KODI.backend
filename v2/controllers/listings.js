@@ -131,7 +131,7 @@ const getListingWithId = async function (req, res, next) {
 
 
 const deleteListing = async function (req, res, next) {
-    const id = req.params.listingId;
+    const id = req.params.id;
     const userId = req.userId;
     const roleId = req.roleId;
     try {
@@ -148,13 +148,15 @@ const uploadImage = async function (req, res, next) {
     const listingId = req.params.id;
     const userId = req.userId;
     const roleId = req.roleId;
-    const { image } = req.files;
+    const imageFiles = req?.files?.image;
+    const imageList = req?.body?.image;
     try {
         await listingService.uploadImage(
             listingId,
             userId,
             roleId,
-            image,
+            imageFiles,
+            imageList
         );
         res.status(200).json({
             status: "success",
