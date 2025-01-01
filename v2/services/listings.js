@@ -343,7 +343,7 @@ const searchListings = async ({
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
-            cities,
+            cities: cities.map(city => city.id),
             searchQuery,
             pageNo,
             pageSize,
