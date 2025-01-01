@@ -4,6 +4,11 @@ const getAllListingsSwagger = {
     summary: "Get all listings",
     description: "Retrieve all listings based on the provided parameters",
     tags: ["Listings"],
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
     parameters: [
         {
             in: "query",
