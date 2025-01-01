@@ -29,11 +29,11 @@ const rateLogger = rateLimit({
     skipSuccessfulRequests: false, // Skip counting successful requests
 });
 
+router.get("/search", searchListings);
+
 router.get("/:id", rateLogger, getListingWithId);
 
 router.get("/", optionalAuthentication, getAllListings);
-
-router.get("/search", searchListings);
 
 router.post("/", authentication, createListing);
 
