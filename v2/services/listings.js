@@ -372,9 +372,9 @@ const createListing = async ({ cityIds, listingData, userId, roleId }) => {
     }
 };
 
-const updateListing = async ({ listingId, cityIds, listingData, userId, roleId}) => {
+const updateListing = async ({ listingId, cityIds, listingData, userId, roleId }) => {
     try {
-        const updatedListing = await listingFunctions.updateListing( listingId, cityIds, listingData, userId, roleId );
+        const updatedListing = await listingFunctions.updateListing(listingId, cityIds, listingData, userId, roleId);
         return updatedListing;
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -488,12 +488,11 @@ const deleteListing = async function (id, userId, roleId) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
-    try 
-    {
+    try {
         const userImageList = await bucketClient.fetchUserImages(userId, null, id);
 
         const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text })).filter((image) => !image.startsWith("admin/"))
-        
+
         if (imagesToDelete && imagesToDelete.length > 0) {
             await imageDeleteAsync.deleteMultiple(imagesToDelete);
         }
@@ -835,17 +834,21 @@ const deleteImage = async function (id, userId, roleId) {
     imageList = JSON.parse(
         parser.xml2json(imageList.data, { compact: true, spaces: 4 }),
     );
+
+    const userListingFilter = `user_${userId}/listing_${id}`;
     const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-        obj.Key._text.includes(`user_${userId}/`),
-    );
+        obj.Key._text.includes(userListingFilter),
+    ).filter((obj) => !obj.Key._text.includes("admin/"));
 
     const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text }))
 
     try {
-        await imageDeleteAsync.deleteMultiple(
-            imagesToDelete.map((i) => i.logo).filter((i) => !i.startsWith("admin/")),
-        );
-    
+        if (imagesToDelete && imagesToDelete.length > 0) {
+            await imageDeleteAsync.deleteMultiple(
+                imagesToDelete.map((i) => i.Key),
+            );
+        }
+
         await listingImagesRepository.delete({
             filters: [
                 {
