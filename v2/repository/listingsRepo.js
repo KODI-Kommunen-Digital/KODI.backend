@@ -73,8 +73,13 @@ class ListingsRepo extends BaseRepo {
 
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
-                query += ` AND L.${filter.key} = ?`;
-                queryParams.push(filter.value);
+                if (filter.sign === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
+                    query += ` AND L.${filter.key} IN (?)`;
+                    queryParams.push(filter.value);
+                } else {
+                    query += ` AND L.${filter.key} = ?`;
+                    queryParams.push(filter.value);
+                }
             }
         });
 
@@ -82,7 +87,7 @@ class ListingsRepo extends BaseRepo {
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
         const offset = (pageNo - 1) * pageSize;
         queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
-    
+
         try {
             const response = await database.callQuery(paginationQuery, queryParams);
             return response.rows;
@@ -91,7 +96,7 @@ class ListingsRepo extends BaseRepo {
             throw new Error("Error retrieving listings");
         }
     };
-    
+
 }
 
 module.exports = new ListingsRepo();
