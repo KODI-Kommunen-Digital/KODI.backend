@@ -225,6 +225,26 @@ const deletePDF = async function (req, res, next) {
     }
 };
 
+const vote = async function (req, res, next) {
+    const listingId = req.params.id;
+    const optionId = req.body.optionId;
+    const vote = req.body.vote;
+
+    try {
+        const voteCount = await listingService.vote(
+            listingId,
+            optionId,
+            vote,
+        );
+        return res.status(200).json({
+            status: "success",
+            votes: voteCount,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 module.exports = {
     getAllListings,
     searchListings,
@@ -235,5 +255,6 @@ module.exports = {
     uploadImage,
     uploadPDF,
     deleteImage,
-    deletePDF
+    deletePDF,
+    vote
 };
