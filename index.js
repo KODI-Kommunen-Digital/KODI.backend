@@ -26,6 +26,7 @@ const headers = require("./middlewares/headers");
 const swaggerUi = require('swagger-ui-express');
 const apiDocumentation = require('./docs/docRoot');
 const apiVersions = require('./constants/apiVersions');
+const bridgeRoutes = require('./bridgeRoutes');
 
 // defining the Express app
 const app = express();
@@ -68,60 +69,20 @@ for (const version in apiVersions) {
     app.use(`/${version}`, apiVersions[version].router);
 }
 
-app.use("/users", usersRouter);
-app.use("/cities", citiesRouter);
-app.use("/listings", listingsRouter);
-app.use("/categories", categoriesRouter);
-app.use("/status", statusRouter);
-app.use("/citizenServices", citizenServicesRouter);
-app.use("/contactUs", contactUsRouter);
-app.use("/moreInfo", moreInfoRouter);
-app.get("/test", (req, res) => {
-    res.send('testing pipeline!!');
-});
-app.use(
-    "/users/:userId/favorites",
-    function (req, res, next) {
-        if (
-            isNaN(Number(req.params.userId)) ||
-            Number(req.params.userId) <= 0
-        ) {
-            return next(new AppError(`Invalid user id given`, 400));
-        }
-        req.paramUserId = req.params.userId;
-        next();
-    },
-    favoriteRouter
-);
-app.use(
-    "/cities/:cityId/villages",
-    function (req, res, next) {
-        if (
-            isNaN(Number(req.params.cityId)) ||
-            Number(req.params.cityId) <= 0
-        ) {
-            return next(new AppError(`Invalid city id given`, 400));
-        }
-        req.cityId = req.params.cityId;
-        next();
-    },
-    villageRouter
-);
-app.use(
-    "/cities/:cityId/listings",
-    function (req, res, next) {
-        if (
-            isNaN(Number(req.params.cityId)) ||
-            Number(req.params.cityId) <= 0
-        ) {
-            return next(new AppError(`Invalid city id given`, 400));
-        }
-        req.cityId = req.params.cityId;
-        next();
-    },
-    cityListingsRouter
-);
-if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+if (process.env.BRIDGES_ENABLED === 'True') {
+    app.use("", bridgeRoutes);
+} else {
+    app.use("/users", usersRouter);
+    app.use("/cities", citiesRouter);
+    app.use("/listings", listingsRouter);
+    app.use("/categories", categoriesRouter);
+    app.use("/status", statusRouter);
+    app.use("/citizenServices", citizenServicesRouter);
+    app.use("/contactUs", contactUsRouter);
+    app.use("/moreInfo", moreInfoRouter);
+    app.get("/test", (req, res) => {
+        res.send('testing pipeline!!');
+    });
     app.use(
         "/users/:userId/favorites",
         function (req, res, next) {
@@ -166,7 +127,21 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
     );
     if (process.env.WASTE_CALENDER_ENABLED === 'True') {
         app.use(
-            "/cities/:cityId/wasteCalender",
+            "/users/:userId/favorites",
+            function (req, res, next) {
+                if (
+                    isNaN(Number(req.params.userId)) ||
+                    Number(req.params.userId) <= 0
+                ) {
+                    return next(new AppError(`Invalid user id given`, 400));
+                }
+                req.paramUserId = req.params.userId;
+                next();
+            },
+            favoriteRouter
+        );
+        app.use(
+            "/cities/:cityId/villages",
             function (req, res, next) {
                 if (
                     isNaN(Number(req.params.cityId)) ||
@@ -177,11 +152,41 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
                 req.cityId = req.params.cityId;
                 next();
             },
-            wasteCalender
+            villageRouter
         );
+        app.use(
+            "/cities/:cityId/listings",
+            function (req, res, next) {
+                if (
+                    isNaN(Number(req.params.cityId)) ||
+                    Number(req.params.cityId) <= 0
+                ) {
+                    return next(new AppError(`Invalid city id given`, 400));
+                }
+                req.cityId = req.params.cityId;
+                next();
+            },
+            cityListingsRouter
+        );
+        if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+            app.use(
+                "/cities/:cityId/wasteCalender",
+                function (req, res, next) {
+                    if (
+                        isNaN(Number(req.params.cityId)) ||
+                        Number(req.params.cityId) <= 0
+                    ) {
+                        return next(new AppError(`Invalid city id given`, 400));
+                    }
+                    req.cityId = req.params.cityId;
+                    next();
+                },
+                wasteCalender
+            );
+        }
+        app.use("/ads", advertisement)
+        app.use("/reportDefect", defectReportRouter);
     }
-    app.use("/ads", advertisement)
-    app.use("/reportDefect", defectReportRouter);
 }
 
 app.use("/api-docs", swaggerUi.serve);
