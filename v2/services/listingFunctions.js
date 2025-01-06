@@ -253,16 +253,22 @@ async function createListing(cityIds, payload, userId, roleId) {
 
     if (payload.longitude) {
         const lon = parseFloat(payload.longitude);
-        if (isNaN(lon) || lon < -180 || lon > 180) {
-            throw new AppError('Invalid longitude value', 400);
+        if (isNaN(lon)) {
+            throw new AppError('Invalid longitude value, Longitude value should be a Number', 400);
+        }
+        if(lon < -180 || lon > 180) {
+            throw new AppError('Invalid longitude value, Longitude value should be between -180° to 180°', 400);
         }
         insertionData.longitude = lon;
     }
 
     if (payload.latitude) {
         const lat = parseFloat(payload.latitude);
-        if (isNaN(lat) || lat < -90 || lat > 90) {
+        if (isNaN(lat)) {
             throw new AppError('Invalid latitude value', 400);
+        }
+        if(lat < -90 || lat > 90) {
+            throw new AppError('Invalid latitude value, Latitude value should be between -90° to 90°', 400);
         }
         insertionData.latitude = lat;
     }
@@ -278,7 +284,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (payload.expiryDate) {
                 const expiryDate = new Date(payload.expiryDate);
                 if (isNaN(expiryDate.getTime())) {
-                    throw new AppError('Invalid expiry date format', 400);
+                    throw new AppError('Invalid expiry date format, example format: "2025-01-06T07:47:09.230Z" ', 400);
                 }
                 insertionData.expiryDate = getDateInFormate(expiryDate);
             } else {
@@ -295,7 +301,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (payload.startDate) {
                 const startDate = new Date(payload.startDate);
                 if (isNaN(startDate.getTime())) {
-                    throw new AppError('Invalid start date format', 400);
+                    throw new AppError('Invalid start date format, example format: "2025-01-06T07:47:09.230Z"', 400);
                 }
                 insertionData.startDate = getDateInFormate(startDate);
             } else {
@@ -305,7 +311,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (payload.endDate) {
                 const endDate = new Date(payload.endDate);
                 if (isNaN(endDate.getTime())) {
-                    throw new AppError('Invalid end date format', 400);
+                    throw new AppError('Invalid end date format, example format: "2025-01-06T07:47:09.230Z" ', 400);
                 }
                 if (endDate < new Date(payload.startDate)) {
                     throw new AppError('End date cannot be before start date', 400);
