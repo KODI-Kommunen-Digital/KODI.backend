@@ -32,6 +32,7 @@ class ListingsRepo extends BaseRepo {
                 L.appointmentId,
                 L.viewCount,
                 L.externalId,
+                L.expiryDate,
                 L.sourceId,
                 C.cityId,
                 C.cityCount,
