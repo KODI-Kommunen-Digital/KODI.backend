@@ -473,6 +473,12 @@ const updateCityListing = async function (id, cityId, payload, userId, roleId) {
                         sign: "=",
                         value: payload.categoryId,
                     },
+                    {
+                        key: "isEnabled",
+                        sign: "=",
+                        value: true,
+                           
+                    }
                 ],
                 cityId,
             });

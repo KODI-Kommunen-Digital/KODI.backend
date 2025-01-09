@@ -67,6 +67,12 @@ const getFavoriteListingsForUser = async function (
                         key: 'id',
                         sign: '=',
                         value: categoryId
+                    },
+                    {
+                        key: "isEnabled",
+                        sign: "=",
+                        value: true,
+                           
                     }
                 ]
             });
