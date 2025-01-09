@@ -705,7 +705,7 @@ async function getUser(userId) {
         return user;
     } catch (err) {
         if (err instanceof AppError) {
-            return err;
+            throw err;
         }
         throw new AppError(err, 500);
     }
@@ -764,7 +764,7 @@ async function managePollOptions(pollOptions, listingId, transaction) {
         });
     } catch (err) {
         if (err instanceof AppError) {
-            return err;
+            throw err;
         }
         throw new AppError(err, 500);
     }
@@ -811,7 +811,7 @@ async function managePollOptions(pollOptions, listingId, transaction) {
         }
     } catch (err) {
         if (err instanceof AppError) {
-            return err;
+            throw err;
         }
         throw new AppError(err, 500);
     }
@@ -941,7 +941,7 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
         }
     } catch (err) {
         if (err instanceof AppError) {
-            return err;
+            throw err;
         }
         throw new AppError(err, 500);
     }
