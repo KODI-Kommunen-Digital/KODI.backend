@@ -148,16 +148,16 @@ const getFavoriteListingsForUser = async function (
                 pageSize: 10,
             });
     
-            if (!response || !response.rows || response.rows.length === 0) {
-                await favoritesRepository.delete({
-                    filters: [
-                        { key: 'userId', sign: '=', value: paramUserId },
-                        { key: 'listingId', sign: 'IN', value: listingIds },
-                    ],
-                });
-            } else {
+            if (response && response.rows && response.rows.length > 0) {
                 response.rows.forEach((l) => (l.cityId = +cityId));
                 listings.push(...response.rows);
+            } else {
+                // await favoritesRepository.delete({
+                //     filters: [
+                //         { key: 'userId', sign: '=', value: paramUserId },
+                //         { key: 'listingId', sign: 'IN', value: listingIds },
+                //     ],
+                // });
             }
         }
     } catch (err) {

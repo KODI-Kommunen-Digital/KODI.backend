@@ -8,10 +8,11 @@ const {
     deleteFavoriteListingForUser,
 } = require("../controllers/favorites");
 
-// To get the favorite ID  of a user
-router.get("/", authentication, getAllFavoritesForUser);
 // To get all the listings from the favorite table
 router.get("/listings", authentication, getFavoriteListingsForUser);
+
+// To get the favorite ID  of a user
+router.get("/", authentication, getAllFavoritesForUser);
 
 // To insert or add  a listing into favorite table
 router.post("/", authentication, addNewFavoriteForUser);
