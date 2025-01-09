@@ -39,6 +39,7 @@ class ListingsRepo extends BaseRepo {
                 L.email,
                 L.phone,
                 L.zipcode,
+                L.pdf,
                 C.cityId,
                 C.cityCount,
                 C.allCities,
