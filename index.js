@@ -69,7 +69,7 @@ for (const version in apiVersions) {
     app.use(`/${version}`, apiVersions[version].router);
 }
 
-if (process.env.BRIDGES_ENABLED === 'True') {
+if (process.env.BRIDGE_ENABLED === 'True') {
     app.use("", bridgeRoutes);
 } else {
     app.use("/users", usersRouter);
