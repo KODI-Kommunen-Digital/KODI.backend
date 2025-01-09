@@ -63,26 +63,28 @@ const getAllListings = async ({
         }
     }
 
-    if (isAdmin && statusId) {
-        // const response = await cityListingRepo.getStatusById(statusId);
-        const response = await statusRepository.getAll({
-            filters: [
-                {
-                    key: "id",
-                    sign: "=",
-                    value: statusId
-                }
-            ]
-        }); // removing the cityId
-        if (!response || !response.rows || !response.rows.length) {
-            throw new AppError(`Invalid Status '${statusId}' given`, 400);
+    if (isAdmin) {
+        if (statusId) {
+            // const response = await cityListingRepo.getStatusById(statusId);
+            const response = await statusRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: statusId
+                    }
+                ]
+            }); // removing the cityId
+            if (!response) {
+                throw new AppError(`Invalid Status '${statusId}' given`, 400);
+            }
+            // filters.statusId = statusId;
+            filters.push({
+                key: "statusId",
+                sign: "=",
+                value: statusId
+            });
         }
-        // filters.statusId = statusId;
-        filters.push({
-            key: "statusId",
-            sign: "=",
-            value: statusId
-        });
     } else {
         // filters.statusId = status.Active;
         filters.push({
