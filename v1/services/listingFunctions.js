@@ -59,7 +59,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             cities = response.rows
         } catch (err) {
             if (err instanceof AppError) {
-                return err;
+                throw err;
             }
             throw new AppError(err);
         }
@@ -85,7 +85,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
     } catch (err) {
         if (err instanceof AppError) {
-            return err;
+            throw err;
         }
         throw new AppError(err);
     }
@@ -134,7 +134,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         } catch (err) {
             if (err instanceof AppError) {
-                return err;
+                throw err;
             }
             throw new AppError(err);
         }
@@ -208,7 +208,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (response.noOfSubcategories > 0) subcategory = true;
         } catch (err) {
             if (err instanceof AppError) {
-                return err;
+                throw err;
             }
             throw new AppError(err);
         }
@@ -253,7 +253,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             // }
         } catch (err) {
             if (err instanceof AppError) {
-                return err;
+                throw err;
             }
             throw new AppError(err);
         }
@@ -292,7 +292,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 }
             } catch (err) {
                 if (err instanceof AppError) {
-                    return err;
+                    throw err;
                 }
                 throw new AppError(err);
             }
@@ -385,7 +385,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
     } catch (error) {
         if (error instanceof AppError) {
-            return error;
+            throw error;
         }
         throw new AppError(`Invalid time format ${error}`, 400);
     }
