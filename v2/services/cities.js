@@ -4,8 +4,7 @@ const cityServiceRepository = require("../repository/citiesRepo");
 const getCities = async function (hasForum) {
     try {
         const filters = []
-        if (hasForum) 
-        {
+        if (hasForum) {
             filters.push(
                 {
                     key: 'hasForum',
@@ -15,7 +14,8 @@ const getCities = async function (hasForum) {
         }
         // return await cityService.getCities(filter);
         const cities = await cityServiceRepository.getAll({
-            filters
+            filters,
+            columns: 'id, name, image, hasForum'
         });
         return cities.rows;
     } catch (err) {
