@@ -8,7 +8,13 @@ const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const getAllCategories = async function () {
     try {
         // return await categoryRepo.getCategories();
-        const categories = await categoriesRepository.getAll();
+        const categories = await categoriesRepository.getAll({filters: [
+            {
+                key: "isEnabled",
+                sign: "=",
+                value: true,
+            }
+        ]});
         return categories.rows
     } catch (err) {
         if (err instanceof AppError) throw err;

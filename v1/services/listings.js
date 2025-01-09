@@ -76,6 +76,12 @@ const getAllListings = async ({
                     key: "id",
                     sign: "=",
                     value: categoryId
+                }, 
+                {
+                    key: "isEnabled",
+                    sign: "=",
+                    value: true,
+                       
                 }
             ]
         });
