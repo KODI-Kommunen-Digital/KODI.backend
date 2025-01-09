@@ -78,11 +78,17 @@ const createListing = async (req, res, next) => {
             userId,
             roleId,
         });
-
-        res.status(200).json({
-            status: "success",
-            data: newListing,
-        });
+        if (req.version === "v0") {
+            res.status(200).json({
+                status: "success",
+                id: newListing[0].listingId,
+            });
+        } else {
+            res.status(200).json({
+                status: "success",
+                data: newListing,
+            });
+        }
     } catch (err) {
         next(err);
     }
@@ -103,7 +109,7 @@ const updateListing = async (req, res, next) => {
         });
 
         res.status(200).json({
-            status:"success",
+            status: "success",
             data: updatedListing
         });
     } catch (err) {

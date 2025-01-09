@@ -22,7 +22,11 @@ router.get("/", optionalAuthentication, listingController.getAllListings);
 
 router.get("/:id", rateLogger, listingController.getListingWithId);
 
-router.post("/", authentication, listingController.createListing);
+router.post("/", authentication, async (req, res, next) => {
+    req.body.cityIds = [req.cityId];
+    req.version = "v0";
+    listingController.createListing(req, res, next);
+});
 
 router.patch("/:id", authentication, listingController.updateListing);
 
