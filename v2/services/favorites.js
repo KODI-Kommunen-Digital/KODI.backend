@@ -117,49 +117,22 @@ const getFavoriteListingsForUser = async function (
         const response = await favoritesRepository.getAll({
             filters: favFilters
         });
-        const favDict = {};
-        response.rows.forEach((fav) => {
-            const cityId = fav.cityId;
-            const listingId = fav.listingId;
-            if (favDict[cityId]) {
-                favDict[cityId].push(listingId);
-            } else {
-                favDict[cityId] = [listingId];
-            }
+        const favListingIds = response?.rows?.map((fav) => fav.listingId) ?? [];
+        listingFilters.push({
+            key: 'id',
+            sign: 'IN',
+            value: favListingIds
         });
-        listings = [];
 
-        for (const [cityId, listingIds] of Object.entries(favDict)) {
-            if (!listingIds || listingIds.length === 0) {
-                continue; // Skip if no listingIds for the city
-            }
-            const filters = [
-                ...listingFilters, 
-                {
-                    key: 'id', 
-                    sign: 'IN',
-                    value: listingIds,
-                },
-            ];
-    
-            const response = await listingRepository.retrieveListings({
-                filters,
-                pageNo: 1,
-                pageSize: 10,
-            });
-    
-            if (response && response.rows && response.rows.length > 0) {
-                response.rows.forEach((l) => (l.cityId = +cityId));
-                listings.push(...response.rows);
-            } else {
-                // await favoritesRepository.delete({
-                //     filters: [
-                //         { key: 'userId', sign: '=', value: paramUserId },
-                //         { key: 'listingId', sign: 'IN', value: listingIds },
-                //     ],
-                // });
-            }
-        }
+        // to eliminate duplicate cityIds
+        const cityIds = [...new Set(response?.rows?.map((fav) => fav.cityId) ?? [])];
+
+        const listingResponse = await listingRepository.retrieveListings({
+            filters: listingFilters,
+            cities: cityIds
+        });
+        listings = listingResponse ?? [];
+        
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -262,7 +235,7 @@ const addNewFavoriteForUser = async function (
         if (err instanceof AppError) throw err;
         throw new AppError(err.message || "An error occurred while checking for existing favorite");
     }
-    
+
     try {
         // return await favoritesRepo.addFavoriteForUser(
         //     paramUserId,

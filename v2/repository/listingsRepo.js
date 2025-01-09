@@ -79,7 +79,7 @@ class ListingsRepo extends BaseRepo {
 
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
-                if (filter.sign === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
+                if (filter.sign.toUpperCase() === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
                     query += ` AND L.${filter.key} IN (?)`;
                     queryParams.push(filter.value);
                 } else {
@@ -98,7 +98,9 @@ class ListingsRepo extends BaseRepo {
             const response = await database.callQuery(paginationQuery, queryParams);
             return response.rows;
         } catch (error) {
-            console.error("Error executing query:", error.message);
+            if (error instanceof Error) {
+                throw error;
+            }
             throw new Error("Error retrieving listings");
         }
     };
