@@ -95,7 +95,7 @@ router.post("/login", async function (req, res, next) {
             userId: userData.id,
         });
         if (refreshData.rows.length > 0) {
-            const tokensToDelete = refreshData.rows.filter(token => 
+            const tokensToDelete = refreshData.rows.filter(token =>
                 token.sourceAddress === sourceAddress &&
                 (token.browser === head.browsername || (!token.browser && !head.browsername)) &&
                 (token.device === head.devicetype || (!token.device && !head.devicetype)));
@@ -118,7 +118,7 @@ router.post("/login", async function (req, res, next) {
         return res.status(200).json({
             status: "success",
             data: {
-                cityUsers: userMappings.rows,
+                cityUsers: userMappings.rows ?? [],
                 userId: userData.id,
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
@@ -130,7 +130,7 @@ router.post("/login", async function (req, res, next) {
 });
 
 router.post("/register", async function (req, res, next) {
-    const payload = req.body;  
+    const payload = req.body;
     const insertionData = {};
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
@@ -142,7 +142,7 @@ router.post("/register", async function (req, res, next) {
     if (!payload.username) {
         return next(new AppError(`Username is not present`, 400, errorCodes.MISSING_USERNAME));
     } else {
-        if (payload.username.length > 40){
+        if (payload.username.length > 40) {
             return next(new AppError(`Username too long. Maximum 40 characters allowed.`, 400, errorCodes.INVALID_USERNAME));
         }
         try {
@@ -159,7 +159,7 @@ router.post("/register", async function (req, res, next) {
                     )
                 );
             }
-            if(/\s/.test(payload.username)  || /^_/.test(payload.username) || /^[^a-z_]/.test(payload.username)) {
+            if (/\s/.test(payload.username) || /^_/.test(payload.username) || /^[^a-z_]/.test(payload.username)) {
                 return next(
                     new AppError(
                         `Username '${payload.username}' is not valid`,
@@ -201,7 +201,7 @@ router.post("/register", async function (req, res, next) {
     if (!payload.firstname) {
         return next(new AppError(`Firstname is not present`, 400, errorCodes.MISSING_FIRSTNAME));
     } else {
-        if (payload.firstname.length >40){
+        if (payload.firstname.length > 40) {
             return next(new AppError(`Firstname too long. Maximum 40 characters allowed`, 400, errorCodes.INVALID_CREDENTIALS));
         }
         insertionData.firstname = payload.firstname;
@@ -210,7 +210,7 @@ router.post("/register", async function (req, res, next) {
     if (!payload.lastname) {
         return next(new AppError(`Lastname is not present`, 400, errorCodes.MISSING_LASTNAME));
     } else {
-        if (payload.lastname.length >40){
+        if (payload.lastname.length > 40) {
             return next(new AppError(`Lastname too long. Maximum 40 characters allowed`, 400, errorCodes.INVALID_CREDENTIALS));
         }
         insertionData.lastname = payload.lastname;
@@ -219,11 +219,11 @@ router.post("/register", async function (req, res, next) {
     if (!payload.password) {
         return next(new AppError(`Password is not present`, 400, errorCodes.MISSING_PASSWORD));
     } else {
-        if(payload.password.length>64){
+        if (payload.password.length > 64) {
             return next(new AppError(`Password too long. Maximum 64 characters allowed.`, 400, errorCodes.INVALID_PASSWORD));
         }
         const re = /^\S{8,}$/;
-        if(!re.test(payload.password)){
+        if (!re.test(payload.password)) {
             return next(new AppError(`Invalid Password. `, 400, errorCodes.INVALID_PASSWORD));
         } else {
             insertionData.password = await bcrypt.hash(
@@ -231,7 +231,7 @@ router.post("/register", async function (req, res, next) {
                 Number(process.env.SALT)
             );
         }
-        
+
     }
 
     if (payload.email) {
@@ -329,12 +329,12 @@ router.post("/register", async function (req, res, next) {
     }
 });
 
-router.get("/myListings", authentication, async function(req, res, next){
+router.get("/myListings", authentication, async function (req, res, next) {
     const userId = req.userId;
     try {
         const listings = await getUserListings(req, userId);
-        if(listings){
-            if ( !process.env.IS_LISTING_VIEW_COUNT || process.env.IS_LISTING_VIEW_COUNT === 'False') {
+        if (listings) {
+            if (!process.env.IS_LISTING_VIEW_COUNT || process.env.IS_LISTING_VIEW_COUNT === 'False') {
                 listings.forEach(listing => delete listing.viewCount);
             }
             return res.status(200).json({
@@ -364,12 +364,12 @@ router.get("/:id", optionalAuthentication, async function (req, res, next) {
         if (!cityId) {
             return next(new AppError(`City id not given`, 400));
         }
-        
+
         if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
             next(new AppError(`Invalid cityId ${cityId}`, 400));
             return;
         }
-        
+
         try {
             const { rows } = await database.get(tables.CITIES_TABLE, {
                 id: cityId,
@@ -500,7 +500,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
             payload.newPassword,
             currentUserData.password
         );
-        if(passwordCheck){
+        if (passwordCheck) {
             return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.SAME_PASSWORD_GIVEN));
         }
 
@@ -533,7 +533,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 )
             );
         }
-            
+
         updationData.description = payload.description;
     }
 
@@ -580,7 +580,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         });
         updationData.socialMedia = JSON.stringify(socialMediaList);
     }
-    
+
     if (Object.keys(updationData).length > 0) {
         const cityUserResponse = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
         try {
@@ -588,11 +588,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
             const cityUserUpdationData = { ...updationData, coreuserId: id };
             delete cityUserUpdationData.password;
             delete cityUserUpdationData.socialMedia;
-    
+
             for (const element of cityUserResponse.rows) {
                 await database.update(tables.USER_TABLE, cityUserUpdationData, { id: element.cityUserId }, element.cityId);
             }
-    
+
             res.status(200).json({
                 status: "success",
             });
@@ -645,9 +645,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
         await imageDeleteAsync.deleteMultiple(userImageList.map((image) => ({ Key: image.Key._text })))
 
         for (const cityUser of cityUsers) {
-            await database.callStoredProcedure(storedProcedures.DELETE_CITY_USER, [ cityUser.cityUserId ], cityUser.cityId);
+            await database.callStoredProcedure(storedProcedures.DELETE_CITY_USER, [cityUser.cityUserId], cityUser.cityId);
         }
-        await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [ userId ]);
+        await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [userId]);
 
         return res.status(200).json({
             status: "success",
@@ -683,7 +683,7 @@ router.delete(
                 return next(new AppError(`User ${id} does not exist`, 404));
             }
 
-            if(response.rows[0].image === ""){
+            if (response.rows[0].image === "") {
                 throw new AppError(`User ${id} does not have a profile picture to delete`, 400);
             }
 
@@ -745,15 +745,15 @@ router.post(
                 updationData.image = imagePath;
                 database
                     .update(tables.USER_TABLE, updationData, { id })
-                    .then((response) => {})
+                    .then((response) => { })
                     .catch((err) => {
                         return next(new AppError(err));
                     });
 
                 return res.status(200).json({
                     status: "success",
-                    data:{
-                        image:updationData.image
+                    data: {
+                        image: updationData.image
                     }
                 });
             } else {
@@ -776,7 +776,7 @@ router.get("/:id/listings", optionalAuthentication, async function (req, res, ne
         }
 
         const listings = await getUserListings(req, userId);
-        if(listings){
+        if (listings) {
             listings.forEach(listing => delete listing.viewCount);
             return res.status(200).json({
                 status: "success",
@@ -955,7 +955,7 @@ router.post("/resetPassword", async function (req, res, next) {
             password,
             user.password
         );
-        if(passwordCheck){
+        if (passwordCheck) {
             return next(new AppError(`New password should not be same as the old password`, 400, errorCodes.NEW_OLD_PASSWORD_DIFFERENT));
         }
         response = await database.get(tables.FORGOT_PASSWORD_TOKENS_TABLE, {
@@ -1281,8 +1281,8 @@ router.delete(
     }
 );
 
-router.post("/:id/storeFirebaseUserToken", authentication, async function(req, res, next) {
-    try{
+router.post("/:id/storeFirebaseUserToken", authentication, async function (req, res, next) {
+    try {
         const firebaseToken = req.body.firebaseToken
         const userId = parseInt(req.params.id);
         const sourceAddress = req.headers["x-forwarded-for"]
@@ -1293,7 +1293,7 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
             return next(
                 new AppError(`You are not allowed to access this resource`, 403)
             );
-        } 
+        }
         if (!firebaseToken) {
             return next(new AppError(`Token not present`, 400));
         }
@@ -1309,7 +1309,7 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
             insertionData.userId = userId
             insertionData.firebaseToken = firebaseToken
             insertionData.createdAt = getDateInFormate(new Date());
-            insertionData.deviceAddress = sourceAddress 
+            insertionData.deviceAddress = sourceAddress
             await database.create(
                 tables.FIREBASE_TOKEN,
                 insertionData
@@ -1327,7 +1327,7 @@ router.post("/:id/storeFirebaseUserToken", authentication, async function(req, r
         res.status(200).json({
             status: "success",
         });
-        
+
     } catch (e) {
         next(new AppError("Error occured while storing the firbase token", e))
     }

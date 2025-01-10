@@ -124,7 +124,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
             data: insertionData
         });
         return {
-            cityUsers: userMappings,
+            cityUsers: userMappings ?? [],
             userId: userData.id,
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken,
