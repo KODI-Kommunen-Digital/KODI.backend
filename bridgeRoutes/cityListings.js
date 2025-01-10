@@ -4,6 +4,7 @@ const authentication = require("../v2/middlewares/authentication");
 const optionalAuthentication = require("../v2/middlewares/optionalAuthentication");
 const listingController = require("../v2/controllers/listings");
 const rateLimit = require("express-rate-limit");
+const roles = require("../v2/constants/roles");
 
 const rateLogger = rateLimit({
     windowMs: 5 * 1000, // 5 seconds
@@ -25,6 +26,17 @@ router.get("/:id", rateLogger, listingController.getListingWithId);
 router.post("/", authentication, async (req, res, next) => {
     req.body.cityIds = [req.cityId];
     req.version = "v0";
+    //  remove dummy data
+    if (req.body.price === 100) delete req.body.price;
+    if (req.body.discountPrice === 100) delete req.body.discountPrice;
+    if (req.body.longitude === 245.65 && req.body.latitude === 22.456) {
+        delete req.body.longitude;
+        delete req.body.latitude;
+    }
+    if (req.roleId !== roles.Admin) {
+        delete req.body.statusId;
+        delete req.body.sourceId;
+    }
     listingController.createListing(req, res, next);
 });
 
