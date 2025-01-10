@@ -27,8 +27,10 @@ router.post("/", authentication, async (req, res, next) => {
     req.body.cityIds = [req.cityId];
     req.version = "v0";
     //  remove dummy data
-    if (req.body.price === 100) delete req.body.price;
-    if (req.body.discountPrice === 100) delete req.body.discountPrice;
+    if (req.body.price === 100 && req.body.discountPrice === 100) {
+        delete req.body.price;
+        delete req.body.discountPrice;
+    }
     if (req.body.longitude === 245.65 && req.body.latitude === 22.456) {
         delete req.body.longitude;
         delete req.body.latitude;
