@@ -499,7 +499,7 @@ const deleteListing = async function (id, userId, roleId) {
     try {
         const userImageList = await bucketClient.fetchUserImages(userId, null, id);
 
-        const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text })).filter((image) => !image.startsWith("admin/"))
+        const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text })).filter((image) => image && !image.startsWith("admin/"))
 
         if (imagesToDelete && imagesToDelete.length > 0) {
             await imageDeleteAsync.deleteMultiple(imagesToDelete);
