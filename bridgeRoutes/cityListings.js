@@ -21,7 +21,10 @@ const rateLogger = rateLimit({
 
 router.get("/", optionalAuthentication, listingController.getAllListings);
 
-router.get("/:id", rateLogger, listingController.getListingWithId);
+router.get("/:id", rateLogger, async (req, res, next) => {
+    req.version = "v0";
+    listingController.getListingWithId(req, res, next);
+});
 
 router.post("/", authentication, async (req, res, next) => {
     req.body.cityIds = [req.cityId];

@@ -126,6 +126,13 @@ const getListingWithId = async function (req, res, next) {
             id,
             repeatedRequest
         );
+        if (req.version === "v0") {
+            if (data && data.otherlogos) {
+                data.otherLogos = data.otherlogos;
+            } else if (data && data.otherLogos) {
+                data.otherlogos = data.otherLogos;
+            }
+        }
         return res.status(200).json({
             status: "success",
             data
