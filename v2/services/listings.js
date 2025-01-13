@@ -469,7 +469,7 @@ const getListingWithId = async function (
         }
 
         delete data.viewCount;
-        return { ...data, logo, otherlogos: listingImageList };
+        return { ...data, logo, otherLogos: listingImageList };
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
