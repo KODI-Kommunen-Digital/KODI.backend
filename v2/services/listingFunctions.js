@@ -256,7 +256,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         if (isNaN(lon)) {
             throw new AppError('Invalid longitude value, Longitude value should be a Number', 400);
         }
-        if(lon < -180 || lon > 180) {
+        if (lon < -180 || lon > 180) {
             throw new AppError('Invalid longitude value, Longitude value should be between -180° to 180°', 400);
         }
         insertionData.longitude = lon;
@@ -267,7 +267,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         if (isNaN(lat)) {
             throw new AppError('Invalid latitude value', 400);
         }
-        if(lat < -90 || lat > 90) {
+        if (lat < -90 || lat > 90) {
             throw new AppError('Invalid latitude value, Latitude value should be between -90° to 90°', 400);
         }
         insertionData.latitude = lat;
@@ -388,7 +388,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         if (hasDefaultImage) {
             await addDefaultImage(transaction, listingId, payload.categoryId);
         }
-    
+
         for (const cityId of cityIds) {
             const city = cities[cityId];
 
@@ -633,8 +633,10 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
             ]
         }, transaction);
 
+        let responseCityIds;
         if (cityIds && cityIds.length > 0) {
             await updateCityMappings(updationData, listingId, cityIds, transaction, roleId);
+            responseCityIds = cityIds;
         }
         const isPollCategory = listingData.categoryId === categories.Polls;
         if (isPollCategory) {
@@ -646,6 +648,12 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         }
 
         await listingsRepository.commitTransaction(transaction);
+        return responseCityIds.map((cityId) => {
+            return {
+                cityId,
+                listingId
+            }
+        });
     } catch (err) {
         await listingsRepository.rollbackTransaction(transaction);
         throw err instanceof AppError ? err : new AppError(err);

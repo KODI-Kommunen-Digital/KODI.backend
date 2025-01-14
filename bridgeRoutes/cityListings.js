@@ -45,7 +45,10 @@ router.post("/", authentication, async (req, res, next) => {
     listingController.createListing(req, res, next);
 });
 
-router.patch("/:id", authentication, listingController.updateListing);
+router.patch("/:id", authentication, async (req, res, next) => {
+    req.version = "v0";
+    listingController.updateListing(req, res, next);
+});
 
 router.delete("/:id", authentication, listingController.deleteListing);
 
