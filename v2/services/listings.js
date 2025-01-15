@@ -583,7 +583,7 @@ const uploadImage = async function (
         ]
     });
     const listingImages = listingImagesResp.rows;
-    if (listingImages && listingImages.length > 0 && listingImages[0].logo.startsWith("admin/")) {
+    if (listingImages && listingImages.length > 0 && listingImages[0].logo && listingImages[0].logo.startsWith("admin/")) {
         // await cityListingRepo.deleteListingImage(listingId, cityId);
         await listingImagesRepository.delete({
             filters: [
@@ -744,7 +744,7 @@ const uploadPDF = async function (
     const imagesToDelete = imagesToDeleteResp.rows;
     if (imagesToDelete && imagesToDelete.length > 0) {
         await imageDeleteAsync.deleteMultiple(
-            imagesToDelete.map((i) => i.logo).filter((i) => !i.startsWith("admin/")),
+            imagesToDelete.map((i) => i.logo).filter((i) => typeof i === 'string' && i && !i.startsWith("admin/")),
         );
         // await cityListingRepo.deleteMultipleListingImagesById(
         //     imagesToDelete.map((i) => i.id),
