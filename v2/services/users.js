@@ -21,6 +21,7 @@ const statusRepository = require("../repository/statusRepo");
 const listingRepository = require("../repository/listingsRepo");
 const categoryRepository = require("../repository/categoriesRepo");
 const subCategoryRepository = require("../repository/subcategoriesRepo");
+const FirebaseTokenRepo = require("../repository/firebaseTokenRepo");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -1416,6 +1417,72 @@ const deleteUser = async function (userId) {
     }
 };
 
+const storeFirebaseUserToken = async function (userId, newFirebaseToken, deviceToken) {
+    try {
+        const userData = await usersRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
+        if (!userData) {
+            throw new AppError(`User with id ${userId} does not exist`, 404);
+        }
+
+        const response = await FirebaseTokenRepo.getOne({
+            filters: [
+                {
+                    key: "deviceAddress",
+                    sign: "=",
+                    value: deviceToken
+                },
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
+        if (!response) {
+            const insertionData = {}
+            insertionData.userId = userId;
+            insertionData.firebaseToken = newFirebaseToken;
+            insertionData.createdAt = getDateInFormate(new Date());
+            insertionData.deviceAddress = deviceToken;
+            await FirebaseTokenRepo.create({
+                data: insertionData
+            });
+
+        } else {
+            const firebaseTokenUpdationData = response;
+            firebaseTokenUpdationData.firebaseToken = newFirebaseToken;
+            firebaseTokenUpdationData.createdAt = getDateInFormate(new Date());
+            await FirebaseTokenRepo.update({
+                data: firebaseTokenUpdationData,
+                filters: [
+                    {
+                        key: "deviceAddress",
+                        sign: "=",
+                        value: deviceToken
+                    },
+                    {
+                        key: "userId",
+                        sign: "=",
+                        value: userId
+                    }
+                ]
+            });
+        }
+
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -1434,4 +1501,5 @@ module.exports = {
     deleteUserProfileImage,
     getUserListings,
     deleteUser,
+    storeFirebaseUserToken
 };

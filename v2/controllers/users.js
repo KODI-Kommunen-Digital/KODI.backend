@@ -1,6 +1,7 @@
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const userService = require("../services/users");
+const notificationService = require("../services/notifications");
 
 const register = async function (req, res, next) {
     const payload = req.body;
@@ -452,6 +453,73 @@ const deleteUser = async function (req, res, next) {
     }
 };
 
+const storeFirebaseUserToken = async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    const token = req.body.token;
+    const deviceToken = req.body.deviceToken;
+
+    try {
+        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+            throw new AppError(`Invalid UserId ${userId}`, 404);
+        }
+        if (userId !== req.userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        if (!token) {
+            throw new AppError(`Fire base token not present`, 400);
+        }
+        if(!deviceToken) {
+            throw new AppError(`Device token not present`, 400);
+        }
+        await userService.storeFirebaseUserToken(userId, token, deviceToken);
+        res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+}
+
+const getUserNotificationPreference = async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+
+    try {
+        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+            throw new AppError(`Invalid UserId ${userId}`, 404);
+        }
+        if (userId !== req.userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        const notificationPreference = await notificationService.getUserNotificationPreference(userId);
+        res.status(200).json({
+            status: "success",
+            data: notificationPreference,
+        });
+    } catch (err) {
+        return next(err);
+    }
+}
+
+const updateUserNotificationPreference = async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    const preferences = req.body.preferences;
+
+    try {
+        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+            throw new AppError(`Invalid UserId ${userId}`, 404);
+        }
+        if (userId !== req.userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        const response = await notificationService.updateUserNotificationPreference(userId, preferences);
+        res.status(200).json({
+            status: "success",
+            message: response.message,
+        });
+    } catch (err) {
+        return next(err);
+    }
+}
 module.exports = {
     register,
     login,
@@ -471,4 +539,7 @@ module.exports = {
     getUserListings,
     deleteUser,
     getMyListings,
+    storeFirebaseUserToken,
+    getUserNotificationPreference,
+    updateUserNotificationPreference
 };
