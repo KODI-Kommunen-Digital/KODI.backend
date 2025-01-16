@@ -14,6 +14,7 @@ class ListingsRepo extends BaseRepo {
         pageSize = 10,
         searchQuery = null,
         sortByStartDate = false,
+        specificDate = null,
     }) => {
         const queryParams = [];
 
@@ -77,7 +78,10 @@ class ListingsRepo extends BaseRepo {
             query += ` AND (L.title LIKE ? OR L.description LIKE ?)`;
             queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
         }
-
+        if (specificDate) {
+            query += ` AND DATE(L.startDate) = ?`;
+            queryParams.push(specificDate);
+        }
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
                 if (filter.sign.toUpperCase() === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
