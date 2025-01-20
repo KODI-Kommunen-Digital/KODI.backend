@@ -5,8 +5,8 @@ const subcategories = require("../constants/subcategories");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
 const getDateInFormate = require("../utils/getDateInFormate");
-const TurndownService = require("turndown");
-const showdown = require("showdown");
+const DOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const sendPushNotification = require("../services/sendPushNotification");
@@ -660,12 +660,19 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
     }
 }
 
-const checkDesc = (desc) => {
-    const turndownService = new TurndownService();
-    const markdown = turndownService.turndown(desc);
-    const converter = new showdown.Converter();
-    const html = converter.makeHtml(markdown);
-    return html;
+
+
+const window = new JSDOM('').window;
+const domPurify = DOMPurify(window);
+
+const checkDesc = (inputHtml) => {
+    return domPurify.sanitize(inputHtml, {
+        ALLOWED_TAGS: [
+            'b', 'i', 'u', 'em', 'strong', 'a', 'ul', 'ol', 'li', 'br',
+            'p', 'div', 'span', 'blockquote', 'code', 'pre', 'h1', 'h2', 'h3'
+        ],
+        ALLOWED_ATTR: ['href', 'target', 'rel', 'style'],
+    });
 };
 
 async function addDefaultImage(transaction, listingId, categoryId) {
