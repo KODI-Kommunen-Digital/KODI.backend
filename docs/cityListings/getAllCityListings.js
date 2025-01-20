@@ -85,6 +85,16 @@ const getAllCityListingsSwagger = {
                 example: 'de',
             },
         },
+        {
+            in: "query",
+            name: "specificDate",
+            schema: {
+                type: "string",
+                required: false,
+                description: "To get Events from specific Date formate: (YYYY-MM-DD)",
+                example: '2024-12-03',
+            },
+        },
 
     ],
     responses: {
