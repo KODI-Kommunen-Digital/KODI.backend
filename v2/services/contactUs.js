@@ -26,8 +26,12 @@ const contactUs = async function (id, language, body) {
             user.lastname,
             user.email,
         );
-        const contactEmail = process.env.CONTACT_EMAIL || "info@heidi-app.de";
-        await sendMail(contactEmail, subject, body, null);
+        if(JSON.parse(process.env.CONTACT_EMAIL) && JSON.parse(process.env.CONTACT_EMAIL).length && JSON.parse(process.env.CONTACT_EMAIL).length > 0) {
+            JSON.parse(process.env.CONTACT_EMAIL).map(async (email) => await sendMail(email, subject, body, null))
+        } else {
+            const contactEmail = process.env.CONTACT_EMAIL || "info@heidi-app.de";
+            await sendMail(contactEmail, subject, body, null);
+        }
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
