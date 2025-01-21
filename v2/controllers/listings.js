@@ -13,6 +13,8 @@ const getAllListings = async (req, res, next) => {
         cityId,
         translate,
         showExternalListings,
+        startAfterDate,
+        endBeforeDate
     } = params;
     const isAdmin = req.roleId === roles.Admin;
     try {
@@ -26,7 +28,9 @@ const getAllListings = async (req, res, next) => {
             cityId,
             translate,
             showExternalListings,
-            isAdmin
+            isAdmin,
+            startAfterDate,
+            endBeforeDate
         });
         res.status(200).json({
             status: "success",

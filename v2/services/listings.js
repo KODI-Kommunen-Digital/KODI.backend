@@ -23,6 +23,7 @@ const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const bucketClient = require("../utils/bucketClient");
+const isValidDate = require('../utils/validateDate');
 
 const getAllListings = async ({
     pageNo,
@@ -34,7 +35,9 @@ const getAllListings = async ({
     cityId,
     reqTranslate,
     showExternalListings,
-    isAdmin
+    isAdmin,
+    startAfterDate,
+    endBeforeDate
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -146,6 +149,14 @@ const getAllListings = async ({
         });
     }
 
+    if(startAfterDate && !isValidDate(startAfterDate)) {
+        throw new AppError(`Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`, 400);
+    }
+
+    if(endBeforeDate && !isValidDate(endBeforeDate)) {
+        throw new AppError(`Invalid Date given '${endBeforeDate}', formate Should be YYYY-MM-DD`, 400);
+    }
+
     if (cityId) {
         // const city = await cityRepo.getCityWithId(cityId);
         // Validate the cityId input to ensure it only contains integers separated by commas
@@ -205,6 +216,8 @@ const getAllListings = async ({
             pageSize,
             cities,
             sortByStartDate: sortByStartDateBool,
+            startAfterDate, // Start date for range
+            endBeforeDate,
         });
         const noOfListings = listings.length;
         if (
