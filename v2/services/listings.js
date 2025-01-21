@@ -36,7 +36,8 @@ const getAllListings = async ({
     reqTranslate,
     showExternalListings,
     isAdmin,
-    specificDate
+    startAfterDate,
+    endBeforeDate
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -148,8 +149,12 @@ const getAllListings = async ({
         });
     }
 
-    if(specificDate && !isValidDate(specificDate)) {
-        throw new AppError(`Invalid Date given '${specificDate}', formate Should be YYYY-MM-DD`, 400);
+    if(startAfterDate && !isValidDate(startAfterDate)) {
+        throw new AppError(`Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`, 400);
+    }
+
+    if(endBeforeDate && !isValidDate(endBeforeDate)) {
+        throw new AppError(`Invalid Date given '${endBeforeDate}', formate Should be YYYY-MM-DD`, 400);
     }
 
     if (cityId) {
@@ -211,7 +216,8 @@ const getAllListings = async ({
             pageSize,
             cities,
             sortByStartDate: sortByStartDateBool,
-            specificDate
+            startAfterDate, // Start date for range
+            endBeforeDate,
         });
         const noOfListings = listings.length;
         if (

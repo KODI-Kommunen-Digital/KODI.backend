@@ -77,6 +77,26 @@ const getAllListingsSwagger = {
             },
             description: "To translate the listing into the given language",
         },
+        {
+            in: "query",
+            name: "startAfterDate",
+            schema: {
+                type: "string",
+                required: false,
+                description: "To get Listings from specific Date formate: (YYYY-MM-DD)",
+                example: '2024-12-03',
+            },
+        },
+        {
+            in: "query",
+            name: "endBeforeDate",
+            schema: {
+                type: "string",
+                required: false,
+                description: "To get Listings till specific Date formate: (YYYY-MM-DD)",
+                example: '2024-12-03',
+            },
+        },
     ],
     responses: {
         200: {

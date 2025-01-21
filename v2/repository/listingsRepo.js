@@ -14,7 +14,8 @@ class ListingsRepo extends BaseRepo {
         pageSize = 10,
         searchQuery = null,
         sortByStartDate = false,
-        specificDate = null,
+        startAfterDate = null, // Start date for range
+        endBeforeDate = null,   // End date for range
     }) => {
         const queryParams = [];
 
@@ -78,10 +79,17 @@ class ListingsRepo extends BaseRepo {
             query += ` AND (L.title LIKE ? OR L.description LIKE ?)`;
             queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
         }
-        if (specificDate) {
-            query += ` AND DATE(L.startDate) = ?`;
-            queryParams.push(specificDate);
+
+        if (startAfterDate) {
+            query += ` AND DATE(L.startDate) >= ?`;
+            queryParams.push(startAfterDate);
         }
+
+        if (endBeforeDate) {
+            query += ` AND DATE(L.startDate) <= ?`;
+            queryParams.push(endBeforeDate);
+        }
+
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
                 if (filter.sign.toUpperCase() === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
@@ -109,7 +117,6 @@ class ListingsRepo extends BaseRepo {
             throw new Error("Error retrieving listings");
         }
     };
-
 }
 
 module.exports = new ListingsRepo();
