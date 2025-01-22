@@ -637,6 +637,17 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         if (cityIds && cityIds.length > 0) {
             await updateCityMappings(updationData, listingId, cityIds, transaction, roleId);
             responseCityIds = cityIds;
+        } else {
+            const cityMappingData = await cityListingMappingRepo.getAll({
+                filters: [
+                    {
+                        key: "listingId",
+                        sign: "=",
+                        value: listingId
+                    }
+                ]
+            });
+            responseCityIds = cityMappingData.rows.map((mapping) => mapping.cityId);
         }
         const isPollCategory = listingData.categoryId === categories.Polls;
         if (isPollCategory) {
@@ -659,8 +670,6 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         throw err instanceof AppError ? err : new AppError(err);
     }
 }
-
-
 
 const window = new JSDOM('').window;
 const domPurify = DOMPurify(window);
