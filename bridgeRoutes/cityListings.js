@@ -47,6 +47,7 @@ router.post("/", authentication, async (req, res, next) => {
 
 router.patch("/:id", authentication, async (req, res, next) => {
     req.version = "v0";
+    req.params.listingId = req.params.id;
     listingController.updateListing(req, res, next);
 });
 
