@@ -115,7 +115,7 @@ const updateListing = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             data: req.version && req.version === "v0" ? listingId : updatedListing,
-            id: listingId
+            id: Number(listingId)
         });
     } catch (err) {
         next(err);
