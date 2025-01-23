@@ -37,7 +37,8 @@ const getAllListings = async ({
     showExternalListings,
     isAdmin,
     startAfterDate,
-    endBeforeDate
+    endBeforeDate,
+    dateFilter
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -149,6 +150,34 @@ const getAllListings = async ({
         });
     }
 
+    if (dateFilter) {
+        const currentDate = new Date();
+        switch (dateFilter.toLowerCase()) {
+        case 'today':
+            startAfterDate = currentDate.toISOString().split('T')[0];
+            endBeforeDate = startAfterDate;
+            break;
+        case 'week': {
+            const startOfWeek = new Date(currentDate);
+            startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Start of the week (Monday)
+            startAfterDate = startOfWeek.toISOString().split('T')[0];
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6); // End of the week (Sunday)
+            endBeforeDate = endOfWeek.toISOString().split('T')[0];
+            break;
+        }
+        case 'month': {
+            const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // Start of the month
+            startAfterDate = startOfMonth.toISOString().split('T')[0];
+            const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // End of the month
+            endBeforeDate = endOfMonth.toISOString().split('T')[0];
+            break;
+        }
+        default:
+            throw new AppError("Invalid filterBy value. Allowed values are 'today', 'week', or 'month'.", 400);
+        }
+    }
+
     if(startAfterDate && !isValidDate(startAfterDate)) {
         throw new AppError(`Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`, 400);
     }
@@ -208,6 +237,8 @@ const getAllListings = async ({
             value: source.UserEntry
         });
     }
+
+
 
     try {
         const listings = await listingRepository.retrieveListings({
