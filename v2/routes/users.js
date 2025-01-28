@@ -22,6 +22,7 @@ const {
     deleteUser,
     getMyListings,
     storeFirebaseUserToken,
+    updateAllNotifications,
     getUserNotificationPreference,
     updateUserNotificationPreference
 } = require("../controllers/users");
@@ -73,6 +74,8 @@ router.post("/:id/loginDevices", authentication, listLoginDevices);
 router.delete("/:id/loginDevices", authentication, deleteLoginDevices);
 
 router.post("/:id/storeFirebaseUserToken", authentication, storeFirebaseUserToken);
+
+router.post("/:id/notificationPreference", authentication, updateAllNotifications);
 
 router.get("/:id/notificationPreference", authentication, getUserNotificationPreference);
 

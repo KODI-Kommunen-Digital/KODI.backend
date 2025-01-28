@@ -456,7 +456,7 @@ const deleteUser = async function (req, res, next) {
 const storeFirebaseUserToken = async function (req, res, next) {
     const userId = parseInt(req.params.id);
     const token = req.body.token;
-    const deviceToken = req.body.deviceToken;
+    const deviceToken = req.body.deviceId;
 
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -469,11 +469,30 @@ const storeFirebaseUserToken = async function (req, res, next) {
             throw new AppError(`Fire base token not present`, 400);
         }
         if(!deviceToken) {
-            throw new AppError(`Device token not present`, 400);
+            throw new AppError(`Device Id not present`, 400);
         }
         await userService.storeFirebaseUserToken(userId, token, deviceToken);
         res.status(200).json({
             status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+}
+
+const updateAllNotifications = async function (req, res, next) {
+    const userId = parseInt(req.params.id);
+    const notificationStatus = req.body.enabled;
+    try {
+        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+            throw new AppError(`Invalid UserId ${userId}`, 404);
+        }
+        if (userId !== req.userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        const resp =   await notificationService.updateAllNotifications(userId, notificationStatus);
+        res.status(200).json({
+            message: resp.message
         });
     } catch (err) {
         return next(err);
@@ -502,7 +521,7 @@ const getUserNotificationPreference = async function (req, res, next) {
 
 const updateUserNotificationPreference = async function (req, res, next) {
     const userId = parseInt(req.params.id);
-    const preferences = req.body.preferences;
+    const preferences = req.body;
 
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
@@ -540,6 +559,7 @@ module.exports = {
     deleteUser,
     getMyListings,
     storeFirebaseUserToken,
+    updateAllNotifications,
     getUserNotificationPreference,
     updateUserNotificationPreference
 };
