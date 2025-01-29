@@ -143,7 +143,6 @@ const updateUserNotificationPreference = async function(userId, {type, id, enabl
         }
         return { message: 'Preferences updated successfully'};
     } catch (err) {
-        console.error("error updating preference", err.message);
         if (err instanceof AppError) throw err;
         throw new AppError(err);    
     }
