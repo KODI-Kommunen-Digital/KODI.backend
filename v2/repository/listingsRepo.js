@@ -30,6 +30,7 @@ class ListingsRepo extends BaseRepo {
                 L.endDate,
                 L.statusId,
                 L.categoryId,
+                L.subcategoryId,
                 L.showExternal,
                 L.appointmentId,
                 L.viewCount,
