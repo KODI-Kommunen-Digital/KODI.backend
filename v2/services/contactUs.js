@@ -26,22 +26,13 @@ const contactUs = async function (id, language, body) {
             user.lastname,
             user.email,
         );
-        let parsedEmails = [];
-        try {
-            parsedEmails = process.env.CONTACT_EMAIL
-                ? JSON.parse(process.env.CONTACT_EMAIL)
-                : [];
-        } catch (parseError) {
-            parsedEmails = [];
+        let recipients = process.env.CONTACT_EMAIL? JSON.parse(process.env.CONTACT_EMAIL): null;
+        if(!recipients){
+            return false
         }
-        if(Array.isArray(parsedEmails) && parsedEmails.length > 0) {
-            await Promise.all(
-                parsedEmails.map((email) => sendMail(email, subject, body, null))
-            );
-        } else {
-            const contactEmail = process.env.CONTACT_EMAIL || "info@heidi-app.de";
-            await sendMail(contactEmail, subject, body, null);
-        }
+        recipients = recipients.join(",");
+        const contactEmail = recipients || "info@heidi-app.de";
+        await sendMail(contactEmail, subject, body, null);
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
