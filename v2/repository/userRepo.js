@@ -22,6 +22,16 @@ class UserRepo extends BaseRepo {
         ]);
     }
 
+    getUsersForNotification = async (cityId, categoryId) => {
+        const query = `SELECT DISTINCT u.id AS userId FROM users u
+            JOIN user_preference_cities upc ON u.id = upc.userId
+            JOIN user_preference_categories upcat ON u.id = upcat.userId
+            WHERE upc.cityId = ? AND upcat.categoryId = ?;
+        `;
+        const response = await database.callQuery(query, [cityId, categoryId]);
+        return response.rows;
+    }
+
 }
 
 module.exports = new UserRepo();
