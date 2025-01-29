@@ -106,7 +106,7 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
         }));
         const tokensList = await Promise.all(tokenPromises);
 
-        const tokens = tokensList.flat();
+        const tokens = tokensList.filter(token => token && token.firebaseToken);
         if (!tokens || tokens.length === 0) {
             return false;
         }
@@ -120,7 +120,12 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
                 },
                 data
             };
-            return await admin.messaging().send(message);
+            try {
+                return await admin.messaging().send(message);
+            } catch (error) {
+                console.error(`Error sending to token ${token.firebaseToken}:`, error);
+                return null;
+            }
         });
         await Promise.all(sendPromises);
     } catch (error) {
