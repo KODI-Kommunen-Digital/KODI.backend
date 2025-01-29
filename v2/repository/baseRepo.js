@@ -40,7 +40,6 @@ class BaseRepo {
 
     async create(params) {
         const { data, cityId } = params;
-
         return await create(this.tableName, data, cityId);
     }
 

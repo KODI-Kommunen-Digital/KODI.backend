@@ -22,6 +22,15 @@ class UserPreferenceCategoriesRepo extends BaseRepo {
         );
         return response.rows;
     }
+
+    insertMultipleCategoryPreference = async (data) => {
+        const columns = Object.keys(data[0]);
+        const placeholders = data.map(() => "(?, ?)").join(", ");
+        const values = data.flatMap(obj => columns.map(col => obj[col]));
+        const query = `INSERT INTO user_preference_categories (${columns.join(", ")}) VALUES ${placeholders} ON DUPLICATE KEY UPDATE categoryId=categoryId`;
+        const response = await database.callQuery(query, values);
+        return response.rows;
+    }
     
 }
 
