@@ -492,7 +492,8 @@ const updateAllNotifications = async function (req, res, next) {
         }
         const resp =   await notificationService.updateAllNotifications(userId, notificationStatus);
         res.status(200).json({
-            message: resp.message
+            status  : "success",
+            data: resp.message
         });
     } catch (err) {
         return next(err);
@@ -533,7 +534,7 @@ const updateUserNotificationPreference = async function (req, res, next) {
         const response = await notificationService.updateUserNotificationPreference(userId, preferences);
         res.status(200).json({
             status: "success",
-            message: response.message,
+            data: response.message,
         });
     } catch (err) {
         return next(err);
