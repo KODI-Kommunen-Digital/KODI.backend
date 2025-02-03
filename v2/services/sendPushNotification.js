@@ -1,6 +1,7 @@
 const admin = require("firebase-admin");
-// const firebaseRepository = require("../repository/firebase");
+const firebaseRepository = require("../repository/firebaseTokenRepo");
 const exceptionRepository = require("../repository/exceptionsRepo");
+const usersRepository = require("../repository/userRepo");
 const serviceAccount = process.env.FIREBASE_PRIVATE
     ? JSON.parse(process.env.FIREBASE_PRIVATE)
     : {};
@@ -52,51 +53,97 @@ async function sendPushNotificationToAll(
     }
 }
 
-// async function sendPushNotificationsToUser(
-//     userId,
-//     title = "BreakingNews",
-//     body = "Check it out",
-//     data = null,
-// ) {
-//     if (!serviceAccount) return false;
-//     try {
-//         const firebaseAdmin = admin.initializeApp(
-//             {
-//                 credential: admin.credential.cert(serviceAccount),
-//             },
-//             "Test",
-//         );
+async function sendPushNotificationsToUsers(cityId, categoryId, title = "", body = "Check it out", data = null) {
+    try {
+        if (!serviceAccount) return false;
+        const users = await usersRepository.getUsersForNotification(cityId, categoryId);
+        if (!users || users.length === 0) {
+            return false;
+        }
+        const userIds = users.map(user => user.userId);
+        await sendPushNotifications(userIds, title, body, data);
+    } catch (error) {
+        return false;
+    }
+}
 
-//         const tokens = await firebaseRepository.getTokensForUser(userId);
-//         if (!tokens || tokens.length === 0) {
-//             return false;
-//         }
+async function sendPushNotificationsToAdmin(title = "New Notification from a User", body= "Please verify the listing", data=null) {
+    try {
+        if (!serviceAccount) return false;
+        const users = await usersRepository.getAll({
+            filters: [
+                {
+                    key: "roldeId",
+                    sign: "=",
+                    value: 1
+                }
+            ]
+        });
+        if (!users || users.length === 0) {
+            return false;
+        }
+        const userIds = users.map(user => user.id);
+        await sendPushNotifications(userIds, title, body, data);
+    } catch (error) {
+        return false;
+    }
+}
 
-//         tokens.map(async (token) => {
-//             const message = {
-//                 token: token.firebaseToken,
-//                 notification: {
-//                     title,
-//                     body,
-//                 },
-//                 data,
-//             };
-//             await firebaseAdmin.messaging().send(message);
-//         });
-//     } catch (error) {
-//         try {
-//             const occuredAt = new Date();
-//             await exceptionRepository.addException(
-//                 error.message ?? "no message",
-//                 error.stack ?? "no stack",
-//                 getDateInFormate(occuredAt),
-//             );
-//         } catch (err) { }
-//     }
-//     return true;
-// }
+
+async function sendPushNotifications(userIds, title = "", body = "Check it out", data = null) {
+    try {
+        if (!serviceAccount) return false;
+
+        const tokenPromises = userIds.map(userId => firebaseRepository.getOne({
+            columns: "firebaseToken",
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                },
+            ]
+        }));
+        const tokensList = await Promise.all(tokenPromises);
+
+        const tokens = tokensList.filter(token => token && token.firebaseToken);
+        if (!tokens || tokens.length === 0) {
+            return false;
+        }
+
+        const sendPromises = tokens.map(async (token) => {
+            const message = {
+                token: token.firebaseToken,
+                notification: {
+                    title,
+                    body,
+                },
+                data
+            };
+            try {
+                return await admin.messaging().send(message);
+            } catch (error) {
+                console.error(`Error sending to token ${token.firebaseToken}:`, error);
+                return null;
+            }
+        });
+        await Promise.all(sendPromises);
+    } catch (error) {
+        try {
+            const occuredAt = new Date();
+            await exceptionRepository.create(
+                error.message ?? "no message",
+                error.stack ?? "no stack",
+                getDateInFormate(occuredAt),
+            );
+        } catch (error) { }
+        return false;
+    }
+    return true;
+}
 
 module.exports = {
     sendPushNotificationToAll,
-    // sendPushNotificationsToUser
+    sendPushNotificationsToUsers,
+    sendPushNotificationsToAdmin
 };
