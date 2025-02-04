@@ -56,7 +56,7 @@ const login = async function (req, res, next) {
             data: loginRes,
         });
     } catch (err) {
-        return next(new AppError(err, 500));
+        return next(err);
     }
 };
 
