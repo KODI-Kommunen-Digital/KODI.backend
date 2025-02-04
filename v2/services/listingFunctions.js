@@ -389,8 +389,8 @@ async function createListing(cityIds, payload, userId, roleId) {
             await addDefaultImage(transaction, listingId, payload.categoryId);
         }
 
-        for (const cityId of cityIds) {
-            const city = cities[cityId];
+        for (const city of cities) {
+            const cityId = city.id;
 
             const response = await cityListingMappingRepo.createWithTransaction({
                 data: {
