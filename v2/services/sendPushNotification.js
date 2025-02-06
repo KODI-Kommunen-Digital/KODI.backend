@@ -111,7 +111,7 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
 
         const sendPromises = tokens.map(async (token) => {
             const message = {
-                token: token,
+                token,
                 notification: {
                     title,
                     body,
