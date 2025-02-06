@@ -3,7 +3,7 @@ const AppError = require("../utils/appError");
 
 
 async function getPdfImage(pdfPath, pageNumber)  {
-    const pythonService = `http://127.0.0.1:5000`;
+    const pythonService = process.env.PDF_CONVERTER_URL ? process.env.PDF_CONVERTER_URL : `http://127.0.0.1:5000`;
     try {
         if(pdfPath.length === 0){
             return new AppError(`Invalid pdf link`, 404);
