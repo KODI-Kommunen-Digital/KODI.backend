@@ -73,7 +73,7 @@ async function sendPushNotificationsToAdmin(title = "New Notification from a Use
         const users = await usersRepository.getAll({
             filters: [
                 {
-                    key: "roldeId",
+                    key: "roleId",
                     sign: "=",
                     value: 1
                 }
@@ -82,7 +82,7 @@ async function sendPushNotificationsToAdmin(title = "New Notification from a Use
         if (!users || users.length === 0) {
             return false;
         }
-        const userIds = users.map(user => user.id);
+        const userIds = users.rows.map(user => user.id);
         await sendPushNotifications(userIds, title, body, data);
     } catch (error) {
         return false;
