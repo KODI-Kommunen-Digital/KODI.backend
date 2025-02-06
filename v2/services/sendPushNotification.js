@@ -94,26 +94,24 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
     try {
         if (!serviceAccount) return false;
 
-        const tokenPromises = userIds.map(userId => firebaseRepository.getOne({
-            columns: "firebaseToken",
-            filters: [
-                {
-                    key: "userId",
-                    sign: "=",
-                    value: userId
-                },
-            ]
-        }));
-        const tokensList = await Promise.all(tokenPromises);
-
-        const tokens = tokensList.filter(token => token && token.firebaseToken);
+        const tokenPromises = userIds.map(async (userId) => {
+            const { rows } = await firebaseRepository.getAll({
+                columns: "firebaseToken",
+                filters: [{ key: "userId", sign: "=", value: userId }],
+            });
+            return rows.map(row => row.firebaseToken); 
+        });
+        
+        const tokensList = (await Promise.all(tokenPromises)).flat();
+        
+        const tokens = tokensList.filter(token => token);
         if (!tokens || tokens.length === 0) {
             return false;
         }
 
         const sendPromises = tokens.map(async (token) => {
             const message = {
-                token: token.firebaseToken,
+                token: token,
                 notification: {
                     title,
                     body,
