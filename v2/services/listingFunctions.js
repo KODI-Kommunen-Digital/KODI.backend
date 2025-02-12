@@ -418,25 +418,26 @@ async function createListing(cityIds, payload, userId, roleId) {
                     { cityId: cityId.toString(), id: listingId.toString() },
                 );
             }
+        }
+        if (roleId === roles.Admin && insertionData.statusId === status.Active) {
+            await sendPushNotification.sendPushNotificationsToUsers(
+                cityIds,
+                insertionData.categoryId,
+                "Neue Meldung",
+                insertionData.title,
+                { cities:JSON.stringify(cities), id: listingId.toString() },
+            );
+        }
 
-            if (roleId === roles.Admin && insertionData.statusId === status.Active) {
-                await sendPushNotification.sendPushNotificationsToUsers(
-                    cityId,
-                    insertionData.categoryId,
-                    "Neue Meldung",
-                    city.name + " - " + insertionData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() },
-                );
-            }
-
-            if ( (roleId=== roles["Content Creator"] || roleId=== roles["Department Head"]) &&
-                insertionData.statusId === status.Pending) {
-                await sendPushNotification.sendPushNotificationsToAdmin(
-                    "Neue Meldung von einem Benutzer, bitte überprüfen Sie die Meldung",
-                    city.name + " - " + insertionData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() },
-                );
-            }
+        if ( (roleId=== roles["Content Creator"] || roleId=== roles["Department Head"]) &&
+            insertionData.statusId === status.Pending) {
+            await sendPushNotification.sendPushNotificationsToAdmin(
+                cityIds,
+                insertionData.categoryId,
+                "Neue Meldung von einem Benutzer, bitte überprüfen Sie die Meldung",
+                insertionData.title,
+                { cities:JSON.stringify(cities), id: listingId.toString() },
+            );
         }
         await listingsRepository.commitTransaction(transaction);
 

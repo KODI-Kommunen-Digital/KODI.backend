@@ -53,10 +53,10 @@ async function sendPushNotificationToAll(
     }
 }
 
-async function sendPushNotificationsToUsers(cityId, categoryId, title = "", body = "Check it out", data = null) {
+async function sendPushNotificationsToUsers(cityIds, categoryId, title = "", body = "Check it out", data = null) {
     try {
         if (!serviceAccount) return false;
-        const users = await usersRepository.getUsersForNotification(cityId, categoryId);
+        const users = await usersRepository.getUsersForNotification(cityIds, categoryId);
         if (!users || users.length === 0) {
             return false;
         }
@@ -67,10 +67,10 @@ async function sendPushNotificationsToUsers(cityId, categoryId, title = "", body
     }
 }
 
-async function sendPushNotificationsToAdmin(title = "New Notification from a User", body= "Please verify the listing", data=null) {
+async function sendPushNotificationsToAdmin(cityIds, categoryId, title = "New Notification from a User", body= "Please verify the listing", data=null) {
     try {
         if (!serviceAccount) return false;
-        const users = await usersRepository.getAll({
+        const AdminUsers = await usersRepository.getAll({
             filters: [
                 {
                     key: "roleId",
@@ -79,10 +79,12 @@ async function sendPushNotificationsToAdmin(title = "New Notification from a Use
                 }
             ]
         });
-        if (!users || users.length === 0) {
+        if (!AdminUsers || AdminUsers.length === 0) {
             return false;
         }
-        const userIds = users.rows.map(user => user.id);
+        const AdminUserIds = AdminUsers.rows.map(user => user.id);
+        const users = await usersRepository.getUsersForNotificationWithUserFilter(cityIds, categoryId, AdminUserIds);
+        const userIds = users.map(user => user.userId);
         await sendPushNotifications(userIds, title, body, data);
     } catch (error) {
         return false;
