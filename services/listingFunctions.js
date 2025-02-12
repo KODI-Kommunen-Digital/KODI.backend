@@ -64,7 +64,8 @@ async function createListing(cityIds, payload, userId, roleId) {
 
     // this will only be available for single cities for now
     if (
-        typeof parseInt(payload.villageId) === "number" &&
+        payload.villageId !== undefined &&
+        !isNaN(parseInt(payload.villageId)) &&
         parseInt(payload.villageId) !== 0 &&
         cityIds.length === 1
     ) {

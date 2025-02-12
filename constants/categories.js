@@ -41,5 +41,8 @@ module.exports = {
     Bürgerbeteiligung: 40,
     Highlights: 41,
     Project: 42,
-    Coupons: 43
+    Coupons: 43,
+    JobExchange: 44,
+    ServiceProvider: 45,
+    Shopping: 46,
 };
