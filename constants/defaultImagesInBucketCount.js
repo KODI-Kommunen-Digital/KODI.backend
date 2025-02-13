@@ -41,6 +41,7 @@ if (process.env.APPLICATION === "WALDI") {
         Polls:1,
         Officialnotification: 1,
         Applicants:4,
-        Coupons: 1
+        Coupons: 1,
+        AboutUs: 1,
     };
 }
