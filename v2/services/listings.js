@@ -1043,7 +1043,7 @@ const vote = async function (listingId, optionId, vote) {
         throw new AppError(`No poll options found for this listing`, 404);
     }
     try {
-        const pollOption = pollOptions.rows.find(
+        const pollOption = pollOptions.find(
             (option) => option.id === optionId,
         );
         if (!pollOption) {
