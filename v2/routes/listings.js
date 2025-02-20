@@ -12,7 +12,8 @@ const {
     uploadImage,
     uploadPDF,
     deleteImage,
-    deletePDF
+    deletePDF,
+    vote,
 } = require("../controllers/listings");
 const rateLimit = require("express-rate-limit");
 
@@ -66,5 +67,8 @@ router.delete(
     authentication,
     deletePDF,
 );
+
+router.post("/:id/vote", vote);
+
 
 module.exports = router;
