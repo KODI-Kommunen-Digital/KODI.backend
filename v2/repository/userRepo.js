@@ -17,7 +17,7 @@ class UserRepo extends BaseRepo {
     }
 
     deleteCoreUserProcedure = async (userId) => {
-        await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER_V2, [
+        await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [
             userId,
         ]);
     }
