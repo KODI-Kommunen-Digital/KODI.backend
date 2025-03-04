@@ -15,33 +15,29 @@ const voteOnListingSwagger = {
             required: true,
             description: "The ID of the listing for which the vote is being cast.",
         },
-        {
-            in: "body",
-            name: "voteRequest",
-            required: true,
-            description: "Vote request body",
-            content: {
-                "application/json": {
-                    schema: {
-                        type: "object",
-                        properties: {
-                            optionId: {
-                                type: "integer",
-                                example: 456,
-                                description: "The ID of the poll option being voted for.",
-                            },
-                            vote: {
-                                type: "integer",
-                                enum: [1, -1],
-                                example: 1,
-                                description: "The vote value: 1 for an upvote, -1 for a downvote.",
-                            },
+    ],
+    requestBody: {
+        required: true,
+        content: {
+            "application/json": {
+                schema: {
+                    type: "object",
+                    properties: {
+                        optionId: {
+                            type: "integer",
+                            example: 1,
+                            description: "The ID of the option being voted on.",
+                        },
+                        vote: {
+                            type: "integer",
+                            example: 1,
+                            description: "The vote value. 1 for upvote, -1 for downvote.",
                         },
                     },
                 },
             },
-        },
-    ],
+        }
+    },
     responses: {
         200: {
             description: "Successfully cast the vote",

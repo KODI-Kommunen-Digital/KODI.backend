@@ -1,5 +1,6 @@
 const database = require("../services/database");
 const tables = require("../constants/tableNames");
+const status = require("../constants/status");
 const AppError = require("../utils/appError");
 
 async function getUserListings(req, userId){
@@ -22,7 +23,7 @@ async function getUserListings(req, userId){
         throw new AppError( `Please enter a positive integer less than or equal to 20 for pageSize`, 400 );
     }
 
-    if (req.query.statusId) {
+    if (req.query.statusId && req.userId === userId) {
         const statusId = req.query.statusId;
         // check status id is valid or not before passing it into the query
         if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
@@ -43,6 +44,8 @@ async function getUserListings(req, userId){
             throw new AppError(err);
         }
         filters.statusId = req.query.statusId;
+    } else {
+        filters.statusId = status.Active;
     }
 
     if (req.query.categoryId) {
