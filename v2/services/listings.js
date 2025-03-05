@@ -462,7 +462,8 @@ const getListingWithId = async function (
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
+            orderBy: "cityOrder"
         });
 
         const allCities = cityListingMappings.rows.map(cityListingMapping => cityListingMapping.cityId)

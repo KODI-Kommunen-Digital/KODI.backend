@@ -52,20 +52,20 @@ class ListingsRepo extends BaseRepo {
             FROM listings L
             INNER JOIN (
                 SELECT 
-                    listingId,
-                    MIN(cityId) as cityId,
-                    COUNT(*) as cityCount,
-                    JSON_ARRAYAGG(cityId) as allCities
-                FROM city_listing_mappings
+                    clm.listingId,
+                    (SELECT cityId FROM city_listing_mappings WHERE listingId = clm.listingId ORDER BY cityOrder ASC LIMIT 1) AS cityId,
+                    COUNT(*) AS cityCount,
+                    JSON_ARRAYAGG(cityId ORDER BY cityOrder ASC) AS allCities
+                FROM city_listing_mappings clm
                 ${cities.length > 0 ? " WHERE cityId IN (?)" : ""}
-                GROUP BY listingId
+                GROUP BY clm.listingId
             ) C ON L.id = C.listingId
             LEFT JOIN (
                 SELECT
                     listingId,
-                    MIN(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
-                    COUNT(*) as logoCount,
-                    JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder, 'id', id, 'listingId', listingId)) as otherLogos
+                    MIN(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) AS logo,
+                    COUNT(*) AS logoCount,
+                    JSON_ARRAYAGG(JSON_OBJECT('logo', logo, 'imageOrder', imageOrder, 'id', id, 'listingId', listingId)) AS otherLogos
                 FROM listing_images
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId

@@ -920,68 +920,54 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
         return;
     }
     try {
-        const response = await cityListingMappingRepo.getAll({
+        const cityDetailsResponse = await citiesRepository.getAll({
             filters: [
                 {
-                    key: "listingId",
-                    sign: "=",
-                    value: listingId,
+                    key: "id",
+                    sign: "IN",
+                    value: updatedCityIds
                 },
             ],
+            columns: ["id", "name"],
         });
-        const existingCityIds = response.rows.map(row => row.cityId);
-        const cityIdsToDelete = existingCityIds.filter(cityId => !updatedCityIds.includes(cityId));
-        const cityIdsToAdd = updatedCityIds.filter(cityId => !existingCityIds.includes(cityId));
-        for (const cityId of cityIdsToDelete) {
-            await cityListingMappingRepo.deleteWithTransaction({
-                filters: [
-                    {
-                        key: "listingId",
-                        sign: "=",
-                        value: listingId,
-                    },
-                    {
-                        key: "cityId",
-                        sign: "=",
-                        value: cityId,
-                    },
-                ],
-            }, transaction);
-        }
 
-        // Perform add operations
-        for (const cityId of cityIdsToAdd) {
-            await cityListingMappingRepo.createWithTransaction({
-                data: {
-                    listingId,
-                    cityId,
-                }
-            }, transaction);
+        const cityDetailsMap = cityDetailsResponse.rows.map(city => [city.id, city.name])
 
-            const cityResponse = await citiesRepository.getOne({
-                filters: [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: cityId
-                    }
-                ],
-                columns: "name",
-            });
-            const cityName = cityResponse.name;
-            if (
-                parseInt(updationData.categoryId) === categories.News &&
-                parseInt(updationData.subcategoryId) === subcategories.newsflash &&
-                updationData.statusId === status.Active &&
-                roleId === roles.Admin
-            ) {
-                await sendPushNotification.sendPushNotificationToAll(
-                    "warnings",
-                    "Eilmeldung",
-                    cityName + " - " + updationData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() },
-                );
-            }
+        await cityListingMappingRepo.deleteWithTransaction(
+            { filters: [{ key: "listingId", sign: "=", value: listingId }] },
+            transaction
+        );
+
+        const insertData = updatedCityIds.map((cityId, index) => ({
+            listingId,
+            cityId,
+            cityOrder: index + 1, // Maintain order
+        }));
+
+        await cityListingMappingRepo.createWithTransaction(insertData, transaction);
+
+        if (
+            parseInt(updationData.categoryId) === categories.News &&
+            parseInt(updationData.subcategoryId) === subcategories.newsflash &&
+            updationData.statusId === status.Active &&
+            roleId === roles.Admin
+        ) {
+            const notifications = updatedCityIds.map(cityId => ({
+                topic: "warnings",
+                title: "Eilmeldung",
+                message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${updationData.title}`,
+                payload: { cityId: cityId.toString(), id: listingId.toString() },
+            }));
+
+            // Send notifications in parallel
+            await Promise.all(notifications.map(notification =>
+                sendPushNotification.sendPushNotificationToAll(
+                    notification.topic,
+                    notification.title,
+                    notification.message,
+                    notification.payload
+                )
+            ));
         }
     } catch (err) {
         if (err instanceof AppError) {
