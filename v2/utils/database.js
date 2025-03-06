@@ -166,10 +166,47 @@ async function rollbackTransaction(connection) {
 }
 
 async function createWithTransaction(table, data, connection) {
-    const query = `INSERT INTO ${table} SET ?`;
-    const response = await connection.query(query, data);
-    return { id: response[0].insertId };
+    if (!/^[a-zA-Z0-9_]+$/.test(table)) {
+        throw new Error("Invalid table name");
+    }
+
+    // Handle multiple inserts
+    if (Array.isArray(data)) {
+        if (data.length === 0) {
+            throw new Error("Data array cannot be empty");
+        }
+
+        const keys = Object.keys(data[0]);
+        const values = data.map(row => keys.map(key => row[key])); // Ensure values align with columns
+
+        const query = `INSERT INTO ?? (${keys.map(col => "??").join(", ")}) VALUES ${values.map(() => `(${keys.map(() => "?").join(", ")})`).join(", ")}`;
+
+        try {
+            const [result] = await connection.query(query, [table, ...keys, ...values.flat()]);
+            
+            const insertIds = Array.from({ length: result.affectedRows }, (_, i) => result.insertId + i);
+
+            return { insertIds, affectedRows: result.affectedRows };
+        } catch (error) {
+            throw new Error("Database bulk insert failed: " + error.message);
+        }
+    }
+
+    if (typeof data === "object" && data !== null) {
+        const query = `INSERT INTO ?? SET ?`;
+
+        try {
+            const [result] = await connection.query(query, [table, data]);
+            return { id: result.insertId };
+        } catch (error) {
+            throw new Error("Database insert failed: " + error.message);
+        }
+    }
+
+    throw new Error("Invalid data format. Expected an object or an array of objects.");
 }
+
+
 
 async function updateWithTransaction(table, data, filters, connection, joinFiltersBy = "AND") {
     const conditionAndValues = [];

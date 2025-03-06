@@ -941,13 +941,13 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
             transaction
         );
 
-        const insertData = updatedCityIds.map((cityId, index) => ({
+        const data = updatedCityIds.map((cityId, index) => ({
             listingId,
             cityId,
             cityOrder: index + 1, // Maintain order
         }));
 
-        await cityListingMappingRepo.createWithTransaction(insertData, transaction);
+        await cityListingMappingRepo.createWithTransaction({ data }, transaction);
 
         if (
             parseInt(updationData.categoryId) === categories.News &&
