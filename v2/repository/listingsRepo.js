@@ -55,7 +55,9 @@ class ListingsRepo extends BaseRepo {
                     clm.listingId,
                     (SELECT cityId FROM city_listing_mappings WHERE listingId = clm.listingId ORDER BY cityOrder ASC LIMIT 1) AS cityId,
                     COUNT(*) AS cityCount,
-                    JSON_ARRAYAGG(cityId ORDER BY cityOrder ASC) AS allCities
+                    (SELECT CAST(CONCAT('[', GROUP_CONCAT(cityId ORDER BY cityOrder ASC SEPARATOR ','), ']') AS JSON)
+                     FROM city_listing_mappings 
+                     WHERE listingId = clm.listingId) AS allCities
                 FROM city_listing_mappings clm
                 ${cities.length > 0 ? " WHERE cityId IN (?)" : ""}
                 GROUP BY clm.listingId
