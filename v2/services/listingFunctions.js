@@ -389,15 +389,18 @@ async function createListing(cityIds, payload, userId, roleId) {
             await addDefaultImage(transaction, listingId, payload.categoryId);
         }
 
+        let cityOrder = 1;
         for (const city of cities) {
             const cityId = city.id;
 
             const response = await cityListingMappingRepo.createWithTransaction({
                 data: {
                     cityId,
-                    listingId
+                    listingId,
+                    cityOrder
                 }
             }, transaction);
+            cityOrder += 1;
 
             allResponses.push({
                 cityId: Number(cityId),
