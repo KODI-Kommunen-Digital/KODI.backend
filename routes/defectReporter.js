@@ -20,13 +20,19 @@ router.post('/', authentication, upload.single('image'), async function(req, res
     const language = payload.language || "de";
     const userId = req.userId;
     try {
-        const {title, description } = payload;
+        let {title, description, address } = payload;
         if (!title || !description || !req.file){
             return next(new AppError("All fields are mandatory" , 400));
         }
 
         const imageHash = crypto.createHash('md5').update(req.file.buffer).digest('hex');
+        const userResp = await database.get(tables.USER_TABLE, {id: userId}, ['email']);
+        if (!userResp.rows.length){
+            return next(new AppError("User not found" , 404));
+        }
+        const email = userResp.rows[0].email;
 
+        description = description + "<br><strong>Address:</strong> " + address + "<br><strong>Benutzer E-Mail:</strong> " + email;
         defectReport = {
             userId,
             title,
