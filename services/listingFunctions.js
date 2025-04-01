@@ -307,6 +307,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                     delete user.password;
                     delete user.socialMedia;
                     delete user.emailVerified;
+                    if(user.allNotificationsEnabled) {delete user.allNotificationsEnabled;}
                     response = await database.create(tables.USER_TABLE, user, cityId);
 
                     const cityUserId = response.id;
