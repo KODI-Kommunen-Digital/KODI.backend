@@ -238,8 +238,6 @@ const getAllListings = async ({
         });
     }
 
-
-
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
