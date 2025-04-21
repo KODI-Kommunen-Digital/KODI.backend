@@ -9,6 +9,7 @@ function getCorePool() {
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
         port: process.env.DATABASE_PORT || 3306,
+        timezone: 'local'
     });
 }
 const pool = { 0: getCorePool() };
