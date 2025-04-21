@@ -9,7 +9,13 @@ function getCorePool() {
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
         port: process.env.DATABASE_PORT || 3306,
-        timezone: 'local'
+        timezone: 'local',
+        typeCast: function (field, next) {
+            if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
+                return field.string();
+            }
+            return next();
+        }
     });
 }
 const pool = { 0: getCorePool() };
@@ -18,7 +24,7 @@ async function getConnection(cityId) {
     if (!pool[0]) {
         pool[0] = getCorePool();
     }
-    const coreConnection =  await pool[0].getConnection()
+    const coreConnection = await pool[0].getConnection()
     if (!cityId) {
         return coreConnection;
     }
