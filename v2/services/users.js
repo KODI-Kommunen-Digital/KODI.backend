@@ -948,40 +948,48 @@ const verifyEmail = async function (userId, token, language = "de") {
             throw new AppError(`Invalid data sent`, 400);
         }
 
-        // await tokenRepo.deleteVerificationToken({ userId, token });
-        await verificationTokenRepository.delete({
-            filters: [
-                {
-                    key: "userId",
-                    sign: "=",
-                    value: userId
+        const transaction = await usersRepository.createTransaction();
+        try {
+            // await tokenRepo.deleteVerificationToken({ userId, token });
+            await verificationTokenRepository.deleteWithTransaction({
+                filters: [
+                    {
+                        key: "userId",
+                        sign: "=",
+                        value: userId
+                    },
+                    {
+                        key: "token",
+                        sign: "=",
+                        value: token
+                    }
+                ]
+            }, transaction);
+
+            if (tokenData.expiresAt < new Date().toLocaleString()) {
+                throw new AppError(`Token Expired, send verification mail again`, 400);
+            }
+
+            // await userRepo.updateUserById(userId, { emailVerified: true });
+            await usersRepository.updateWithTransaction({
+                data: {
+                    emailVerified: true
                 },
-                {
-                    key: "token",
-                    sign: "=",
-                    value: token
-                }
-            ]
-        });
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: userId
+                    }
+                ]
+            }, transaction);
 
-        if (tokenData.expiresAt < new Date().toLocaleString()) {
-            throw new AppError(`Token Expired, send verification mail again`, 400);
+            await usersRepository.commitTransaction(transaction);
+        } catch (err) {
+            await usersRepository.rollbackTransaction(transaction);
+            if (err instanceof AppError) throw err;
+            throw new AppError(err);
         }
-
-        // await userRepo.updateUserById(userId, { emailVerified: true });
-        await usersRepository.update({
-            data: {
-                emailVerified: true
-            },
-            filters: [
-                {
-                    key: "id",
-                    sign: "=",
-                    value: userId
-                }
-            ]
-        });
-
         const verificationDone = require(
             `../emailTemplates/${language}/verificationDone`,
         );
