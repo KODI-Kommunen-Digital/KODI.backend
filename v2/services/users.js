@@ -347,9 +347,9 @@ const register = async function (payload) {
     const connection = await usersRepository.createTransaction();
     try {
         // const response = await userRepo.createUser(insertionData, connection);
-        const response = await usersRepository.create({
+        const response = await usersRepository.createWithTransaction({
             data: insertionData
-        });
+        }, connection);
 
         const userId = response.id;
         const now = new Date();
@@ -380,9 +380,9 @@ const register = async function (payload) {
 
         return userId;
     } catch (err) {
+        await usersRepository.rollbackTransaction(connection);
         if (err instanceof AppError) throw err;
         // database.rollbackTransaction(connection);
-        await usersRepository.rollbackTransaction(connection);
         throw new AppError(err);
     }
 };
