@@ -966,7 +966,7 @@ const verifyEmail = async function (userId, token, language = "de") {
                 ]
             }, transaction);
 
-            if (tokenData.expiresAt < new Date().toLocaleString()) {
+            if (tokenData.expiresAt < getDateInFormate(new Date())) {
                 throw new AppError(`Token Expired, send verification mail again`, 400);
             }
 
