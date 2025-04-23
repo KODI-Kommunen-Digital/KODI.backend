@@ -9,19 +9,19 @@ function getCorePool() {
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
         port: process.env.DATABASE_PORT || 3306,
-        typeCast: function (field, next) {
-            if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
-                const utcDate = field.string();
-                if (utcDate && !utcDate.includes('T') && !utcDate.includes('Z')) {
-                    const date = new Date(utcDate.replace(' ', 'T') + 'Z');
-                    const berlinTimeOffset = 60; // Berlin is UTC+1, and +2 during daylight saving
-                    const berlinDate = new Date(date.getTime() + berlinTimeOffset * 60 * 1000);
-                    return berlinDate.toISOString().replace('T', ' ').slice(0, 16);
-                }
-                return utcDate; // Return as is if it already has timezone info
-            }
-            return next();
-        }
+        // typeCast: function (field, next) {
+        //     if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
+        //         const utcDate = field.string();
+        //         if (utcDate && !utcDate.includes('T') && !utcDate.includes('Z')) {
+        //             const date = new Date(utcDate.replace(' ', 'T') + 'Z');
+        //             const berlinTimeOffset = 60; // Berlin is UTC+1, and +2 during daylight saving
+        //             const berlinDate = new Date(date.getTime() + berlinTimeOffset * 60 * 1000);
+        //             return berlinDate.toISOString().replace('T', ' ').slice(0, 16);
+        //         }
+        //         return utcDate; // Return as is if it already has timezone info
+        //     }
+        //     return next();
+        // }
     });
 }
 const pool = { 0: getCorePool() };
