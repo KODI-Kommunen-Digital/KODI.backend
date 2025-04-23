@@ -9,10 +9,14 @@ function getCorePool() {
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
         port: process.env.DATABASE_PORT || 3306,
-        timezone: 'local',
         typeCast: function (field, next) {
             if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
-                return field.string();
+                const utcDate = field.string();
+                if (utcDate) {
+                    const date = new Date(utcDate.includes('T') ? utcDate + 'Z' : utcDate.replace(' ', 'T') + 'Z');
+                    return date.toLocaleString('en-US', { timeZone: 'Europe/Berlin' });
+                }
+                return null;
             }
             return next();
         }
