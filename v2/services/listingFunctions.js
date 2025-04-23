@@ -425,18 +425,18 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.categoryId,
                 "Neue Meldung",
                 insertionData.title,
-                { cities:JSON.stringify(cities), id: listingId.toString() },
+                { cities: JSON.stringify(cities), id: listingId.toString() },
             );
         }
 
-        if ( (roleId=== roles["Content Creator"] || roleId=== roles["Department Head"]) &&
+        if ((roleId === roles["Content Creator"] || roleId === roles["Department Head"]) &&
             insertionData.statusId === status.Pending) {
             await sendPushNotification.sendPushNotificationsToAdmin(
                 cityIds,
                 insertionData.categoryId,
                 "Neue Meldung von einem Benutzer, bitte überprüfen Sie die Meldung",
                 insertionData.title,
-                { cities:JSON.stringify(cities), id: listingId.toString() },
+                { cities: JSON.stringify(cities), id: listingId.toString() },
             );
         }
         await listingsRepository.commitTransaction(transaction);
@@ -566,11 +566,11 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
             parseInt(listingData.categoryId) === categories.News &&
             !listingData.timeless
         ) {
-            if (listingData.expiryDate) {
+            if (listingData.expiryDate && listingData.expiryDate.length > 0) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(listingData.expiryDate)
                 );
-            } else {
+            } else if (!currentListingData.expiryDate) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(updationData.updatedAt).getTime() +
@@ -579,20 +579,20 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
                 );
             }
         } else if (parseInt(listingData.categoryId) === categories.Events) {
-            if (listingData.startDate) {
+            if (listingData.startDate && listingData.startDate.length > 0) {
                 updationData.startDate = getDateInFormate(
                     new Date(listingData.startDate)
                 );
-            } else {
+            } else if (!currentListingData.startDate) {
                 return new AppError(`Start date is not present`, 400);
             }
 
-            if (listingData.endDate) {
+            if (listingData.endDate && listingData.endDate.length > 0) {
                 updationData.endDate = getDateInFormate(new Date(listingData.endDate));
                 updationData.expiryDate = getDateInFormate(
                     new Date(new Date(listingData.endDate).getTime() + 1000 * 60 * 60 * 24)
                 );
-            } else {
+            } else if (!currentListingData.endDate) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(listingData.startDate).getTime() + 1000 * 60 * 60 * 24
