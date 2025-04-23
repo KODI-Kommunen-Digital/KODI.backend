@@ -14,7 +14,7 @@ function getCorePool() {
                 const utcDate = field.string();
                 if (utcDate) {
                     const date = new Date(utcDate.includes('T') ? utcDate + 'Z' : utcDate.replace(' ', 'T') + 'Z');
-                    return date.toLocaleString('en-US', { timeZone: 'Europe/Berlin' });
+                    return date.toISOString().replace('T', ' ').slice(0, 16);
                 }
                 return null;
             }
