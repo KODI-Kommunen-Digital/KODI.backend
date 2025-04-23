@@ -12,11 +12,13 @@ function getCorePool() {
         typeCast: function (field, next) {
             if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
                 const utcDate = field.string();
-                if (utcDate) {
-                    const date = new Date(utcDate.includes('T') ? utcDate + 'Z' : utcDate.replace(' ', 'T') + 'Z');
-                    return date.toISOString().replace('T', ' ').slice(0, 16);
+                if (utcDate && !utcDate.includes('T') && !utcDate.includes('Z')) {
+                    const date = new Date(utcDate.replace(' ', 'T') + 'Z');
+                    const berlinTimeOffset = 60; // Berlin is UTC+1, and +2 during daylight saving
+                    const berlinDate = new Date(date.getTime() + berlinTimeOffset * 60 * 1000);
+                    return berlinDate.toISOString().replace('T', ' ').slice(0, 16);
                 }
-                return null;
+                return utcDate; // Return as is if it already has timezone info
             }
             return next();
         }
