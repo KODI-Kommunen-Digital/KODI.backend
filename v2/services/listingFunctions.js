@@ -561,6 +561,8 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         updationData.subcategoryId = listingData.subcategoryId;
     }
 
+    updationData.updatedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+
     try {
         if (
             parseInt(listingData.categoryId) === categories.News &&
@@ -637,7 +639,6 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         }
     }
 
-    updationData.updatedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
     validateAndAssignListingParameters(updationData, listingData);
     let transaction;
     try {
