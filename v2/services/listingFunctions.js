@@ -390,9 +390,18 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
 
         let cityOrder = 1;
+        const cityIdOrderMap = {};
+        for (const cityId of cityIds) {
+            cityIdOrderMap[cityId] = cityOrder;
+            cityOrder += 1;
+        }
         for (const city of cities) {
             const cityId = city.id;
 
+            const cityOrder = cityIdOrderMap[cityId];
+            if (!cityOrder) {
+                continue;
+            }
             const response = await cityListingMappingRepo.createWithTransaction({
                 data: {
                     cityId,
@@ -400,7 +409,6 @@ async function createListing(cityIds, payload, userId, roleId) {
                     cityOrder
                 }
             }, transaction);
-            cityOrder += 1;
 
             allResponses.push({
                 cityId: Number(cityId),
