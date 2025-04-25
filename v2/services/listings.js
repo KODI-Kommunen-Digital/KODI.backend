@@ -111,7 +111,7 @@ const getAllListings = async ({
                     key: "isEnabled",
                     sign: "=",
                     value: true,
-                       
+
                 }
             ]
         });
@@ -178,11 +178,11 @@ const getAllListings = async ({
         }
     }
 
-    if(startAfterDate && !isValidDate(startAfterDate)) {
+    if (startAfterDate && !isValidDate(startAfterDate)) {
         throw new AppError(`Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`, 400);
     }
 
-    if(endBeforeDate && !isValidDate(endBeforeDate)) {
+    if (endBeforeDate && !isValidDate(endBeforeDate)) {
         throw new AppError(`Invalid Date given '${endBeforeDate}', formate Should be YYYY-MM-DD`, 400);
     }
 
@@ -460,7 +460,8 @@ const getListingWithId = async function (
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
+            orderBy: ["cityOrder"]
         });
 
         const allCities = cityListingMappings.rows.map(cityListingMapping => cityListingMapping.cityId)
