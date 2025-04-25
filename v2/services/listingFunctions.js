@@ -948,7 +948,14 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
             cityOrder: index + 1, // Maintain order
         }));
 
-        await cityListingMappingRepo.createWithTransaction({ data }, transaction);
+        await Promise.all(
+            data.map(async (cityListingsMapping) =>
+                await cityListingMappingRepo.createWithTransaction(
+                    { data: cityListingsMapping },
+                    transaction
+                )
+            )
+        );
 
         if (
             parseInt(updationData.categoryId) === categories.News &&
