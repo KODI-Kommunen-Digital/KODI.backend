@@ -539,16 +539,21 @@ const deleteListing = async function (id, userId, roleId) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
+    const transaction = await listingRepository.createTransaction();
     try {
         const userImageList = await bucketClient.fetchUserImages(userId, null, id);
 
         const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text })).filter((image) => typeof image.Key === 'string' && image.Key && !image.Key.startsWith("admin/"));
 
         if (imagesToDelete && imagesToDelete.length > 0) {
-            await imageDeleteAsync.deleteMultiple(imagesToDelete);
+            await imageDeleteAsync.deleteMultiple(imagesToDelete.map((i) => i.Key));
         }
 
-        await listingImagesRepository.delete({
+        if (currentListingData.pdf) {
+            await imageDeleteAsync.deleteImage(currentListingData.pdf);
+        }
+
+        await listingImagesRepository.deleteWithTransaction({
             filters: [
                 {
                     key: "listingId",
@@ -556,8 +561,8 @@ const deleteListing = async function (id, userId, roleId) {
                     value: id,
                 },
             ],
-        });
-        await listingRepository.delete({
+        }, transaction);
+        await listingRepository.deleteWithTransaction({
             filters: [
                 {
                     key: "id",
@@ -565,8 +570,10 @@ const deleteListing = async function (id, userId, roleId) {
                     value: id,
                 },
             ],
-        });
+        }, transaction);
+        await listingRepository.commitTransaction(transaction);
     } catch (err) {
+        await listingRepository.rollbackTransaction(transaction);
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
