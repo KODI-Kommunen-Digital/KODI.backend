@@ -389,13 +389,24 @@ async function createListing(cityIds, payload, userId, roleId) {
             await addDefaultImage(transaction, listingId, payload.categoryId);
         }
 
+        let cityOrder = 1;
+        const cityIdOrderMap = {};
+        for (const cityId of cityIds) {
+            cityIdOrderMap[cityId] = cityOrder;
+            cityOrder += 1;
+        }
         for (const city of cities) {
             const cityId = city.id;
 
+            const cityOrder = cityIdOrderMap[cityId];
+            if (!cityOrder) {
+                continue;
+            }
             const response = await cityListingMappingRepo.createWithTransaction({
                 data: {
                     cityId,
-                    listingId
+                    listingId,
+                    cityOrder
                 }
             }, transaction);
 
@@ -425,18 +436,18 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.categoryId,
                 "Neue Meldung",
                 insertionData.title,
-                { cities:JSON.stringify(cities), id: listingId.toString() },
+                { cities: JSON.stringify(cities), id: listingId.toString() },
             );
         }
 
-        if ( (roleId=== roles["Content Creator"] || roleId=== roles["Department Head"]) &&
+        if ((roleId === roles["Content Creator"] || roleId === roles["Department Head"]) &&
             insertionData.statusId === status.Pending) {
             await sendPushNotification.sendPushNotificationsToAdmin(
                 cityIds,
                 insertionData.categoryId,
                 "Neue Meldung von einem Benutzer, bitte überprüfen Sie die Meldung",
                 insertionData.title,
-                { cities:JSON.stringify(cities), id: listingId.toString() },
+                { cities: JSON.stringify(cities), id: listingId.toString() },
             );
         }
         await listingsRepository.commitTransaction(transaction);
@@ -561,16 +572,18 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         updationData.subcategoryId = listingData.subcategoryId;
     }
 
+    updationData.updatedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
+
     try {
         if (
             parseInt(listingData.categoryId) === categories.News &&
             !listingData.timeless
         ) {
-            if (listingData.expiryDate) {
+            if (listingData.expiryDate && listingData.expiryDate.length > 0) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(listingData.expiryDate)
                 );
-            } else {
+            } else if (!currentListingData.expiryDate) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(updationData.updatedAt).getTime() +
@@ -579,20 +592,20 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
                 );
             }
         } else if (parseInt(listingData.categoryId) === categories.Events) {
-            if (listingData.startDate) {
+            if (listingData.startDate && listingData.startDate.length > 0) {
                 updationData.startDate = getDateInFormate(
                     new Date(listingData.startDate)
                 );
-            } else {
+            } else if (!currentListingData.startDate) {
                 return new AppError(`Start date is not present`, 400);
             }
 
-            if (listingData.endDate) {
+            if (listingData.endDate && listingData.endDate.length > 0) {
                 updationData.endDate = getDateInFormate(new Date(listingData.endDate));
                 updationData.expiryDate = getDateInFormate(
                     new Date(new Date(listingData.endDate).getTime() + 1000 * 60 * 60 * 24)
                 );
-            } else {
+            } else if (!currentListingData.endDate) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(listingData.startDate).getTime() + 1000 * 60 * 60 * 24
@@ -637,7 +650,6 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         }
     }
 
-    updationData.updatedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
     validateAndAssignListingParameters(updationData, listingData);
     let transaction;
     try {
@@ -920,68 +932,61 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
         return;
     }
     try {
-        const response = await cityListingMappingRepo.getAll({
+        const cityDetailsResponse = await citiesRepository.getAll({
             filters: [
                 {
-                    key: "listingId",
-                    sign: "=",
-                    value: listingId,
+                    key: "id",
+                    sign: "IN",
+                    value: updatedCityIds
                 },
             ],
+            columns: ["id", "name"],
         });
-        const existingCityIds = response.rows.map(row => row.cityId);
-        const cityIdsToDelete = existingCityIds.filter(cityId => !updatedCityIds.includes(cityId));
-        const cityIdsToAdd = updatedCityIds.filter(cityId => !existingCityIds.includes(cityId));
-        for (const cityId of cityIdsToDelete) {
-            await cityListingMappingRepo.deleteWithTransaction({
-                filters: [
-                    {
-                        key: "listingId",
-                        sign: "=",
-                        value: listingId,
-                    },
-                    {
-                        key: "cityId",
-                        sign: "=",
-                        value: cityId,
-                    },
-                ],
-            }, transaction);
-        }
 
-        // Perform add operations
-        for (const cityId of cityIdsToAdd) {
-            await cityListingMappingRepo.createWithTransaction({
-                data: {
-                    listingId,
-                    cityId,
-                }
-            }, transaction);
+        const cityDetailsMap = cityDetailsResponse.rows.map(city => [city.id, city.name])
 
-            const cityResponse = await citiesRepository.getOne({
-                filters: [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: cityId
-                    }
-                ],
-                columns: "name",
-            });
-            const cityName = cityResponse.name;
-            if (
-                parseInt(updationData.categoryId) === categories.News &&
-                parseInt(updationData.subcategoryId) === subcategories.newsflash &&
-                updationData.statusId === status.Active &&
-                roleId === roles.Admin
-            ) {
-                await sendPushNotification.sendPushNotificationToAll(
-                    "warnings",
-                    "Eilmeldung",
-                    cityName + " - " + updationData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() },
-                );
-            }
+        await cityListingMappingRepo.deleteWithTransaction(
+            { filters: [{ key: "listingId", sign: "=", value: listingId }] },
+            transaction
+        );
+
+        const data = updatedCityIds.map((cityId, index) => ({
+            listingId,
+            cityId,
+            cityOrder: index + 1, // Maintain order
+        }));
+
+        await Promise.all(
+            data.map(async (cityListingsMapping) =>
+                await cityListingMappingRepo.createWithTransaction(
+                    { data: cityListingsMapping },
+                    transaction
+                )
+            )
+        );
+
+        if (
+            parseInt(updationData.categoryId) === categories.News &&
+            parseInt(updationData.subcategoryId) === subcategories.newsflash &&
+            updationData.statusId === status.Active &&
+            roleId === roles.Admin
+        ) {
+            const notifications = updatedCityIds.map(cityId => ({
+                topic: "warnings",
+                title: "Eilmeldung",
+                message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${updationData.title}`,
+                payload: { cityId: cityId.toString(), id: listingId.toString() },
+            }));
+
+            // Send notifications in parallel
+            await Promise.all(notifications.map(notification =>
+                sendPushNotification.sendPushNotificationToAll(
+                    notification.topic,
+                    notification.title,
+                    notification.message,
+                    notification.payload
+                )
+            ));
         }
     } catch (err) {
         if (err instanceof AppError) {
