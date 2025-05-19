@@ -24,7 +24,7 @@ const {
     storeFirebaseUserToken,
     updateAllNotifications,
     getUserNotificationPreference,
-    updateUserNotificationPreference
+    updateUserNotificationPreference,
 } = require("../controllers/users");
 
 const filterNonPostRequests = (req, res, next) => {
@@ -73,12 +73,28 @@ router.post("/:id/loginDevices", authentication, listLoginDevices);
 
 router.delete("/:id/loginDevices", authentication, deleteLoginDevices);
 
-router.post("/:id/storeFirebaseUserToken", authentication, storeFirebaseUserToken);
+router.post(
+    "/:id/storeFirebaseUserToken",
+    authentication,
+    storeFirebaseUserToken
+);
 
-router.post("/:id/notificationPreference", authentication, updateAllNotifications);
+router.post(
+    "/:id/notificationPreference",
+    authentication,
+    updateAllNotifications
+);
 
-router.get("/:id/notificationPreference", authentication, getUserNotificationPreference);
+router.get(
+    "/:id/notificationPreference",
+    authentication,
+    getUserNotificationPreference
+);
 
-router.patch("/:id/notificationPreference", authentication, updateUserNotificationPreference);
+router.patch(
+    "/:id/notificationPreference",
+    authentication,
+    updateUserNotificationPreference
+);
 
 module.exports = router;
