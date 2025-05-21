@@ -21,7 +21,7 @@
         ],
         "no-useless-escape": 0,
         "no-unneeded-ternary": 0,
-        "indent":["error", 4],
+        "indent":["off", 4],
         "no-tabs": 0,
         "import/no-unresolved": [2, { "caseSensitive": true }]
     }

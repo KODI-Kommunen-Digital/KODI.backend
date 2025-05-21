@@ -21,6 +21,7 @@ const authentication = async function (req, res, next) {
         const decodedToken = tokenUtil.verify(token, process.env.ACCESS_PUBLIC);
         req.userId = decodedToken.userId;
         req.roleId = decodedToken.roleId;
+        console.log({ userId: req.userId, roleId: req.roleId })
     } catch (error) {
         if (error.name === "TokenExpiredError") {
             return next(new AppError(`Unauthorized! Token was expired!`, 401));

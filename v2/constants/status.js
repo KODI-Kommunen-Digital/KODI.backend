@@ -1,5 +1,5 @@
 module.exports = {
-    Active: 1,
-    Inactive: 2,
-    Pending: 3,
+    Approved: 1,
+    Pending: 2,
+    Feedback: 3,
 };

@@ -3,7 +3,6 @@ require("dotenv").config();
 
 function getCorePool() {
     return mysql.createPool({
-        connectionLimit: process.env.DATABASE_POOL_MAX || 10, // default 10
         host: process.env.DATABASE_HOST,
         user: process.env.DATABASE_USER,
         password: process.env.DATABASE_PASSWORD,
@@ -11,7 +10,7 @@ function getCorePool() {
         port: process.env.DATABASE_PORT || 3306,
         timezone: 'local'
     })
-} 
+}
 const pool = { 0: getCorePool() };
 
 
