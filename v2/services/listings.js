@@ -25,6 +25,7 @@ const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const bucketClient = require("../utils/bucketClient");
 const isValidDate = require('../utils/validateDate');
+const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 
 const getAllListings = async ({
     pageNo,
@@ -636,6 +637,48 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
     }
 }
 
+const postChatReaction = async function ({ userId, roleId, chatId, reaction, listingId }) {
+    try {
+        if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+            throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
+        }
+        if (!reaction) {
+            throw new AppError(`Reaction is required`, 400);
+        }
+        const currentListingData = await listingRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: listingId,
+                },
+            ]
+        });
+        if (!currentListingData) {
+            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+        }
+        if (currentListingData.statusId !== 3) {
+            throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+        }
+        if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        const data = {
+            chatId,
+            userId,
+            reaction,
+        }
+        const result = await listingChatReactionRepo.create({
+            data,
+        });
+        return result;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+
+}
+
 const createListingChat = async function ({ userId, roleId, message, listingId }) {
     // 
     try {
@@ -1219,6 +1262,7 @@ module.exports = {
     updateListingStatus,
     createListingChat,
     getListingChat,
+    postChatReaction,
     uploadImage,
     uploadPDF,
     deleteImage,

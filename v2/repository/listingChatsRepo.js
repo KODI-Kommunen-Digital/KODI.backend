@@ -9,26 +9,47 @@ class ListingChatsRepo extends BaseRepo {
     }
 
     async getChats(params) {
-        const { listingId, lastMessageId, isReversed, pageNo, pageSize } = params
+        const { listingId, lastMessageId, isReversed, pageNo, pageSize } = params;
         try {
             let query;
-            const params = [listingId];
+            const values = [listingId];
             query = `
-                SELECT * from ${tableNames.LISTINGS_CHATS_TABLE}
-                WHERE listingId = ? 
-            `;
+            SELECT 
+                lc.*,
+                COALESCE(r.reactions, JSON_ARRAY()) AS reactions
+                FROM listing_chats lc
+                LEFT JOIN (
+                    SELECT 
+                        chatId,
+                        JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'userId', userId,
+                                'reaction', reaction
+                            )
+                        ) AS reactions
+                    FROM listing_chat_reactions
+                    GROUP BY chatId
+                ) r ON lc.id = r.chatId
+            WHERE lc.listingId = ?
+        `;
+
             if (lastMessageId) {
-                query += ` AND id > ?`;
-                params.push(lastMessageId);
+                query += ` AND lc.id > ?`;
+                values.push(lastMessageId);
             }
-            query += ` ORDER BY id ${isReversed ? "DESC" : "ASC"}`;
+
+            query += `
+            GROUP BY lc.id
+            ORDER BY lc.id ${isReversed ? "DESC" : "ASC"}
+        `;
+
             if (pageSize && pageNo) {
                 query += ` LIMIT ? OFFSET ?`;
-                params.push(Number(pageSize));
-                const offset = (pageNo - 1) * pageSize;
-                params.push(offset);
+                values.push(Number(pageSize));
+                values.push((pageNo - 1) * pageSize);
             }
-            const response = await database.callQuery(query, params);
+            console.log({ query })
+            const response = await database.callQuery(query, values);
             return response.rows;
         } catch (err) {
             if (err instanceof AppError) {
