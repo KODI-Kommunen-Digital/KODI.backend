@@ -682,8 +682,6 @@ const postChatReaction = async function ({ userId, roleId, chatId, reaction, lis
 const createListingChat = async function ({ userId, roleId, message, listingId }) {
     // 
     try {
-
-
         if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
             throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
         }
@@ -717,7 +715,18 @@ const createListingChat = async function ({ userId, roleId, message, listingId }
         const result = await listingChatsRepository.create({
             data,
         });
-        return result;
+        const response = await listingChatsRepository.getOne({
+            filter:
+                [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: result.id,
+                    },
+                ]
+
+        })
+        return response;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -726,7 +735,6 @@ const createListingChat = async function ({ userId, roleId, message, listingId }
 }
 
 const getListingChat = async function ({ userId, roleId, listingId, lastMessageId, isReversed, pageNo, pageSize }) {
-    console.log({ listingId })
     if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
