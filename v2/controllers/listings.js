@@ -188,7 +188,7 @@ const getListingChat = async (req, res, next) => {
     const lastMessageId = params.lastMessageId; // optional
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 10;
-    console.log({ test: params.isReversed })
+    console.log({ test: params.isReversed, type: typeof params.isReversed })
     const isReversed =
         params.isReversed && params.isReversed === "false" ? false : true;
     console.log({ isReversed })
@@ -203,6 +203,22 @@ const getListingChat = async (req, res, next) => {
         return next(err)
     }
 
+}
+const postChatReaction = async (req, res, next) => {
+    const listingId = req.params.listingId
+    const userId = req.userId
+    const roleId = req.roleId
+    const chatId = req.params.chatId
+    const { reaction } = req.body
+    try {
+        const result = await listingService.postChatReaction({ userId, chatId, roleId, reaction, listingId })
+        return res.status(200).json({
+            status: "success",
+            data: result
+        });
+    } catch (err) {
+        return next(err)
+    }
 }
 const createListingChat = async (req, res, next) => {
     const listingId = req.params.listingId
@@ -335,6 +351,7 @@ module.exports = {
     updateListingStatus,
     createListingChat,
     getListingChat,
+    postChatReaction,
     uploadImage,
     uploadPDF,
     deleteImage,
