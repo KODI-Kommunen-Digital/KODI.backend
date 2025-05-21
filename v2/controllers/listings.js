@@ -188,7 +188,6 @@ const getListingChat = async (req, res, next) => {
     const lastMessageId = params.lastMessageId; // optional
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 10;
-    console.log({ test: params.isReversed, type: typeof params.isReversed })
     const isReversed =
         params.isReversed && params.isReversed === "false" ? false : true;
     console.log({ isReversed })
