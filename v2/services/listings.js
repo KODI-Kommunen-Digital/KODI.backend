@@ -716,7 +716,7 @@ const createListingChat = async function ({ userId, roleId, message, listingId }
             data,
         });
         const response = await listingChatsRepository.getOne({
-            filter:
+            filters:
                 [
                     {
                         key: "id",
