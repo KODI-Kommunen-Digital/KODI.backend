@@ -504,8 +504,10 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
             throw new AppError(`Listing with id = ${listingId} does not exist`, 404);
         }
     }
-
-    if (currentListingData.userId !== userId && roleId !== roles.Admin) {
+    const isOwner = currentListingData.userId === userId
+    const isAdmin = roleId === roles.Admin
+    const currentStatusId = currentListingData.statusId
+    if (!isAdmin && !isOwner) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
@@ -625,31 +627,39 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         updationData.title = listingData.title;
     }
 
-    if (
-        listingData.statusId &&
-        listingData.statusId !== currentListingData.statusId &&
-        roleId === roles.Admin
-    ) {
-        try {
-            const status = await statusRepository.getOne({
-                filters: [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: listingData.statusId,
-                    },
-                ]
-            });
-            if (!status) {
-                throw new AppError(`Invalid Status '${listingData.statusId}' given`, 400);
+    if (!isAdmin) {
+        // Non-admin user restrictions
+        if (currentStatusId === status.Approved) {
+            throw new AppError(`Approved listings cannot be updated by this user`, 403);
+        }
+
+        // Override any user-sent status to Pending
+        updationData.statusId = status.Pending;
+    } else {
+        // Admin: handle status change if any
+        if (
+            listingData.statusId &&
+            listingData.statusId !== currentStatusId
+        ) {
+            try {
+                const statusData = await statusRepository.getOne({
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: listingData.statusId,
+                        },
+                    ],
+                });
+                if (!statusData) {
+                    throw new AppError(`Invalid Status '${listingData.statusId}' given`, 400);
+                }
+                updationData.statusId = listingData.statusId;
+            } catch (err) {
+                throw err instanceof AppError ? err : new AppError(err);
             }
-            updationData.statusId = listingData.statusId;
-        } catch (err) {
-            if (err instanceof AppError) throw err;
-            throw new AppError(err);
         }
     }
-
     validateAndAssignListingParameters(updationData, listingData);
     let transaction;
     try {

@@ -68,7 +68,6 @@ const getAllListings = async ({
             sortByStartDateBool = sortByStartDateString === "true";
         }
     }
-    console.log({ isAdmin })
     if (isAdmin) {
         if (statusId) {
             // const response = await cityListingRepo.getStatusById(statusId);
