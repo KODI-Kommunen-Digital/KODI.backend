@@ -219,15 +219,31 @@ const postChatReaction = async (req, res, next) => {
         return next(err)
     }
 }
+
+const deleteChatReaction = async (req, res, next) => {
+    const listingId = req.params.listingId
+    const userId = req.userId
+    const roleId = req.roleId
+    const chatId = req.params.chatId
+    try {
+        const result = await listingService.deleteChatReaction({ userId, chatId, roleId, listingId })
+        return res.status(200).json({
+            status: "success",
+            data: result
+        });
+    } catch (err) {
+        return next(err)
+    }
+}
 const createListingChat = async (req, res, next) => {
     const listingId = req.params.listingId
     const userId = req.userId
     const roleId = req.roleId
-    const { message } = req.body
+    const { message, parent } = req.body
 
 
     try {
-        const result = await listingService.createListingChat({ userId, roleId, message, listingId })
+        const result = await listingService.createListingChat({ userId, roleId, message, parent, listingId })
         return res.status(200).json({
             status: "success",
             data: result
@@ -351,6 +367,7 @@ module.exports = {
     createListingChat,
     getListingChat,
     postChatReaction,
+    deleteChatReaction,
     uploadImage,
     uploadPDF,
     deleteImage,
