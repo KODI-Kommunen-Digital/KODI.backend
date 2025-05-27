@@ -16,19 +16,29 @@ class ListingChatsRepo extends BaseRepo {
             query = `
             SELECT 
                 lc.*,
+                u.username AS senderName,
+                parent.message AS parentMessage,
                 COALESCE(r.reactions, JSON_ARRAY()) AS reactions
                 FROM listing_chats lc
+                INNER JOIN users u ON lc.senderId = u.id
+                LEFT JOIN listing_chats parent ON lc.parentId = parent.id
                 LEFT JOIN (
                     SELECT 
                         chatId,
                         JSON_ARRAYAGG(
                             JSON_OBJECT(
                                 'userId', userId,
-                                'reaction', reaction
+                                'username', ur.username,
+                                'reaction', CASE lcr.reaction 
+                                            WHEN 'like' THEN 1 
+                                            WHEN 'dislike' THEN 2 
+                                            ELSE NULL 
+                                        END
                             )
                         ) AS reactions
-                    FROM listing_chat_reactions
-                    GROUP BY chatId
+                    FROM listing_chat_reactions lcr
+                    INNER JOIN users ur ON lcr.userId = ur.id
+                    GROUP BY lcr.chatId
                 ) r ON lc.id = r.chatId
             WHERE lc.listingId = ?
         `;

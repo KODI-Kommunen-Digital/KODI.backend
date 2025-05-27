@@ -662,6 +662,25 @@ const postChatReaction = async function ({ userId, roleId, chatId, reaction, lis
         if (roleId !== roles.Admin && currentListingData.userId !== userId) {
             throw new AppError(`You are not allowed to access this resource`, 403);
         }
+        const existingReaction = await listingChatReactionRepo.getOne({
+            filters: [
+                { key: "chatId", sign: "=", value: chatId },
+                { key: "userId", sign: "=", value: userId }
+            ]
+        });
+        if (existingReaction) {
+            if (existingReaction.reaction === reaction) {
+                return existingReaction;
+            }
+            const updated = await listingChatReactionRepo.update({
+                filters: [
+                    { key: "id", sign: "=", value: existingReaction.id }
+                ],
+                data: { reaction }
+            });
+
+            return updated;
+        }
         const data = {
             chatId,
             userId,
@@ -677,8 +696,45 @@ const postChatReaction = async function ({ userId, roleId, chatId, reaction, lis
     }
 
 }
+const deleteChatReaction = async function ({ userId, roleId, chatId, listingId }) {
+    try {
+        if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+            throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
+        }
+        const currentListingData = await listingRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: listingId,
+                },
+            ]
+        });
+        if (!currentListingData) {
+            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+        }
+        if (currentListingData.statusId !== 3) {
+            throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+        }
+        if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        const result = await listingChatReactionRepo.delete({
+            filters: [
+                { key: "chatId", sign: "=", value: chatId },
+                { key: "userId", sign: "=", value: userId }
+            ]
+        });
 
-const createListingChat = async function ({ userId, roleId, message, listingId }) {
+        return result;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+
+}
+
+const createListingChat = async function ({ userId, roleId, parentId, message, listingId }) {
     // 
     try {
         if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
@@ -705,10 +761,30 @@ const createListingChat = async function ({ userId, roleId, message, listingId }
         if (roleId !== roles.Admin && currentListingData.userId !== userId) {
             throw new AppError(`You are not allowed to access this resource`, 403);
         }
+        // If parent ID is provided, validate it
+        if (parentId !== undefined && parentId !== null) {
+            if (isNaN(Number(parentId)) || Number(parentId) <= 0) {
+                throw new AppError(`Invalid parent chat ID ${parentId}`, 400);
+            }
+
+            const parentChat = await listingChatsRepository.getOne({
+                filters: [
+                    { key: "id", sign: "=", value: parentId },
+                    { key: "listingId", sign: "=", value: listingId },
+                ],
+            });
+
+            if (!parentChat) {
+                throw new AppError(`Parent message with id ${parent} not found in the listing`, 400);
+            }
+
+            parentId = Number(parentId);
+        }
         const data = {
             listingId,
             senderId: userId,
             senderType: roleId === roles.Admin ? "admin" : "user",
+            parentId,
             message
         }
         const result = await listingChatsRepository.create({
@@ -1270,6 +1346,7 @@ module.exports = {
     createListingChat,
     getListingChat,
     postChatReaction,
+    deleteChatReaction,
     uploadImage,
     uploadPDF,
     deleteImage,

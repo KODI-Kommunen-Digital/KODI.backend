@@ -18,6 +18,7 @@ const {
     getListingChat,
     createListingChat,
     postChatReaction,
+    deleteChatReaction,
 } = require("../controllers/listings");
 const rateLimit = require("express-rate-limit");
 
@@ -53,8 +54,9 @@ router.patch('/:listingId/status', authentication, updateListingStatus);
 router.get('/:listingId/chat', authentication, getListingChat);
 router.post('/:listingId/chat', authentication, createListingChat);
 // image support for chat
-router.post('/:listingId/chat/:chatId/react', authentication, postChatReaction)
-
+// reactions
+router.post('/:listingId/chat/:chatId/react', authentication, postChatReaction);
+router.delete("/:listingId/chat/:chatId/react", authentication, deleteChatReaction)
 router.post('/:listingId/chat/imageUpload', optionalAuthentication, (req, res) => {
     const imageFiles = req?.files;
     const imageList = req?.body?.image;
