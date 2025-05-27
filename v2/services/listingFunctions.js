@@ -223,11 +223,25 @@ async function createListing(cityIds, payload, userId, roleId) {
     }
 
     if (payload.website) {
+        let website = payload.website.trim(); // Remove leading/trailing whitespace
+
+        // Prepend "https://" if protocol is missing
+        if (!/^https?:\/\//i.test(website)) {
+            website = `https://${website}`;
+        }
+
         try {
-            const url = new URL(payload.website);
+            const url = new URL(website);
+            // Optional: Restrict to HTTP/HTTPS protocols
+            if (!["http:", "https:"].includes(url.protocol)) {
+                throw new AppError(
+                    "Only HTTP/HTTPS protocols are allowed",
+                    400
+                );
+            }
             insertionData.website = url.toString();
-        } catch {
-            throw new AppError(`Invalid website URL`, 400);
+        } catch (err) {
+            throw new AppError("Invalid website URL", 400);
         }
     }
 
