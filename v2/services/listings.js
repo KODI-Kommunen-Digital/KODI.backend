@@ -734,7 +734,7 @@ const deleteChatReaction = async function ({ userId, roleId, chatId, listingId }
 
 }
 
-const createListingChat = async function ({ userId, roleId, parent, message, listingId }) {
+const createListingChat = async function ({ userId, roleId, parentId, message, listingId }) {
     // 
     try {
         if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
@@ -761,17 +761,15 @@ const createListingChat = async function ({ userId, roleId, parent, message, lis
         if (roleId !== roles.Admin && currentListingData.userId !== userId) {
             throw new AppError(`You are not allowed to access this resource`, 403);
         }
-        let parentId = null;
-
         // If parent ID is provided, validate it
-        if (parent !== undefined && parent !== null) {
-            if (isNaN(Number(parent)) || Number(parent) <= 0) {
-                throw new AppError(`Invalid parent chat ID ${parent}`, 400);
+        if (parentId !== undefined && parentId !== null) {
+            if (isNaN(Number(parentId)) || Number(parentId) <= 0) {
+                throw new AppError(`Invalid parent chat ID ${parentId}`, 400);
             }
 
             const parentChat = await listingChatsRepository.getOne({
                 filters: [
-                    { key: "id", sign: "=", value: parent },
+                    { key: "id", sign: "=", value: parentId },
                     { key: "listingId", sign: "=", value: listingId },
                 ],
             });
@@ -780,7 +778,7 @@ const createListingChat = async function ({ userId, roleId, parent, message, lis
                 throw new AppError(`Parent message with id ${parent} not found in the listing`, 400);
             }
 
-            parentId = Number(parent);
+            parentId = Number(parentId);
         }
         const data = {
             listingId,

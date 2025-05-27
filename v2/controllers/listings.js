@@ -190,7 +190,6 @@ const getListingChat = async (req, res, next) => {
     const pageSize = params.pageSize || 10;
     const isReversed =
         params.isReversed && params.isReversed === "false" ? false : true;
-    console.log({ isReversed })
     // check if the listing has a feeback status and then return chat 
     try {
         const response = await listingService.getListingChat({ userId, roleId, listingId, isReversed, lastMessageId, pageNo, pageSize })
@@ -239,11 +238,11 @@ const createListingChat = async (req, res, next) => {
     const listingId = req.params.listingId
     const userId = req.userId
     const roleId = req.roleId
-    const { message, parent } = req.body
+    const { message, parentId } = req.body
 
 
     try {
-        const result = await listingService.createListingChat({ userId, roleId, message, parent, listingId })
+        const result = await listingService.createListingChat({ userId, roleId, message, parentId, listingId })
         return res.status(200).json({
             status: "success",
             data: result
