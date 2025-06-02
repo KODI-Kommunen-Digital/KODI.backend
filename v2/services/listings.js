@@ -897,16 +897,18 @@ const handleUnifiedChat = async ({
     let fileUrl = null;
 
     if (file) {
-        const isImage = file.mimetype === "image/png";
+        const isImage =
+            file.mimetype === "image/png" ||
+            file.mimetype === "image/jpeg" ||
+            file.mimetype === "image/jpg";
         const isPdf = file.mimetype === "application/pdf";
 
         if (!isImage && !isPdf) {
             throw new AppError(`Unsupported file type ${file.mimetype}`, 415);
         }
+        const fileExtension = isPdf ? "_PDF.pdf" : file.mimetype.split("/")[1];
 
-        const filePath = `user_${userId}/listing_${listingId}_${Date.now()}${
-            isPdf ? "_PDF.pdf" : ".png"
-        }`;
+        const filePath = `user_${userId}/listing_${listingId}_${Date.now()}.${fileExtension}`;
         const { uploadStatus, objectKey } = isPdf
             ? await pdfUpload(file, filePath)
             : await imageUpload(file, filePath);
