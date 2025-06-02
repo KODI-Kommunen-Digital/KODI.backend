@@ -23,15 +23,14 @@ const wasteCalender = require("./routes/wasteCalender");
 const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers");
-const swaggerUi = require('swagger-ui-express');
-const apiDocumentation = require('./docs/docRoot');
-const apiVersions = require('./constants/apiVersions');
-const bridgeRoutes = require('./bridgeRoutes');
+const swaggerUi = require("swagger-ui-express");
+const apiDocumentation = require("./docs/docRoot");
+const apiVersions = require("./constants/apiVersions");
+const bridgeRoutes = require("./bridgeRoutes");
 
 // defining the Express app
 const app = express();
-app.set('trust proxy', 1);
-
+app.set("trust proxy", 1);
 
 // defining an array to work as the database (temporary solution)
 const message = {
@@ -50,7 +49,7 @@ app.use(cors());
 // adding morgan to log HTTP requests
 app.use(morgan("combined"));
 
-app.use(headers)
+app.use(headers);
 
 app.use(
     fileUpload({
@@ -69,7 +68,7 @@ for (const version in apiVersions) {
     app.use(`/${version}`, apiVersions[version].router);
 }
 
-if (process.env.BRIDGE_ENABLED === 'True') {
+if (process.env.BRIDGE_ENABLED === "True") {
     app.use("", bridgeRoutes);
 } else {
     app.use("/users", usersRouter);
@@ -81,7 +80,7 @@ if (process.env.BRIDGE_ENABLED === 'True') {
     app.use("/contactUs", contactUsRouter);
     app.use("/moreInfo", moreInfoRouter);
     app.get("/test", (req, res) => {
-        res.send('testing pipeline!!');
+        res.send("testing pipeline!!");
     });
     app.use(
         "/users/:userId/favorites",
@@ -125,7 +124,7 @@ if (process.env.BRIDGE_ENABLED === 'True') {
         },
         cityListingsRouter
     );
-    if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+    if (process.env.WASTE_CALENDER_ENABLED === "True") {
         app.use(
             "/users/:userId/favorites",
             function (req, res, next) {
@@ -168,7 +167,7 @@ if (process.env.BRIDGE_ENABLED === 'True') {
             },
             cityListingsRouter
         );
-        if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+        if (process.env.WASTE_CALENDER_ENABLED === "True") {
             app.use(
                 "/cities/:cityId/wasteCalender",
                 function (req, res, next) {
@@ -184,7 +183,7 @@ if (process.env.BRIDGE_ENABLED === 'True') {
                 wasteCalender
             );
         }
-        app.use("/ads", advertisement)
+        app.use("/ads", advertisement);
         app.use("/reportDefect", defectReportRouter);
     }
 }
@@ -196,7 +195,7 @@ app.get("/api-docs", (req, res) => {
 });
 
 // Version-specific Swagger docs
-Object.keys(apiVersions).forEach(version => {
+Object.keys(apiVersions).forEach((version) => {
     app.use(`/api-docs/${version}`, swaggerUi.serve);
     app.get(`/api-docs/${version}`, (req, res) => {
         const documentation = apiDocumentation(version);
@@ -205,10 +204,10 @@ Object.keys(apiVersions).forEach(version => {
 });
 
 // Handle 404 for unknown API doc versions
-app.use('/api-docs/*', (req, res) => {
+app.use("/api-docs/*", (req, res) => {
     res.status(404).json({
-        status: 'error',
-        message: 'API documentation version not found'
+        status: "error",
+        message: "API documentation version not found",
     });
 });
 
@@ -216,7 +215,7 @@ app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
 
-Sentry.setupExpressErrorHandler(app)
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 // starting the server
@@ -226,7 +225,8 @@ app.listen(process.env.PORT, () => {
 
 process.on("uncaughtException", function (err) {
     console.error(
-        `${new Date().toUTCString()}: UncaughtException: ${err.message}\n${err.stack
+        `${new Date().toUTCString()}: UncaughtException: ${err.message}\n${
+            err.stack
         }`
     );
     process.exit(1);

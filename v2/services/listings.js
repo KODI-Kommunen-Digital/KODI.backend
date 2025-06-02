@@ -4,7 +4,7 @@ const deepl = require("deepl-node");
 const listingImagesRepository = require("../repository/listingsImagesRepo");
 const pollRepository = require("../repository/pollOptionsRepo");
 const listingRepository = require("../repository/listingsRepo");
-const listingChatsRepository = require('../repository/listingChatsRepo');
+const listingChatsRepository = require("../repository/listingChatsRepo");
 const cityRepository = require("../repository/citiesRepo");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
@@ -24,7 +24,7 @@ const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const bucketClient = require("../utils/bucketClient");
-const isValidDate = require('../utils/validateDate');
+const isValidDate = require("../utils/validateDate");
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 
 const getAllListings = async ({
@@ -40,7 +40,7 @@ const getAllListings = async ({
     isAdmin,
     startAfterDate,
     endBeforeDate,
-    dateFilter
+    dateFilter,
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -53,16 +53,19 @@ const getAllListings = async ({
     if (isNaN(pageSize) || pageSize <= 0 || pageSize > 20) {
         throw new AppError(
             "Please enter a positive integer less than or equal to 20 for pageSize",
-            400,
+            400
         );
     }
 
     if (sortByStartDate) {
         const sortByStartDateString = sortByStartDate.toString();
-        if (sortByStartDateString !== "true" && sortByStartDateString !== "false") {
+        if (
+            sortByStartDateString !== "true" &&
+            sortByStartDateString !== "false"
+        ) {
             throw new AppError(
                 "The parameter sortByCreatedDate can only be a boolean",
-                400,
+                400
             );
         } else {
             sortByStartDateBool = sortByStartDateString === "true";
@@ -76,9 +79,9 @@ const getAllListings = async ({
                     {
                         key: "id",
                         sign: "=",
-                        value: statusId
-                    }
-                ]
+                        value: statusId,
+                    },
+                ],
             }); // removing the cityId
             if (!response) {
                 throw new AppError(`Invalid Status '${statusId}' given`, 400);
@@ -87,7 +90,7 @@ const getAllListings = async ({
             filters.push({
                 key: "statusId",
                 sign: "=",
-                value: statusId
+                value: statusId,
             });
         }
     } else {
@@ -95,7 +98,7 @@ const getAllListings = async ({
         filters.push({
             key: "statusId",
             sign: "=",
-            value: status.Approved
+            value: status.Approved,
         });
     }
 
@@ -106,15 +109,14 @@ const getAllListings = async ({
                 {
                     key: "id",
                     sign: "=",
-                    value: categoryId
+                    value: categoryId,
                 },
                 {
                     key: "isEnabled",
                     sign: "=",
                     value: true,
-
-                }
-            ]
+                },
+            ],
         });
         if (!categoryResp || !categoryResp.rows || !categoryResp.rows.length) {
             throw new AppError(`Invalid Category '${categoryId}' given`, 400);
@@ -128,74 +130,99 @@ const getAllListings = async ({
                         {
                             key: "id",
                             sign: "=",
-                            value: subcategoryId
-                        }
-                    ]
+                            value: subcategoryId,
+                        },
+                    ],
                 });
             // if (!subcategory) {
             if (!subcategory || !subcategory.rows || !subcategory.rows.length) {
-                throw new AppError(`Invalid subCategory '${subcategoryId}' given`, 400);
+                throw new AppError(
+                    `Invalid subCategory '${subcategoryId}' given`,
+                    400
+                );
             }
             // filters.subcategoryId = subcategoryId;
             filters.push({
                 key: "subcategoryId",
                 sign: "=",
-                value: subcategoryId
+                value: subcategoryId,
             });
         }
         // filters.categoryId = categoryId;
         filters.push({
             key: "categoryId",
             sign: "=",
-            value: categoryId
+            value: categoryId,
         });
     }
 
     if (dateFilter) {
         const currentDate = new Date();
         switch (dateFilter.toLowerCase()) {
-            case 'today':
-                startAfterDate = currentDate.toISOString().split('T')[0];
+            case "today":
+                startAfterDate = currentDate.toISOString().split("T")[0];
                 endBeforeDate = startAfterDate;
                 break;
-            case 'week': {
+            case "week": {
                 const startOfWeek = new Date(currentDate);
-                startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Start of the week (Monday)
-                startAfterDate = startOfWeek.toISOString().split('T')[0];
+                startOfWeek.setDate(
+                    currentDate.getDate() - currentDate.getDay() + 1
+                ); // Start of the week (Monday)
+                startAfterDate = startOfWeek.toISOString().split("T")[0];
                 const endOfWeek = new Date(startOfWeek);
                 endOfWeek.setDate(startOfWeek.getDate() + 6); // End of the week (Sunday)
-                endBeforeDate = endOfWeek.toISOString().split('T')[0];
+                endBeforeDate = endOfWeek.toISOString().split("T")[0];
                 break;
             }
-            case 'month': {
-                const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // Start of the month
-                startAfterDate = startOfMonth.toISOString().split('T')[0];
-                const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // End of the month
-                endBeforeDate = endOfMonth.toISOString().split('T')[0];
+            case "month": {
+                const startOfMonth = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    1
+                ); // Start of the month
+                startAfterDate = startOfMonth.toISOString().split("T")[0];
+                const endOfMonth = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth() + 1,
+                    0
+                ); // End of the month
+                endBeforeDate = endOfMonth.toISOString().split("T")[0];
                 break;
             }
             default:
-                throw new AppError("Invalid filterBy value. Allowed values are 'today', 'week', or 'month'.", 400);
+                throw new AppError(
+                    "Invalid filterBy value. Allowed values are 'today', 'week', or 'month'.",
+                    400
+                );
         }
     }
 
     if (startAfterDate && !isValidDate(startAfterDate)) {
-        throw new AppError(`Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`, 400);
+        throw new AppError(
+            `Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`,
+            400
+        );
     }
 
     if (endBeforeDate && !isValidDate(endBeforeDate)) {
-        throw new AppError(`Invalid Date given '${endBeforeDate}', formate Should be YYYY-MM-DD`, 400);
+        throw new AppError(
+            `Invalid Date given '${endBeforeDate}', formate Should be YYYY-MM-DD`,
+            400
+        );
     }
 
     if (cityId) {
         // const city = await cityRepo.getCityWithId(cityId);
         // Validate the cityId input to ensure it only contains integers separated by commas
         if (!/^\d+(,\d+)*$/.test(cityId)) {
-            throw new AppError(`Invalid format for CityId '${cityId}'. Please provide a comma-separated list of integers.`, 400);
+            throw new AppError(
+                `Invalid format for CityId '${cityId}'. Please provide a comma-separated list of integers.`,
+                400
+            );
         }
 
         // Parse the cityId string to an array of integers
-        const cityIds = cityId.split(',').map(id => parseInt(id.trim(), 10));
+        const cityIds = cityId.split(",").map((id) => parseInt(id.trim(), 10));
 
         // Retrieve cities using the parsed array of IDs
         const citiesResp = await cityRepository.getAll({
@@ -203,31 +230,37 @@ const getAllListings = async ({
                 {
                     key: "id",
                     sign: "IN",
-                    value: cityIds
-                }
-            ]
+                    value: cityIds,
+                },
+            ],
         });
 
         // Throw an error if no cities are found
         if (!citiesResp.count) {
-            throw new AppError(`No cities found for provided CityId(s) '${cityId}'`, 400);
+            throw new AppError(
+                `No cities found for provided CityId(s) '${cityId}'`,
+                400
+            );
         }
 
         // Check if the number of cities retrieved matches the number of IDs provided
         if (citiesResp.count !== cityIds.length) {
             // Find missing IDs by filtering out those that were found in the database
-            const foundIds = citiesResp.map(city => city.id);
-            const missingIds = cityIds.filter(id => !foundIds.includes(id));
-            throw new AppError(`The following CityId(s) are invalid: ${missingIds.join(', ')}`, 404);
+            const foundIds = citiesResp.map((city) => city.id);
+            const missingIds = cityIds.filter((id) => !foundIds.includes(id));
+            throw new AppError(
+                `The following CityId(s) are invalid: ${missingIds.join(", ")}`,
+                404
+            );
         }
         cities = cityIds;
     } else {
         // cities = await cityRepo.getCities();
         const citiesResp = await cityRepository.getAll({
             columns: "id,name,image, hasForum",
-            sort: ["name"]
+            sort: ["name"],
         });
-        cities = citiesResp?.rows?.map(city => city.id) ?? [];
+        cities = citiesResp?.rows?.map((city) => city.id) ?? [];
     }
 
     if (showExternalListings !== "true") {
@@ -235,7 +268,7 @@ const getAllListings = async ({
         filters.push({
             key: "sourceId",
             sign: "=",
-            value: source.UserEntry
+            value: source.UserEntry,
         });
     }
 
@@ -264,13 +297,15 @@ const getAllListings = async ({
             const translations = await translator.translateText(
                 textToTranslate,
                 null,
-                reqTranslate,
+                reqTranslate
             );
             for (let i = 0; i < noOfListings; i++) {
                 if (
-                    translations[2 * i].detectedSourceLang !== reqTranslate.slice(0, 2)
+                    translations[2 * i].detectedSourceLang !==
+                    reqTranslate.slice(0, 2)
                 ) {
-                    listings[i].titleLanguage = translations[2 * i].detectedSourceLang;
+                    listings[i].titleLanguage =
+                        translations[2 * i].detectedSourceLang;
                     listings[i].titleTranslation = translations[2 * i].text;
                 }
                 if (
@@ -279,7 +314,8 @@ const getAllListings = async ({
                 ) {
                     listings[i].descriptionLanguage =
                         translations[2 * i + 1].detectedSourceLang;
-                    listings[i].descriptionTranslation = translations[2 * i + 1].text;
+                    listings[i].descriptionTranslation =
+                        translations[2 * i + 1].text;
                 }
             }
         }
@@ -297,7 +333,7 @@ const searchListings = async ({
     statusId,
     cityId,
     searchQuery,
-    isAdmin
+    isAdmin,
 }) => {
     const filters = [];
     let cities = [];
@@ -314,7 +350,7 @@ const searchListings = async ({
     ) {
         throw new AppError(
             "Please enter a positive integer less than or equal to 20 for pageSize",
-            400,
+            400
         );
     }
 
@@ -326,9 +362,9 @@ const searchListings = async ({
                 {
                     key: "id",
                     sign: "=",
-                    value: cityId
-                }
-            ]
+                    value: cityId,
+                },
+            ],
         });
         if (!city) {
             throw new AppError(`Invalid CityId '${cityId}' given`, 400);
@@ -338,7 +374,7 @@ const searchListings = async ({
         // cities = await cityRepo.getCities();
         const citiesResp = await cityRepository.getAll({
             columns: "id,name,image, hasForum",
-            sort: ["name"]
+            sort: ["name"],
         });
         cities = citiesResp?.rows ?? [];
         if (cities.count === 0) {
@@ -349,10 +385,13 @@ const searchListings = async ({
     // Validate and set sortByStartDate
     if (sortByStartDate) {
         const sortByStartDateString = sortByStartDate.toString();
-        if (sortByStartDateString !== "true" && sortByStartDateString !== "false") {
+        if (
+            sortByStartDateString !== "true" &&
+            sortByStartDateString !== "false"
+        ) {
             throw new AppError(
                 "The parameter sortByCreatedDate can only be a boolean",
-                400,
+                400
             );
         }
         sortByStartDateBool = sortByStartDateString === "true";
@@ -369,9 +408,9 @@ const searchListings = async ({
                 {
                     key: "id",
                     sign: "=",
-                    value: statusId
-                }
-            ]
+                    value: statusId,
+                },
+            ],
         });
         if (!status) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
@@ -380,25 +419,25 @@ const searchListings = async ({
         filters.push({
             key: "statusId",
             sign: "=",
-            value: statusId
+            value: statusId,
         });
     } else {
         // filters.statusId = status.Active;
         filters.push({
             key: "statusId",
             sign: "=",
-            value: status.Active
+            value: status.Active,
         });
     }
 
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
-            cities: cities.map(city => city.id),
+            cities: cities.map((city) => city.id),
             searchQuery,
             pageNo,
             pageSize,
-            sortByStartDate: sortByStartDateBool
+            sortByStartDate: sortByStartDateBool,
         });
 
         // Remove viewCount from listings
@@ -413,9 +452,13 @@ const searchListings = async ({
 };
 
 const createListing = async ({ cityIds, listingData, userId, roleId }) => {
-
     try {
-        const createdListings = await listingFunctions.createListing(cityIds, listingData, userId, roleId);
+        const createdListings = await listingFunctions.createListing(
+            cityIds,
+            listingData,
+            userId,
+            roleId
+        );
         return createdListings;
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -423,22 +466,30 @@ const createListing = async ({ cityIds, listingData, userId, roleId }) => {
     }
 };
 
-const updateListing = async ({ listingId, cityIds, listingData, userId, roleId }) => {
+const updateListing = async ({
+    listingId,
+    cityIds,
+    listingData,
+    userId,
+    roleId,
+}) => {
     try {
-        const updatedListing = await listingFunctions.updateListing(listingId, cityIds, listingData, userId, roleId);
+        const updatedListing = await listingFunctions.updateListing(
+            listingId,
+            cityIds,
+            listingData,
+            userId,
+            roleId
+        );
         return updatedListing;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(`Error updating listing: ${err.message}`);
     }
-}
+};
 
-const getListingWithId = async function (
-    id,
-    repeatedRequest = false,
-) {
+const getListingWithId = async function (id, repeatedRequest = false) {
     try {
-
         // const data = await listingRepo.getCityListingWithId(id, cityId);
         const data = await listingRepository.getOne({
             filters: [
@@ -447,7 +498,7 @@ const getListingWithId = async function (
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
         });
         if (!data) {
             throw new AppError(`Listings with id ${id} does not exist`, 404);
@@ -462,12 +513,14 @@ const getListingWithId = async function (
                     value: id,
                 },
             ],
-            orderBy: ["cityOrder"]
+            orderBy: ["cityOrder"],
         });
 
-        const allCities = cityListingMappings.rows.map(cityListingMapping => cityListingMapping.cityId)
+        const allCities = cityListingMappings.rows.map(
+            (cityListingMapping) => cityListingMapping.cityId
+        );
 
-        data.allCities = allCities
+        data.allCities = allCities;
         data.cityId = allCities.length > 0 ? allCities[0] : null;
 
         const listingImageListResp = await listingImagesRepository.getAll({
@@ -477,10 +530,13 @@ const getListingWithId = async function (
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
         });
         const listingImageList = listingImageListResp.rows;
-        const logo = listingImageList && listingImageList.length > 0 ? listingImageList[0].logo : null;
+        const logo =
+            listingImageList && listingImageList.length > 0
+                ? listingImageList[0].logo
+                : null;
 
         if (process.env.IS_LISTING_VIEW_COUNT && !repeatedRequest) {
             // await listingRepo.setViewCount(id, data.viewCount + 1, cityId);
@@ -494,7 +550,7 @@ const getListingWithId = async function (
                         sign: "=",
                         value: id,
                     },
-                ]
+                ],
             });
         }
 
@@ -507,7 +563,7 @@ const getListingWithId = async function (
                         sign: "=",
                         value: id,
                     },
-                ]
+                ],
             });
             data.pollOptions = pollOptionResp?.rows ?? [];
         }
@@ -521,7 +577,6 @@ const getListingWithId = async function (
 };
 
 const deleteListing = async function (id, userId, roleId) {
-
     const currentListingData = await listingRepository.getOne({
         filters: [
             {
@@ -529,12 +584,11 @@ const deleteListing = async function (id, userId, roleId) {
                 sign: "=",
                 value: id,
             },
-        ]
+        ],
     });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
     }
-
 
     if (currentListingData.userId !== userId && roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
@@ -542,36 +596,55 @@ const deleteListing = async function (id, userId, roleId) {
 
     const transaction = await listingRepository.createTransaction();
     try {
-        const userImageList = await bucketClient.fetchUserImages(userId, null, id);
+        const userImageList = await bucketClient.fetchUserImages(
+            userId,
+            null,
+            id
+        );
 
-        const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text })).filter((image) => typeof image.Key === 'string' && image.Key && !image.Key.startsWith("admin/"));
+        const imagesToDelete = userImageList
+            .map((image) => ({ Key: image.Key._text }))
+            .filter(
+                (image) =>
+                    typeof image.Key === "string" &&
+                    image.Key &&
+                    !image.Key.startsWith("admin/")
+            );
 
         if (imagesToDelete && imagesToDelete.length > 0) {
-            await imageDeleteAsync.deleteMultiple(imagesToDelete.map((i) => i.Key));
+            await imageDeleteAsync.deleteMultiple(
+                imagesToDelete.map((i) => i.Key)
+            );
         }
 
         if (currentListingData.pdf) {
             await imageDeleteAsync.deleteImage(currentListingData.pdf);
         }
 
-        await listingImagesRepository.deleteWithTransaction({
-            filters: [
-                {
-                    key: "listingId",
-                    sign: "=",
-                    value: id,
-                },
-            ],
-        }, transaction);
-        await listingRepository.deleteWithTransaction({
-            filters: [
-                {
-                    key: "id",
-                    sign: "=",
-                    value: id,
-                },
-            ],
-        }, transaction);
+        await listingImagesRepository.deleteWithTransaction(
+            {
+                filters: [
+                    {
+                        key: "listingId",
+                        sign: "=",
+                        value: id,
+                    },
+                ],
+            },
+            transaction
+        );
+        await listingRepository.deleteWithTransaction(
+            {
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: id,
+                    },
+                ],
+            },
+            transaction
+        );
         await listingRepository.commitTransaction(transaction);
     } catch (err) {
         await listingRepository.rollbackTransaction(transaction);
@@ -604,17 +677,23 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
         });
-        console.log({ listing })
+        console.log({ listing });
         if (!listing) {
             throw new AppError(`Listing with id ${id} does not exist`, 404);
         }
         if (!allowedStatuses.includes(newStatus)) {
-            throw new AppError(`Invalid status: ${newStatus} does not exist`, 400);
+            throw new AppError(
+                `Invalid status: ${newStatus} does not exist`,
+                400
+            );
         }
         if (!isValidTransition(listing.statusId, newStatus)) {
-            throw new AppError(`Cannot change status from ${listing.statusId} to ${newStatus}.`, 400);
+            throw new AppError(
+                `Cannot change status from ${listing.statusId} to ${newStatus}.`,
+                400
+            );
         }
 
         const update = await listingRepository.update({
@@ -627,16 +706,22 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
         });
         return update;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(`Error updating listing: ${err.message}`);
     }
-}
+};
 
-const postChatReaction = async function ({ userId, roleId, chatId, reaction, listingId }) {
+const postChatReaction = async function ({
+    userId,
+    roleId,
+    chatId,
+    reaction,
+    listingId,
+}) {
     try {
         if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
             throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
@@ -651,32 +736,39 @@ const postChatReaction = async function ({ userId, roleId, chatId, reaction, lis
                     sign: "=",
                     value: listingId,
                 },
-            ]
+            ],
         });
         if (!currentListingData) {
-            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+            throw new AppError(
+                `Listing with id ${listingId} does not exist`,
+                404
+            );
         }
         if (currentListingData.statusId !== 3) {
-            throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+            throw new AppError(
+                `Listing with id ${listingId} does not have feedback status`,
+                400
+            );
         }
         if (roleId !== roles.Admin && currentListingData.userId !== userId) {
-            throw new AppError(`You are not allowed to access this resource`, 403);
+            throw new AppError(
+                `You are not allowed to access this resource`,
+                403
+            );
         }
         const existingReaction = await listingChatReactionRepo.getOne({
             filters: [
                 { key: "chatId", sign: "=", value: chatId },
-                { key: "userId", sign: "=", value: userId }
-            ]
+                { key: "userId", sign: "=", value: userId },
+            ],
         });
         if (existingReaction) {
             if (existingReaction.reaction === reaction) {
                 return existingReaction;
             }
             const updated = await listingChatReactionRepo.update({
-                filters: [
-                    { key: "id", sign: "=", value: existingReaction.id }
-                ],
-                data: { reaction }
+                filters: [{ key: "id", sign: "=", value: existingReaction.id }],
+                data: { reaction },
             });
 
             return updated;
@@ -685,7 +777,7 @@ const postChatReaction = async function ({ userId, roleId, chatId, reaction, lis
             chatId,
             userId,
             reaction,
-        }
+        };
         const result = await listingChatReactionRepo.create({
             data,
         });
@@ -694,9 +786,13 @@ const postChatReaction = async function ({ userId, roleId, chatId, reaction, lis
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
-
-}
-const deleteChatReaction = async function ({ userId, roleId, chatId, listingId }) {
+};
+const deleteChatReaction = async function ({
+    userId,
+    roleId,
+    chatId,
+    listingId,
+}) {
     try {
         if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
             throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
@@ -708,22 +804,31 @@ const deleteChatReaction = async function ({ userId, roleId, chatId, listingId }
                     sign: "=",
                     value: listingId,
                 },
-            ]
+            ],
         });
         if (!currentListingData) {
-            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+            throw new AppError(
+                `Listing with id ${listingId} does not exist`,
+                404
+            );
         }
         if (currentListingData.statusId !== 3) {
-            throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+            throw new AppError(
+                `Listing with id ${listingId} does not have feedback status`,
+                400
+            );
         }
         if (roleId !== roles.Admin && currentListingData.userId !== userId) {
-            throw new AppError(`You are not allowed to access this resource`, 403);
+            throw new AppError(
+                `You are not allowed to access this resource`,
+                403
+            );
         }
         const result = await listingChatReactionRepo.delete({
             filters: [
                 { key: "chatId", sign: "=", value: chatId },
-                { key: "userId", sign: "=", value: userId }
-            ]
+                { key: "userId", sign: "=", value: userId },
+            ],
         });
 
         return result;
@@ -731,11 +836,116 @@ const deleteChatReaction = async function ({ userId, roleId, chatId, listingId }
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
+};
 
-}
+const handleUnifiedChat = async ({
+    listingId,
+    userId,
+    roleId,
+    message,
+    parentId,
+    file,
+}) => {
+    if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+        throw new AppError(`Invalid ListingsId ${listingId}`, 400);
+    }
 
-const createListingChat = async function ({ userId, roleId, parentId, message, listingId }) {
-    // 
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: listingId,
+            },
+        ],
+    });
+    if (!currentListingData) {
+        throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+    }
+    if (currentListingData.statusId !== 3) {
+        throw new AppError(
+            `Listing with id ${listingId} does not have feedback status`,
+            400
+        );
+    }
+    if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
+    }
+    // If parent ID is provided, validate it
+    if (parentId !== undefined && parentId !== null) {
+        if (isNaN(Number(parentId)) || Number(parentId) <= 0) {
+            throw new AppError(`Invalid parent chat ID ${parentId}`, 400);
+        }
+
+        const parentChat = await listingChatsRepository.getOne({
+            filters: [
+                { key: "id", sign: "=", value: parentId },
+                { key: "listingId", sign: "=", value: listingId },
+            ],
+        });
+
+        if (!parentChat) {
+            throw new AppError(
+                `Parent message with id ${parent} not found in the listing`,
+                400
+            );
+        }
+
+        parentId = Number(parentId);
+    }
+
+    let fileUrl = null;
+
+    if (file) {
+        const isImage = file.mimetype === "image/png";
+        const isPdf = file.mimetype === "application/pdf";
+
+        if (!isImage && !isPdf) {
+            throw new AppError(`Unsupported file type ${file.mimetype}`, 415);
+        }
+
+        const filePath = `user_${userId}/listing_${listingId}_${Date.now()}${
+            isPdf ? "_PDF.pdf" : ".png"
+        }`;
+        const { uploadStatus, objectKey } = isPdf
+            ? await pdfUpload(file, filePath)
+            : await imageUpload(file, filePath);
+
+        if (uploadStatus !== "Success") {
+            throw new AppError("File upload failed");
+        }
+
+        fileUrl = objectKey;
+    }
+
+    if (!message && !fileUrl) {
+        throw new AppError("Message or file is required", 400);
+    }
+
+    const newChat = await listingChatsRepository.create({
+        data: {
+            listingId,
+            senderId: userId,
+            senderType: roleId === roles.Admin ? "admin" : "user",
+            parentId: parentId ? Number(parentId) : null,
+            message: message || null,
+            fileUrl,
+        },
+    });
+
+    return listingChatsRepository.getOne({
+        filters: [{ key: "id", sign: "=", value: newChat.id }],
+    });
+};
+
+const createListingChat = async function ({
+    userId,
+    roleId,
+    parentId,
+    message,
+    listingId,
+}) {
+    //
     try {
         if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
             throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
@@ -750,16 +960,25 @@ const createListingChat = async function ({ userId, roleId, parentId, message, l
                     sign: "=",
                     value: listingId,
                 },
-            ]
+            ],
         });
         if (!currentListingData) {
-            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+            throw new AppError(
+                `Listing with id ${listingId} does not exist`,
+                404
+            );
         }
         if (currentListingData.statusId !== 3) {
-            throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+            throw new AppError(
+                `Listing with id ${listingId} does not have feedback status`,
+                400
+            );
         }
         if (roleId !== roles.Admin && currentListingData.userId !== userId) {
-            throw new AppError(`You are not allowed to access this resource`, 403);
+            throw new AppError(
+                `You are not allowed to access this resource`,
+                403
+            );
         }
         // If parent ID is provided, validate it
         if (parentId !== undefined && parentId !== null) {
@@ -775,7 +994,10 @@ const createListingChat = async function ({ userId, roleId, parentId, message, l
             });
 
             if (!parentChat) {
-                throw new AppError(`Parent message with id ${parent} not found in the listing`, 400);
+                throw new AppError(
+                    `Parent message with id ${parent} not found in the listing`,
+                    400
+                );
             }
 
             parentId = Number(parentId);
@@ -785,31 +1007,36 @@ const createListingChat = async function ({ userId, roleId, parentId, message, l
             senderId: userId,
             senderType: roleId === roles.Admin ? "admin" : "user",
             parentId,
-            message
-        }
+            message,
+        };
         const result = await listingChatsRepository.create({
             data,
         });
         const response = await listingChatsRepository.getOne({
-            filters:
-                [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: result.id,
-                    },
-                ]
-
-        })
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: result.id,
+                },
+            ],
+        });
         return response;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
+};
 
-}
-
-const getListingChat = async function ({ userId, roleId, listingId, lastMessageId, isReversed, pageNo, pageSize }) {
+const getListingChat = async function ({
+    userId,
+    roleId,
+    listingId,
+    lastMessageId,
+    isReversed,
+    pageNo,
+    pageSize,
+}) {
     if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
@@ -821,20 +1048,170 @@ const getListingChat = async function ({ userId, roleId, listingId, lastMessageI
                 sign: "=",
                 value: listingId,
             },
-        ]
+        ],
     });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
     }
     if (currentListingData.statusId !== 3) {
-        throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+        throw new AppError(
+            `Listing with id ${listingId} does not have feedback status`,
+            400
+        );
     }
     if (roleId !== roles.Admin && currentListingData.userId !== userId) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
-    const result = await listingChatsRepository.getChats({ listingId, lastMessageId, isReversed, pageNo, pageSize });
-    return result
-}
+    const result = await listingChatsRepository.getChats({
+        listingId,
+        lastMessageId,
+        isReversed,
+        pageNo,
+        pageSize,
+    });
+    return result;
+};
+
+const chatUploadImage = async function (listingId, userId, roleId, image) {
+    if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+        throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
+    }
+
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: listingId,
+            },
+        ],
+    });
+    if (!currentListingData) {
+        throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+    }
+    if (currentListingData.statusId !== 3) {
+        throw new AppError(
+            `Listing with id ${listingId} does not have feedback status`,
+            400
+        );
+    }
+    if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+        console.log({ roleId, [userId]: currentListingData.userId });
+        throw new AppError(`You are not allowed to access this resource`, 403);
+    }
+    // add check for image mime type here
+    const allowedMimeTypes = ["image/png"];
+    if (!allowedMimeTypes.includes(image.mimetype)) {
+        throw new AppError(
+            `Unsupported image format '${image.mimetype}'.`,
+            415
+        );
+    }
+    const filePath = `user_${userId}/listing_${listingId}_${Date.now()}`;
+
+    const { objectKey, uploadStatus } = await imageUpload(image, filePath);
+    if (uploadStatus === "Success") {
+        const data = {
+            listingId,
+            senderId: userId,
+            senderType: roleId === roles.Admin ? "admin" : "user",
+            fileUrl: objectKey,
+        };
+        const result = await listingChatsRepository.create({
+            data,
+        });
+        const response = await listingChatsRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: result.id,
+                },
+            ],
+        });
+        return response;
+    } else {
+        throw new AppError("Image Upload failed");
+    }
+};
+const chatUploadPdf = async function (listingId, userId, roleId, pdf) {
+    if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+        throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
+    }
+
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: listingId,
+            },
+        ],
+    });
+    if (!currentListingData) {
+        throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+    }
+    if (currentListingData.statusId !== 3) {
+        throw new AppError(
+            `Listing with id ${listingId} does not have feedback status`,
+            400
+        );
+    }
+    if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+        console.log({ roleId, [userId]: currentListingData.userId });
+        throw new AppError(`You are not allowed to access this resource`, 403);
+    }
+
+    if (!pdf) {
+        throw new AppError(`Pdf not uploaded`, 400);
+    }
+
+    const arrayOfAllowedFiles = ["pdf"];
+    const arrayOfAllowedFileTypes = ["application/pdf"];
+
+    const fileExtension = pdf.name.slice(
+        ((pdf.name.lastIndexOf(".") - 1) >>> 0) + 2
+    );
+
+    if (
+        !arrayOfAllowedFiles.includes(fileExtension) ||
+        !arrayOfAllowedFileTypes.includes(pdf.mimetype)
+    ) {
+        throw new AppError(`Invalid Pdf type`, 403);
+    }
+    try {
+        const filePath = `user_${userId}/listing_${listingId}_${Date.now()}_PDF.pdf`;
+        const { uploadStatus, objectKey } = await pdfUpload(pdf, filePath);
+
+        if (uploadStatus === "Success") {
+            const data = {
+                listingId,
+                senderId: userId,
+                senderType: roleId === roles.Admin ? "admin" : "user",
+                fileUrl: objectKey,
+            };
+            const result = await listingChatsRepository.create({
+                data,
+            });
+            const response = await listingChatsRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: result.id,
+                    },
+                ],
+            });
+            // TODO: GENERATE NOTIFICATION(FIREBASE)
+            return response;
+        } else {
+            throw new AppError("pdf Upload failed");
+        }
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
 const uploadImage = async function (
     listingId,
     userId,
@@ -842,7 +1219,6 @@ const uploadImage = async function (
     imageFiles,
     imageList
 ) {
-
     if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
@@ -854,7 +1230,7 @@ const uploadImage = async function (
                 sign: "=",
                 value: listingId,
             },
-        ]
+        ],
     });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
@@ -867,12 +1243,18 @@ const uploadImage = async function (
     if (currentListingData.pdf && currentListingData.pdf.length > 0) {
         throw new AppError(
             `Pdf is present in listing So can not upload image.`,
-            403,
+            403
         );
     }
 
-    const imageArr = imageFiles ? (imageFiles.length > 1 ? imageFiles : [imageFiles]) : [];
-    const hasIncorrectMime = imageArr.some((i) => !i.mimetype.includes("image/"));
+    const imageArr = imageFiles
+        ? imageFiles.length > 1
+            ? imageFiles
+            : [imageFiles]
+        : [];
+    const hasIncorrectMime = imageArr.some(
+        (i) => !i.mimetype.includes("image/")
+    );
     if (hasIncorrectMime) {
         throw new AppError(`Invalid Image type`, 403);
     }
@@ -886,10 +1268,15 @@ const uploadImage = async function (
                 sign: "=",
                 value: listingId,
             },
-        ]
+        ],
     });
     const listingImages = listingImagesResp.rows;
-    if (listingImages && listingImages.length > 0 && listingImages[0].logo && listingImages[0].logo.startsWith("admin/")) {
+    if (
+        listingImages &&
+        listingImages.length > 0 &&
+        listingImages[0].logo &&
+        listingImages[0].logo.startsWith("admin/")
+    ) {
         // await cityListingRepo.deleteListingImage(listingId, cityId);
         await listingImagesRepository.delete({
             filters: [
@@ -898,18 +1285,21 @@ const uploadImage = async function (
                     sign: "=",
                     value: listingId,
                 },
-            ]
+            ],
         });
     } else {
         const imagesToRetain = listingImages.filter((value) =>
-            (imageList || []).includes(value.logo),
+            (imageList || []).includes(value.logo)
         );
         const imagesToDelete = listingImages.filter(
-            (value) => !imagesToRetain.map((i2r) => i2r.logo).includes(value.logo),
+            (value) =>
+                !imagesToRetain.map((i2r) => i2r.logo).includes(value.logo)
         );
 
         if (imagesToDelete && imagesToDelete.length > 0) {
-            await imageDeleteAsync.deleteMultiple(imagesToDelete.map((i) => i.logo));
+            await imageDeleteAsync.deleteMultiple(
+                imagesToDelete.map((i) => i.logo)
+            );
             // await cityListingRepo.deleteListingImageById(
             //     imagesToDelete.map((i) => i.id),
             //     cityId,
@@ -921,7 +1311,7 @@ const uploadImage = async function (
                         sign: "IN",
                         value: imagesToDelete.map((i) => i.id),
                     },
-                ]
+                ],
             });
         }
 
@@ -940,7 +1330,7 @@ const uploadImage = async function (
                             sign: "=",
                             value: imageToRetain.id,
                         },
-                    ]
+                    ],
                 });
             }
         }
@@ -955,7 +1345,7 @@ const uploadImage = async function (
             const filePath = `user_${userId}/listing_${listingId}_${imageOrder}_${Date.now()}`;
             const { uploadStatus, objectKey } = await imageUpload(
                 individualImage,
-                filePath,
+                filePath
             );
             if (uploadStatus === "Success") {
                 // await cityListingRepo.createListingImage(
@@ -969,7 +1359,7 @@ const uploadImage = async function (
                         listingId,
                         imageOrder,
                         logo: objectKey,
-                    }
+                    },
                 });
             } else {
                 throw new AppError("Image Upload failed");
@@ -981,13 +1371,7 @@ const uploadImage = async function (
     }
 };
 
-const uploadPDF = async function (
-    listingId,
-    userId,
-    roleId,
-    pdf,
-) {
-
+const uploadPDF = async function (listingId, userId, roleId, pdf) {
     if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
@@ -999,7 +1383,7 @@ const uploadPDF = async function (
                 sign: "=",
                 value: listingId,
             },
-        ]
+        ],
     });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
@@ -1012,7 +1396,7 @@ const uploadPDF = async function (
     if (currentListingData.logo && currentListingData.logo.length > 0) {
         throw new AppError(
             `Image is present in listing So can not upload pdf.`,
-            403,
+            403
         );
     }
 
@@ -1024,7 +1408,7 @@ const uploadPDF = async function (
     const arrayOfAllowedFileTypes = ["application/pdf"];
 
     const fileExtension = pdf.name.slice(
-        ((pdf.name.lastIndexOf(".") - 1) >>> 0) + 2,
+        ((pdf.name.lastIndexOf(".") - 1) >>> 0) + 2
     );
 
     if (
@@ -1045,12 +1429,16 @@ const uploadPDF = async function (
                 sign: "=",
                 value: listingId,
             },
-        ]
+        ],
     });
     const imagesToDelete = imagesToDeleteResp.rows;
     if (imagesToDelete && imagesToDelete.length > 0) {
         await imageDeleteAsync.deleteMultiple(
-            imagesToDelete.map((i) => i.logo).filter((i) => typeof i === 'string' && i && !i.startsWith("admin/")),
+            imagesToDelete
+                .map((i) => i.logo)
+                .filter(
+                    (i) => typeof i === "string" && i && !i.startsWith("admin/")
+                )
         );
         // await cityListingRepo.deleteMultipleListingImagesById(
         //     imagesToDelete.map((i) => i.id),
@@ -1063,7 +1451,7 @@ const uploadPDF = async function (
                     sign: "IN",
                     value: imagesToDelete.map((i) => i.id),
                 },
-            ]
+            ],
         });
     }
 
@@ -1075,7 +1463,10 @@ const uploadPDF = async function (
 
         const updationData = { pdf: pdfObjectKey };
         const pdfBucketPath =
-            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST;
+            "https://" +
+            process.env.BUCKET_NAME +
+            "." +
+            process.env.BUCKET_HOST;
 
         if (pdfUploadStatus === "Success") {
             // create image
@@ -1085,7 +1476,7 @@ const uploadPDF = async function (
             const pdfImageBuffer = await getPdfImage(pdfFilePath);
             const { uploadStatus, objectKey } = await imageUpload(
                 pdfImageBuffer,
-                imagePath,
+                imagePath
             );
 
             if (uploadStatus === "Success") {
@@ -1094,7 +1485,7 @@ const uploadPDF = async function (
                         listingId,
                         imageOrder,
                         logo: objectKey,
-                    }
+                    },
                 });
             }
 
@@ -1106,7 +1497,7 @@ const uploadPDF = async function (
                         sign: "=",
                         value: listingId,
                     },
-                ]
+                ],
             });
         } else {
             throw new AppError("pdf Upload failed");
@@ -1118,7 +1509,6 @@ const uploadPDF = async function (
 };
 
 const deleteImage = async function (id, userId, roleId) {
-
     if (isNaN(Number(id)) || Number(id) <= 0) {
         throw new AppError(`Invalid ListingsId ${id}`, 404);
     }
@@ -1131,7 +1521,7 @@ const deleteImage = async function (id, userId, roleId) {
                 sign: "=",
                 value: id,
             },
-        ]
+        ],
     });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
@@ -1143,23 +1533,25 @@ const deleteImage = async function (id, userId, roleId) {
 
     // todo: move this to a separate layer
     let imageList = await axios.get(
-        "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST,
+        "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
     );
     imageList = JSON.parse(
-        parser.xml2json(imageList.data, { compact: true, spaces: 4 }),
+        parser.xml2json(imageList.data, { compact: true, spaces: 4 })
     );
 
     const userListingFilter = `user_${userId}/listing_${id}`;
     const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-        obj.Key._text.includes(userListingFilter),
+        obj.Key._text.includes(userListingFilter)
     ).filter((obj) => !obj.Key._text.includes("admin/"));
 
-    const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text }))
+    const imagesToDelete = userImageList.map((image) => ({
+        Key: image.Key._text,
+    }));
 
     try {
         if (imagesToDelete && imagesToDelete.length > 0) {
             await imageDeleteAsync.deleteMultiple(
-                imagesToDelete.map((i) => i.Key),
+                imagesToDelete.map((i) => i.Key)
             );
         }
 
@@ -1170,7 +1562,7 @@ const deleteImage = async function (id, userId, roleId) {
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
         });
         await addDefaultImage(id, currentListingData.categoryId);
     } catch (err) {
@@ -1180,7 +1572,6 @@ const deleteImage = async function (id, userId, roleId) {
 };
 
 const deletePDF = async function (id, userId, roleId) {
-
     if (isNaN(Number(id)) || Number(id) <= 0) {
         throw new AppError(`Invalid ListingsId ${id}`, 404);
     }
@@ -1193,7 +1584,7 @@ const deletePDF = async function (id, userId, roleId) {
                 sign: "=",
                 value: id,
             },
-        ]
+        ],
     });
     if (!currentListingData) {
         throw new AppError(`Listing with id ${id} does not exist`, 404);
@@ -1205,11 +1596,11 @@ const deletePDF = async function (id, userId, roleId) {
 
     try {
         if (currentListingData.pdf) {
-            await imageDeleteAsync.deleteImage(currentListingData.pdf)
+            await imageDeleteAsync.deleteImage(currentListingData.pdf);
         }
 
         const updationData = {
-            pdf: ""
+            pdf: "",
         };
 
         await listingRepository.update({
@@ -1220,7 +1611,7 @@ const deletePDF = async function (id, userId, roleId) {
                     sign: "=",
                     value: id,
                 },
-            ]
+            ],
         });
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -1231,7 +1622,7 @@ const deletePDF = async function (id, userId, roleId) {
 async function addDefaultImage(listingId, categoryId) {
     const imageOrder = 1;
     const categoryName = Object.keys(categories).find(
-        (key) => categories[key] === +categoryId,
+        (key) => categories[key] === +categoryId
     );
 
     // const categoryCount = await cityListingRepo.getCountByCategory(
@@ -1255,12 +1646,11 @@ async function addDefaultImage(listingId, categoryId) {
             listingId,
             imageOrder,
             logo: imageName,
-        }
+        },
     });
 }
 
 const vote = async function (listingId, optionId, vote) {
-
     if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
         throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
     }
@@ -1280,7 +1670,7 @@ const vote = async function (listingId, optionId, vote) {
                 sign: "=",
                 value: listingId,
             },
-        ]
+        ],
     });
     if (!currentCityListing) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
@@ -1298,16 +1688,14 @@ const vote = async function (listingId, optionId, vote) {
                 sign: "=",
                 value: listingId,
             },
-        ]
+        ],
     });
     const pollOptions = pollOptionsResp?.rows ?? [];
     if (!pollOptions || pollOptions.length === 0) {
         throw new AppError(`No poll options found for this listing`, 404);
     }
     try {
-        const pollOption = pollOptions.find(
-            (option) => option.id === optionId,
-        );
+        const pollOption = pollOptions.find((option) => option.id === optionId);
         if (!pollOption) {
             throw new AppError(`OptionId not found`, 404);
         }
@@ -1326,7 +1714,7 @@ const vote = async function (listingId, optionId, vote) {
                     sign: "=",
                     value: optionId,
                 },
-            ]
+            ],
         });
         return voteCount;
     } catch (err) {
@@ -1344,12 +1732,15 @@ module.exports = {
     getListingWithId,
     updateListingStatus,
     createListingChat,
+    handleUnifiedChat,
     getListingChat,
     postChatReaction,
     deleteChatReaction,
+    chatUploadImage,
     uploadImage,
+    chatUploadPdf,
     uploadPDF,
     deleteImage,
     deletePDF,
-    vote
+    vote,
 };

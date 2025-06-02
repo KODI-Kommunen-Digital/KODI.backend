@@ -16,9 +16,12 @@ const {
     vote,
     updateListingStatus,
     getListingChat,
-    createListingChat,
+    // createListingChat,
     postChatReaction,
     deleteChatReaction,
+    chatUploadImage,
+    chatUploadPdf,
+    createListingChatNew,
 } = require("../controllers/listings");
 const rateLimit = require("express-rate-limit");
 
@@ -49,47 +52,30 @@ router.patch("/:listingId", authentication, updateListing);
 
 router.delete("/:listingId", authentication, deleteListing);
 // change status of a listing
-router.patch('/:listingId/status', authentication, updateListingStatus);
+router.patch("/:listingId/status", authentication, updateListingStatus);
 // get feeback
-router.get('/:listingId/chat', authentication, getListingChat);
-router.post('/:listingId/chat', authentication, createListingChat);
+router.get("/:listingId/chat", authentication, getListingChat);
+router.post("/:listingId/chat", authentication, createListingChatNew);
 // image support for chat
 // reactions
-router.post('/:listingId/chat/:chatId/react', authentication, postChatReaction);
-router.delete("/:listingId/chat/:chatId/react", authentication, deleteChatReaction)
-router.post('/:listingId/chat/imageUpload', optionalAuthentication, (req, res) => {
-    const imageFiles = req?.files;
-    const imageList = req?.body?.image;
-    console.log({ imageFiles, imageList })
-    res.send('bye')
-})
-
-
-router.post(
-    "/:id/imageUpload",
-    authentication,
-    uploadImage,
-);
-
-router.post(
-    "/:id/pdfUpload",
-    authentication,
-    uploadPDF,
-);
-
+router.post("/:listingId/chat/:chatId/react", authentication, postChatReaction);
 router.delete(
-    "/:id/imageDelete",
+    "/:listingId/chat/:chatId/react",
     authentication,
-    deleteImage,
+    deleteChatReaction
 );
+router.post("/:listingId/chat/imageUpload", authentication, chatUploadImage);
 
-router.delete(
-    "/:id/pdfDelete",
-    authentication,
-    deletePDF,
-);
+router.post("/:listingId/chat/uploadPdf", authentication, chatUploadPdf);
+
+router.post("/:id/imageUpload", authentication, uploadImage);
+
+router.post("/:id/pdfUpload", authentication, uploadPDF);
+
+router.delete("/:id/imageDelete", authentication, deleteImage);
+
+router.delete("/:id/pdfDelete", authentication, deletePDF);
 
 router.post("/:id/vote", vote);
-
 
 module.exports = router;
