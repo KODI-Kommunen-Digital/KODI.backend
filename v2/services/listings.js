@@ -964,6 +964,7 @@ const handleUnifiedChat = async ({
         }
         const payload = {
             listingId: `${listingId}`,
+            type: "listing_chat",
             messageId: `${chatWithDetails.id}`,
             sender: `${userId}`,
             ...(chatData.message && {
