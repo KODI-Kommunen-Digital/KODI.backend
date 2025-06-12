@@ -955,15 +955,16 @@ const handleUnifiedChat = async ({
     });
 
     try {
-        if (process.env.WEBSOCKET_ENABLED) {
-            console.log('sending websocket request');
-            await axios.post(
-                `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websoketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
-                { type: 'newMessage', data: chatWithDetails }
-            );
-        }
+        // if (process.env.WEBSOCKET_ENABLED) {
+        //     console.log('sending websocket request');
+        //     await axios.post(
+        //         `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websoketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
+        //         { type: 'newMessage', data: chatWithDetails }
+        //     );
+        // }
         const payload = {
             listingId: `${listingId}`,
+            type: "listing_chat",
             messageId: `${chatWithDetails.id}`,
             sender: `${userId}`,
             ...(chatData.message && {
