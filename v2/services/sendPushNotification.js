@@ -67,7 +67,7 @@ async function sendPushNotificationsToUsers(cityIds, categoryId, title = "", bod
     }
 }
 
-async function sendPushNotificationsToAdmin(cityIds, categoryId, title = "New Notification from a User", body= "Please verify the listing", data=null) {
+async function sendPushNotificationsToAdmin(cityIds, categoryId, title = "New Notification from a User", body = "Please verify the listing", data = null) {
     try {
         if (!serviceAccount) return false;
         const AdminUsers = await usersRepository.getAll({
@@ -101,11 +101,11 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
                 columns: "firebaseToken",
                 filters: [{ key: "userId", sign: "=", value: userId }],
             });
-            return rows.map(row => row.firebaseToken); 
+            return rows.map(row => row.firebaseToken);
         });
-        
+
         const tokensList = (await Promise.all(tokenPromises)).flat();
-        
+
         const tokens = tokensList.filter(token => token);
         if (!tokens || tokens.length === 0) {
             return false;
@@ -145,5 +145,6 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
 module.exports = {
     sendPushNotificationToAll,
     sendPushNotificationsToUsers,
-    sendPushNotificationsToAdmin
+    sendPushNotificationsToAdmin,
+    sendPushNotifications
 };
