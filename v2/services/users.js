@@ -1002,7 +1002,7 @@ const verifyEmail = async function (userId, token, language = "de") {
     }
 };
 
-const logout = async function (userId, refreshToken) {
+const logout = async function (userId, refreshToken, deviceToken) {
     try {
         // const token = await tokenRepo.getRefreshTokenByRefreshToken(refreshToken);
         const token = await tokenRepository.getOne({
@@ -1017,6 +1017,9 @@ const logout = async function (userId, refreshToken) {
         if (!token) {
             throw new AppError(`User with id ${refreshToken} does not exist`, 404);
         }
+        if (!deviceToken) {
+            throw new AppError(`Device token is required`, 400);
+        }
         // await tokenRepo.deleteRefreshTokenFor({ refreshToken, userId });
         await tokenRepository.delete({
             filters: [
@@ -1024,6 +1027,21 @@ const logout = async function (userId, refreshToken) {
                     key: "refreshToken",
                     sign: "=",
                     value: refreshToken
+                },
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                }
+            ]
+        });
+        // delete the device token from the database
+        await firebaseTokenRepository.delete({
+            filters: [
+                {
+                    key: "deviceAddress",
+                    sign: "=",
+                    value: deviceToken
                 },
                 {
                     key: "userId",

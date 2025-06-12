@@ -233,6 +233,7 @@ const verifyEmail = async function (req, res, next) {
 const logout = async function (req, res, next) {
     const userId = parseInt(req.params.id);
     const refreshToken = req.body.refreshToken;
+    const deviceToken = req.body.deviceId;
 
     try {
         if (userId !== parseInt(req.userId)) {
@@ -242,7 +243,7 @@ const logout = async function (req, res, next) {
             throw new AppError(`Refresh Token not sent`, 403);
         }
 
-        await userService.logout(userId, refreshToken);
+        await userService.logout(userId, refreshToken, deviceToken);
         return res.status(200).json({
             status: "success",
         });

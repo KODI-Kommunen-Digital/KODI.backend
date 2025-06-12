@@ -10,6 +10,8 @@ const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const cityListingMappingRepo = require("../repository/cityListingMappingRepo");
+const usersRepository = require("../repository/userRepo");
+
 const listingFunctions = require("../services/listingFunctions");
 const status = require("../constants/status");
 const source = require("../constants/source");
@@ -26,6 +28,7 @@ const DEFAULTIMAGE = "Defaultimage";
 const bucketClient = require("../utils/bucketClient");
 const isValidDate = require("../utils/validateDate");
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
+const { sendPushNotifications } = require("./sendPushNotification");
 // const sendPushNotificationsToUsers =
 //     require("./sendPushNotification").sendPushNotificationsToUsers;
 // const sendPushNotificationsToAdmin =
@@ -952,7 +955,6 @@ const handleUnifiedChat = async ({
     });
 
     try {
-        // Send websocket notification
         if (process.env.WEBSOCKET_ENABLED) {
             console.log('sending websocket request');
             await axios.post(
@@ -960,10 +962,57 @@ const handleUnifiedChat = async ({
                 { type: 'newMessage', data: chatWithDetails }
             );
         }
+        const payload = {
+            listingId: `${listingId}`,
+            messageId: `${chatWithDetails.id}`,
+            sender: `${userId}`,
+            ...(chatData.message && {
+                message: chatData.message
+            }),
+            ...(chatData.fileUrl && {
+                fileUrl: chatData.fileUrl
+            }),
+            ...(chatData.parentId && {
+                parentId: chatData.parentId
+            })
+        };
+
+        // Send push notifications
+        if (roleId === roles.Admin) {
+            // If admin sent message, notify listing creator
+            console.log('i am admin and sending push notification to user', currentListingData.userId);
+            await sendPushNotifications(
+                [currentListingData.userId],
+                "New Message from Admin",
+                message || "You received a new message",
+                payload
+            );
+        } else {
+            // If user sent message, notify admins
+            console.log('i am user and sending push notification to admin');
+            const AdminUsers = await usersRepository.getAll({
+                filters: [
+                    {
+                        key: "roleId",
+                        sign: "=",
+                        value: 1
+                    }
+                ]
+            });
+            if (AdminUsers && AdminUsers.rows.length > 0) {
+                const adminUserIds = AdminUsers.rows.map(user => user.id);
+                await sendPushNotifications(
+                    adminUserIds,
+                    "New Message from User",
+                    message || "You received a new message",
+                    payload
+                );
+            }
+        }
 
     } catch (err) {
         // Log error but don't throw since message is already saved
-        console.error("Error sending notifications:", err);
+        // console.error("Error sending notifications:", err);
     }
 
     return chatWithDetails;
