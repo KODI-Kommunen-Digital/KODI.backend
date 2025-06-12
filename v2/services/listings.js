@@ -955,11 +955,10 @@ const handleUnifiedChat = async ({
         // Send websocket notification
         if (process.env.WEBSOCKET_ENABLED) {
             console.log('sending websocket request');
-            const result = await axios.post(
+            await axios.post(
                 `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websoketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
-                { type: 'NEW_CHAT_MESSAGE', data: chatWithDetails }
+                { type: 'newMessage', data: chatWithDetails }
             );
-            console.log({ data: result.data });
         }
 
     } catch (err) {
