@@ -275,6 +275,7 @@ const createListingChatNew = async (req, res, next) => {
             data: result,
         });
     } catch (err) {
+        console.log({ err });
         return next(err);
     }
 };

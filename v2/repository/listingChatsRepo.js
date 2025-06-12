@@ -17,6 +17,8 @@ class ListingChatsRepo extends BaseRepo {
             SELECT 
                 lc.*,
                 u.username AS senderName,
+                u.firstname as firstname,
+                u.lastname as lastname,
                 parent.message AS parentMessage,
                 COALESCE(r.reactions, JSON_ARRAY()) AS reactions
                 FROM listing_chats lc

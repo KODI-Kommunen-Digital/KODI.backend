@@ -26,6 +26,10 @@ const DEFAULTIMAGE = "Defaultimage";
 const bucketClient = require("../utils/bucketClient");
 const isValidDate = require("../utils/validateDate");
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
+// const sendPushNotificationsToUsers =
+//     require("./sendPushNotification").sendPushNotificationsToUsers;
+// const sendPushNotificationsToAdmin =
+//     require("./sendPushNotification").sendPushNotificationsToAdmin;
 
 const getAllListings = async ({
     pageNo,
@@ -871,6 +875,9 @@ const handleUnifiedChat = async ({
     if (roleId !== roles.Admin && currentListingData.userId !== userId) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
+
+    const websoketChannelId = `listing_${listingId}`;
+
     // If parent ID is provided, validate it
     if (parentId !== undefined && parentId !== null) {
         if (isNaN(Number(parentId)) || Number(parentId) <= 0) {
@@ -924,20 +931,43 @@ const handleUnifiedChat = async ({
         throw new AppError("Message or file is required", 400);
     }
 
+    const chatData = {
+        listingId,
+        senderId: userId,
+        senderType: roleId === roles.Admin ? "admin" : "user",
+        parentId: parentId ? Number(parentId) : null,
+        message: message || null,
+        fileUrl,
+    };
+    console.log({ chatData });
     const newChat = await listingChatsRepository.create({
-        data: {
-            listingId,
-            senderId: userId,
-            senderType: roleId === roles.Admin ? "admin" : "user",
-            parentId: parentId ? Number(parentId) : null,
-            message: message || null,
-            fileUrl,
-        },
+        data: chatData
     });
 
-    return listingChatsRepository.getOne({
-        filters: [{ key: "id", sign: "=", value: newChat.id }],
+    // Get chat with full details like in getChats query
+    const [chatWithDetails] = await listingChatsRepository.getChats({
+        listingId,
+        lastMessageId: newChat.id - 1,
+        pageSize: 1
     });
+
+    try {
+        // Send websocket notification
+        if (process.env.WEBSOCKET_ENABLED) {
+            console.log('sending websocket request');
+            const result = await axios.post(
+                `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websoketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
+                { type: 'NEW_CHAT_MESSAGE', data: chatWithDetails }
+            );
+            console.log({ data: result.data });
+        }
+
+    } catch (err) {
+        // Log error but don't throw since message is already saved
+        console.error("Error sending notifications:", err);
+    }
+
+    return chatWithDetails;
 };
 
 const createListingChat = async function ({
