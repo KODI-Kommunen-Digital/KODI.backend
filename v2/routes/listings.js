@@ -22,6 +22,7 @@ const {
     chatUploadImage,
     chatUploadPdf,
     createListingChatNew,
+    getPendingListingsCount,
 } = require("../controllers/listings");
 const rateLimit = require("express-rate-limit");
 
@@ -77,5 +78,7 @@ router.delete("/:id/imageDelete", authentication, deleteImage);
 router.delete("/:id/pdfDelete", authentication, deletePDF);
 
 router.post("/:id/vote", vote);
+
+router.get("/pending/count", authentication, getPendingListingsCount);
 
 module.exports = router;

@@ -120,6 +120,12 @@ class ListingsRepo extends BaseRepo {
             throw new Error("Error retrieving listings");
         }
     };
+
+    getPendingListingsCount = async () => {
+        const query = `SELECT COUNT(*) as count FROM listings WHERE statusId = 2`;
+        const response = await database.callQuery(query);
+        return response.rows[0].count;
+    };
 }
 
 module.exports = new ListingsRepo();

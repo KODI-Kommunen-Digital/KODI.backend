@@ -1821,6 +1821,16 @@ const vote = async function (listingId, optionId, vote) {
     }
 };
 
+const getPendingListingsCount = async () => {
+    try {
+        const response = await listingRepository.getPendingListingsCount();
+        return response || 0;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(`Error getting pending listings count: ${err.message}`);
+    }
+};
+
 module.exports = {
     getAllListings,
     searchListings,
@@ -1841,4 +1851,5 @@ module.exports = {
     deleteImage,
     deletePDF,
     vote,
+    getPendingListingsCount,
 };
