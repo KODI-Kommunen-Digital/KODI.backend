@@ -670,7 +670,6 @@ const isValidTransition = (currentStatus, newStatus) => {
     }
     return false;
 };
-
 const updateListingStatus = async function ({ id, roleId, newStatus }) {
     if (roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
@@ -715,6 +714,24 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                 },
             ],
         });
+        try {
+            const result = await sendPushNotifications({
+                userIds: [listing.userId],
+                title: "Listing Status Updated",
+                body: `Your listing status has been updated`,
+                data: {
+                    type: "listing_status_update",
+                    listingId: id,
+                    newStatus: newStatus
+                }
+            });
+            console.log({ result });
+        } catch (err) {
+            console.log({ err });
+        }
+        // Send push notification to listing owner about status update
+
+
         return update;
     } catch (err) {
         if (err instanceof AppError) throw err;
