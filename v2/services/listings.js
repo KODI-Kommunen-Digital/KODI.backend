@@ -685,7 +685,6 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                 },
             ],
         });
-        console.log({ listing });
         if (!listing) {
             throw new AppError(`Listing with id ${id} does not exist`, 404);
         }
@@ -714,17 +713,18 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                 },
             ],
         });
+        console.log('everything is fine here')
         try {
-            const result = await sendPushNotifications({
-                userIds: [listing.userId],
-                title: "Listing Status Updated",
-                body: `Your listing status has been updated`,
-                data: {
+            console.log('sending push notification to user', listing.userId)
+            const result = await sendPushNotifications(
+                [listing.userId],
+                "Listing Status Updated",
+                `Your listing status has been updated`,
+                {
                     type: "listing_status_update",
                     listingId: id,
-                    newStatus: newStatus
                 }
-            });
+            );
             console.log({ result });
         } catch (err) {
             console.log({ err });
