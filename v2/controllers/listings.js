@@ -1,5 +1,6 @@
 const roles = require("../constants/roles");
 const listingService = require("../services/listings");
+const { AppError } = require("../utils/appError");
 
 const getAllListings = async (req, res, next) => {
     const params = req.query;
@@ -430,6 +431,24 @@ const vote = async function (req, res, next) {
     }
 };
 
+const getPendingListingsCount = async (req, res, next) => {
+    try {
+        if (req.roleId !== roles.Admin) {
+            return next(new AppError("Only admin users can access this endpoint", 403));
+        }
+
+        const count = await listingService.getPendingListingsCount();
+        res.status(200).json({
+            status: "success",
+            data: {
+                count
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getAllListings,
     searchListings,
@@ -450,4 +469,5 @@ module.exports = {
     deleteImage,
     deletePDF,
     vote,
+    getPendingListingsCount,
 };
