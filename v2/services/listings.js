@@ -713,13 +713,15 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                 },
             ],
         });
-        console.log('everything is fine here')
+        console.log("everything is fine here");
         try {
-            console.log('sending push notification to user', listing.userId)
+            console.log("sending push notification to user", listing.userId);
             const result = await sendPushNotifications(
                 [listing.userId],
                 "Listing Status Updated",
-                `Your listing status has been updated`,
+                `Your listing status has been updated to ${
+                    newStatus === 3 ? "Feedback" : "Approved"
+                } `,
                 {
                     type: "listing_status_update",
                     listingId: id,
@@ -730,7 +732,6 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
             console.log({ err });
         }
         // Send push notification to listing owner about status update
-
 
         return update;
     } catch (err) {
@@ -961,22 +962,22 @@ const handleUnifiedChat = async ({
     };
     console.log({ chatData });
     const newChat = await listingChatsRepository.create({
-        data: chatData
+        data: chatData,
     });
 
     // Get chat with full details like in getChats query
     const [chatWithDetails] = await listingChatsRepository.getChats({
         listingId,
         lastMessageId: newChat.id - 1,
-        pageSize: 1
+        pageSize: 1,
     });
 
     try {
         if (process.env.WEBSOCKET_ENABLED) {
-            console.log('sending websocket request');
+            console.log("sending websocket request");
             await axios.post(
                 `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websoketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
-                { type: 'newMessage', data: chatWithDetails }
+                { type: "newMessage", data: chatWithDetails }
             );
         }
         const payload = {
@@ -985,20 +986,23 @@ const handleUnifiedChat = async ({
             messageId: `${chatWithDetails.id}`,
             sender: `${userId}`,
             ...(chatData.message && {
-                message: chatData.message
+                message: chatData.message,
             }),
             ...(chatData.fileUrl && {
-                fileUrl: chatData.fileUrl
+                fileUrl: chatData.fileUrl,
             }),
             ...(chatData.parentId && {
-                parentId: chatData.parentId
-            })
+                parentId: chatData.parentId,
+            }),
         };
 
         // Send push notifications
         if (roleId === roles.Admin) {
             // If admin sent message, notify listing creator
-            console.log('i am admin and sending push notification to user', currentListingData.userId);
+            console.log(
+                "i am admin and sending push notification to user",
+                currentListingData.userId
+            );
             await sendPushNotifications(
                 [currentListingData.userId],
                 "New Message from Admin",
@@ -1007,18 +1011,18 @@ const handleUnifiedChat = async ({
             );
         } else {
             // If user sent message, notify admins
-            console.log('i am user and sending push notification to admin');
+            console.log("i am user and sending push notification to admin");
             const AdminUsers = await usersRepository.getAll({
                 filters: [
                     {
                         key: "roleId",
                         sign: "=",
-                        value: 1
-                    }
-                ]
+                        value: 1,
+                    },
+                ],
             });
             if (AdminUsers && AdminUsers.rows.length > 0) {
-                const adminUserIds = AdminUsers.rows.map(user => user.id);
+                const adminUserIds = AdminUsers.rows.map((user) => user.id);
                 await sendPushNotifications(
                     adminUserIds,
                     "New Message from User",
@@ -1027,7 +1031,6 @@ const handleUnifiedChat = async ({
                 );
             }
         }
-
     } catch (err) {
         // Log error but don't throw since message is already saved
         // console.error("Error sending notifications:", err);
@@ -1827,7 +1830,9 @@ const getPendingListingsCount = async () => {
         return response || 0;
     } catch (err) {
         if (err instanceof AppError) throw err;
-        throw new AppError(`Error getting pending listings count: ${err.message}`);
+        throw new AppError(
+            `Error getting pending listings count: ${err.message}`
+        );
     }
 };
 
