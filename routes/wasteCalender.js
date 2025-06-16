@@ -26,9 +26,9 @@ router.get("/streets", async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-    
+
     database
-        .get(tables.MULLKALENDER_STREETS, { cityId }, "id, name")
+        .get(tables.MULLKALENDER_STREETS, { cityId }, "id, name, hashedStreetName")
         .then((response) => {
             const data = response.rows;
             res.status(200).json({
@@ -62,7 +62,7 @@ router.get("/wasteTypes", async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-    
+
     database
         .get(tables.MULLKALENDER_WASTE_TYPES, null, "id, name")
         .then((response) => {
@@ -97,7 +97,7 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
             }
 
             response = await database.callQuery(
-                `with street as (select * from mullkalender_streets 
+                `with street as (select * from mullkalender_streets
                     where id = ? and cityId = ?)
                     select md.dateofPickup, mwt.name as wastetypeName, md.dateEpoch, mwt.id as wasteTypeId from street mst
                     inner join mullkalender_street_properties_house msph
@@ -107,7 +107,7 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
                     inner join mullkalender_pickup_groups mpg
                     on mpg.pickupGroupId = mp.pickupGroupId
                     inner join mullkalender_dates md
-                    on md.dateGroup = mpg.dateGroupId 
+                    on md.dateGroup = mpg.dateGroupId
                     inner join mullkalender_waste_types mwt
                     on mwt.id = mpg.wasteId order by md.dateofPickup;`,
                 [streetId, cityId],
