@@ -664,12 +664,12 @@ const deleteListing = async function (id, userId, roleId) {
 const allowedStatuses = [1, 2, 3];
 
 // Function to check if a status transition is allowed
-const isValidTransition = (currentStatus, newStatus) => {
-    if (currentStatus === 2 && (newStatus === 1 || newStatus === 3)) {
-        return true;
-    }
-    return false;
-};
+// const isValidTransition = (currentStatus, newStatus) => {
+//     if (currentStatus === 2 && (newStatus === 1 || newStatus === 3)) {
+//         return true;
+//     }
+//     return false;
+// };
 const updateListingStatus = async function ({ id, roleId, newStatus }) {
     if (roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
@@ -694,12 +694,12 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                 400
             );
         }
-        if (!isValidTransition(listing.statusId, newStatus)) {
-            throw new AppError(
-                `Cannot change status from ${listing.statusId} to ${newStatus}.`,
-                400
-            );
-        }
+        // if (!isValidTransition(listing.statusId, newStatus)) {
+        //     throw new AppError(
+        //         `Cannot change status from ${listing.statusId} to ${newStatus}.`,
+        //         400
+        //     );
+        // }
 
         const update = await listingRepository.update({
             data: {
@@ -719,8 +719,7 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
             const result = await sendPushNotifications(
                 [listing.userId],
                 "Listing Status Updated",
-                `Your listing status has been updated to ${
-                    newStatus === 3 ? "Feedback" : "Approved"
+                `Your listing status has been updated to ${newStatus === 3 ? "Feedback" : "Approved"
                 } `,
                 {
                     type: "listing_status_update",
@@ -787,6 +786,9 @@ const postChatReaction = async function ({
                 { key: "userId", sign: "=", value: userId },
             ],
         });
+        const websocketChannelId = `listing_${listingId}`;
+        const payload = { userId, chatId, reaction }
+
         if (existingReaction) {
             if (existingReaction.reaction === reaction) {
                 return existingReaction;
@@ -796,6 +798,13 @@ const postChatReaction = async function ({
                 data: { reaction },
             });
 
+            // Send live reaction update via websocket
+            if (process.env.WEBSOCKET_ENABLED) {
+                await axios.post(
+                    `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websocketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
+                    { type: "reactionUpdate", data: payload }
+                );
+            }
             return updated;
         }
         const data = {
@@ -806,6 +815,13 @@ const postChatReaction = async function ({
         const result = await listingChatReactionRepo.create({
             data,
         });
+        // Send live reaction update via websocket
+        if (process.env.WEBSOCKET_ENABLED) {
+            await axios.post(
+                `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websocketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
+                { type: "reactionUpdate", data: payload }
+            );
+        }
         return result;
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -855,7 +871,15 @@ const deleteChatReaction = async function ({
                 { key: "userId", sign: "=", value: userId },
             ],
         });
-
+        // Send live reaction deletion via websocket
+        const websocketChannelId = `listing_${listingId}`;
+        const payload = { chatId, userId }
+        if (process.env.WEBSOCKET_ENABLED) {
+            await axios.post(
+                `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websocketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
+                { type: "reactionDeleted", data: payload }
+            );
+        }
         return result;
     } catch (err) {
         if (err instanceof AppError) throw err;
