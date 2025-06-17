@@ -664,12 +664,17 @@ const deleteListing = async function (id, userId, roleId) {
 const allowedStatuses = [1, 2, 3];
 
 // Function to check if a status transition is allowed
-// const isValidTransition = (currentStatus, newStatus) => {
-//     if (currentStatus === 2 && (newStatus === 1 || newStatus === 3)) {
-//         return true;
-//     }
-//     return false;
-// };
+const isValidTransition = (currentStatus, newStatus) => {
+    // Allow transitions from pending (2) to approved (1) or feedback (3)
+    if (currentStatus === 2 && (newStatus === 1 || newStatus === 3)) {
+        return true;
+    }
+    // Allow transition from feedback (3) to approved (1)
+    if (currentStatus === 3 && newStatus === 1) {
+        return true;
+    }
+    return false;
+};
 const updateListingStatus = async function ({ id, roleId, newStatus }) {
     if (roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
@@ -694,12 +699,12 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                 400
             );
         }
-        // if (!isValidTransition(listing.statusId, newStatus)) {
-        //     throw new AppError(
-        //         `Cannot change status from ${listing.statusId} to ${newStatus}.`,
-        //         400
-        //     );
-        // }
+        if (!isValidTransition(listing.statusId, newStatus)) {
+            throw new AppError(
+                `Cannot change status from ${listing.statusId} to ${newStatus}.`,
+                400
+            );
+        }
 
         const update = await listingRepository.update({
             data: {
@@ -984,7 +989,6 @@ const handleUnifiedChat = async ({
         message: message || null,
         fileUrl,
     };
-    console.log({ chatData });
     const newChat = await listingChatsRepository.create({
         data: chatData,
     });
@@ -1016,10 +1020,10 @@ const handleUnifiedChat = async ({
                 fileUrl: chatData.fileUrl,
             }),
             ...(chatData.parentId && {
-                parentId: chatData.parentId,
+                parentId: `${chatData.parentId}`,
             }),
         };
-
+        console.dir({ payload }, { depth: null })
         // Send push notifications
         if (roleId === roles.Admin) {
             // If admin sent message, notify listing creator
