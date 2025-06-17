@@ -792,7 +792,12 @@ const postChatReaction = async function ({
             ],
         });
         const websocketChannelId = `listing_${listingId}`;
-        const payload = { userId, chatId, reaction }
+        const user = await usersRepository.getOne({
+            filters: [
+                { key: "id", sign: "=", value: userId },
+            ],
+        });
+        const payload = { userId, chatId, reaction, username: user.username }
 
         if (existingReaction) {
             if (existingReaction.reaction === reaction) {
