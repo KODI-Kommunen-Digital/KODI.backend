@@ -20,10 +20,12 @@ class ListingChatsRepo extends BaseRepo {
                 u.firstname as firstname,
                 u.lastname as lastname,
                 parent.message AS parentMessage,
+                parentUser.username AS parentUsername,
                 COALESCE(r.reactions, JSON_ARRAY()) AS reactions
                 FROM listing_chats lc
                 INNER JOIN users u ON lc.senderId = u.id
                 LEFT JOIN listing_chats parent ON lc.parentId = parent.id
+                LEFT JOIN users parentUser ON parent.senderId = parentUser.id
                 LEFT JOIN (
                     SELECT 
                         chatId,
