@@ -16,6 +16,7 @@ const moreInfoRouter = require("./moreInfo");
 const advertisement = require("./ads");
 const wasteCalender = require("./wasteCalender");
 const defectReportRouter = require("./defectReporter");
+const chatRouter = require("./chat");
 
 router.get("/", (req, res) => {
     res.json({ message: "Hello world!! Welcome to HEIDI!!" });
@@ -75,4 +76,5 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
 }
 router.use("/ads", advertisement)
 router.use("/reportDefect", defectReportRouter); // TODO: convert to service-repository pattern
+router.use("/chat", chatRouter);
 module.exports = router;

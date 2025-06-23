@@ -35,4 +35,6 @@ module.exports = {
     FIREBASE_TOKEN_TABLE: 'firebase_token',
     USER_PREFERENCE_CITIES_TABLE: 'user_preference_cities',
     USER_PREFERENCE_CATEGORIES_TABLE: 'user_preference_categories',
+    USER_CHATBOT_SESSIONS_TABLE: "user_chatbot_sessions",
+    USER_CHATBOT_CHATS_TABLE: "user_chatbot_chats",
 };
