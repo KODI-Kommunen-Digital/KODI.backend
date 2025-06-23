@@ -20,7 +20,7 @@ async function sendPushNotificationToAll(
     topic = "warnings",
     title = "New Notification",
     body = "Check it out",
-    data = null,
+    data = null
 ) {
     try {
         if (!serviceAccount) return false;
@@ -47,27 +47,42 @@ async function sendPushNotificationToAll(
                 message: err.message ?? "no message",
                 stackTrace: err.stack ?? "no stack",
                 occuredAt: getDateInFormate(occuredAt),
-            })
-        } catch (err) { }
+            });
+        } catch (err) {}
         return false;
     }
 }
 
-async function sendPushNotificationsToUsers(cityIds, categoryId, title = "", body = "Check it out", data = null) {
+async function sendPushNotificationsToUsers(
+    cityIds,
+    categoryId,
+    title = "",
+    body = "Check it out",
+    data = null
+) {
     try {
         if (!serviceAccount) return false;
-        const users = await usersRepository.getUsersForNotification(cityIds, categoryId);
+        const users = await usersRepository.getUsersForNotification(
+            cityIds,
+            categoryId
+        );
         if (!users || users.length === 0) {
             return false;
         }
-        const userIds = users.map(user => user.userId);
+        const userIds = users.map((user) => user.userId);
         await sendPushNotifications(userIds, title, body, data);
     } catch (error) {
         return false;
     }
 }
 
-async function sendPushNotificationsToAdmin(cityIds, categoryId, title = "New Notification from a User", body = "Please verify the listing", data = null) {
+async function sendPushNotificationsToAdmin(
+    cityIds,
+    categoryId,
+    title = "New Notification from a User",
+    body = "Please verify the listing",
+    data = null
+) {
     try {
         if (!serviceAccount) return false;
         const AdminUsers = await usersRepository.getAll({
@@ -75,24 +90,33 @@ async function sendPushNotificationsToAdmin(cityIds, categoryId, title = "New No
                 {
                     key: "roleId",
                     sign: "=",
-                    value: 1
-                }
-            ]
+                    value: 1,
+                },
+            ],
         });
         if (!AdminUsers || AdminUsers.length === 0) {
             return false;
         }
-        const AdminUserIds = AdminUsers.rows.map(user => user.id);
-        const users = await usersRepository.getUsersForNotificationWithUserFilter(cityIds, categoryId, AdminUserIds);
-        const userIds = users.map(user => user.userId);
+        const AdminUserIds = AdminUsers.rows.map((user) => user.id);
+        const users =
+            await usersRepository.getUsersForNotificationWithUserFilter(
+                cityIds,
+                categoryId,
+                AdminUserIds
+            );
+        const userIds = users.map((user) => user.userId);
         await sendPushNotifications(userIds, title, body, data);
     } catch (error) {
         return false;
     }
 }
 
-
-async function sendPushNotifications(userIds, title = "", body = "Check it out", data = null) {
+async function sendPushNotifications(
+    userIds,
+    title = "",
+    body = "Check it out",
+    data = null
+) {
     try {
         if (!serviceAccount) return false;
 
@@ -101,12 +125,12 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
                 columns: "firebaseToken",
                 filters: [{ key: "userId", sign: "=", value: userId }],
             });
-            return rows.map(row => row.firebaseToken);
+            return rows.map((row) => row.firebaseToken);
         });
 
         const tokensList = (await Promise.all(tokenPromises)).flat();
-
-        const tokens = tokensList.filter(token => token);
+        console.dir({ tokensList }, { depth: null });
+        const tokens = tokensList.filter((token) => token);
         if (!tokens || tokens.length === 0) {
             return false;
         }
@@ -118,12 +142,15 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
                     title,
                     body,
                 },
-                data
+                data,
             };
             try {
                 return await admin.messaging().send(message);
             } catch (error) {
-                console.error(`Error sending to token ${token.firebaseToken}:`, error);
+                console.error(
+                    `Error sending to token ${token.firebaseToken}:`,
+                    error
+                );
                 return null;
             }
         });
@@ -134,9 +161,9 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
             await exceptionRepository.create(
                 error.message ?? "no message",
                 error.stack ?? "no stack",
-                getDateInFormate(occuredAt),
+                getDateInFormate(occuredAt)
             );
-        } catch (error) { }
+        } catch (error) {}
         return false;
     }
     return true;
@@ -146,5 +173,5 @@ module.exports = {
     sendPushNotificationToAll,
     sendPushNotificationsToUsers,
     sendPushNotificationsToAdmin,
-    sendPushNotifications
+    sendPushNotifications,
 };
