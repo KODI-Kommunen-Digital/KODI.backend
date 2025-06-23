@@ -12,6 +12,7 @@ const showdown = require('showdown')
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const sendPushNotification = require("../services/sendPushNotification");
+const sendMail = require("./sendMail");
 
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
@@ -262,6 +263,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
 
         if (parseInt(payload.categoryId) === categories.Events) {
+            insertionData.isAllDayEvent = payload.isAllDayEvent;
             if (payload.startDate) {
                 insertionData.startDate = getDateInFormate(new Date(payload.startDate));
             } else {
@@ -390,6 +392,22 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         }
 
+        try {
+            // Send email for listing approval to all admins
+            const listingApprovalEmail = require(`../emailTemplates/de/listingApprovalEmail`);
+            const listingLink = `${process.env.WEBSITE_DOMAIN}/DashboardAdmin?`
+            const { subject, body } = listingApprovalEmail(
+                listingLink
+            );
+            // Fetch email of all admins
+            const response = await database.get(tables.USER_TABLE, {
+                roleId: roles.Admin
+            }, "email")
+            const admins = response.rows.map(admin => admin.email);
+            await sendMail(admins.join(','), subject, null, body);
+        } catch (err) {
+            console.error("Unable to send email: ", err)
+        }
         return allResponses;
     } catch (err) {
         if(err instanceof AppError) {

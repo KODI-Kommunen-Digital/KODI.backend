@@ -284,7 +284,13 @@ router.get("/", async function (req, res, next) {
         }
 
         // Remove viewCount from listings
-        listings.forEach(listing => delete listing.viewCount);
+        listings.forEach(
+            listing => {
+                delete listing.viewCount;
+                listing.isAllDayEvent = listing.isAllDayEvent === 1 ? true : false;
+                return listing;
+            }
+        );
 
         // Send response
         return res.status(200).json({
@@ -407,7 +413,13 @@ router.get("/search", async function (req, res, next) {
     try {
         const response = await database.callQuery(combinedQuery, combinedParams);
         const listings = response.rows;
-        listings.forEach(listing => delete listing.viewCount);
+        listings.forEach(
+            listing => {
+                delete listing.viewCount;
+                listing.isAllDayEvent = listing.isAllDayEvent === 1 ? true : false;
+                return listing;
+            }
+        );
 
         res.json({
             status: "success",
