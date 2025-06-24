@@ -735,7 +735,6 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
         } catch (err) {
             console.log({ err });
         }
-        // Send push notification to listing owner about status update
 
         return update;
     } catch (err) {
