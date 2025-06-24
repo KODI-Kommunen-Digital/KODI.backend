@@ -672,6 +672,21 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
             } catch (err) {
                 throw err instanceof AppError ? err : new AppError(err);
             }
+            try {
+                const result = await sendPushNotification.sendPushNotifications(
+                    [currentListingData.userId],
+                    "Listing Status Updated",
+                    `Your listing status has been updated to ${listingData.statusId === 3 ? "Feedback" : "Approved"
+                    } `,
+                    {
+                        type: "listing_status_update",
+                        listingId: listingId,
+                    }
+                );
+                console.log({ result });
+            } catch (err) {
+                console.log({ err });
+            }
         }
     }
     validateAndAssignListingParameters(updationData, listingData);
