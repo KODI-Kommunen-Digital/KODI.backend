@@ -56,11 +56,11 @@ async function sendMessage({ userId, message, sessionId }) {
     // Query chatbot
     const botRes = await axios.post(CHATBOT_URL, { query: message });
 
-    const transformedBotData = transformResponseKeys(botRes.data);
+    // const transformedBotData = transformResponseKeys(botRes.data);
 
-    const botMessage = JSON.stringify(transformedBotData);
+    const botMessage = JSON.stringify(botRes.data);
     await chatsRepo.create({
-        data: { sessionId, sender: "bot", message: String(botMessage) },
+        data: { sessionId, sender: "bot", message: botMessage },
     });
     return { sessionId, ...botRes.data };
 }
