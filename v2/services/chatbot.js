@@ -2,29 +2,29 @@ const axios = require("axios");
 const sessionsRepo = require("../repository/userChatbotSessionsRepo");
 const chatsRepo = require("../repository/userChatbotChatsRepo");
 
-const CHATBOT_URL = process.env.CHATBOT_URL || "http://23.88.109.43:8000/query";
+const CHATBOT_URL = process.env.CHATBOT_URL;
 if (!CHATBOT_URL) {
     throw new Error("please configure chat boat url variable in .env");
 }
-const keyTranslationMap = {
-    Orte: "places",
-    Daten: "data",
-    Antwort: "answer",
-    Veranstaltungen: "events",
-    "Zusätzliche Informationen": "additionalInformation",
-};
-function transformResponseKeys(obj) {
-    const transformed = {};
+// const keyTranslationMap = {
+//     Orte: "places",
+//     Daten: "data",
+//     Antwort: "answer",
+//     Veranstaltungen: "events",
+//     "Zusätzliche Informationen": "additionalInformation",
+// };
+// function transformResponseKeys(obj) {
+//     const transformed = {};
 
-    for (const key in obj) {
-        const trimmedKey = key.trim(); // Remove extra whitespace
-        const translatedKey = keyTranslationMap[trimmedKey] || trimmedKey;
+//     for (const key in obj) {
+//         const trimmedKey = key.trim(); // Remove extra whitespace
+//         const translatedKey = keyTranslationMap[trimmedKey] || trimmedKey;
 
-        transformed[translatedKey] = obj[key];
-    }
+//         transformed[translatedKey] = obj[key];
+//     }
 
-    return transformed;
-}
+//     return transformed;
+// }
 
 async function sendMessage({ userId, message, sessionId }) {
     // Helper to capitalize the first letter of each word
@@ -56,11 +56,11 @@ async function sendMessage({ userId, message, sessionId }) {
     // Query chatbot
     const botRes = await axios.post(CHATBOT_URL, { query: message });
 
-    const transformedBotData = transformResponseKeys(botRes.data);
+    // const transformedBotData = transformResponseKeys(botRes.data);
 
-    const botMessage = JSON.stringify(transformedBotData);
+    const botMessage = JSON.stringify(botRes.data);
     await chatsRepo.create({
-        data: { sessionId, sender: "bot", message: String(botMessage) },
+        data: { sessionId, sender: "bot", message: botMessage },
     });
     return { sessionId, ...botRes.data };
 }
