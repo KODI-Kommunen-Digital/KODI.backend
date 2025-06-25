@@ -160,7 +160,6 @@ async function getUserListings(req, userId){
                     listing.isAllDayEvent === 1 ? true : false;
                 return listing;
             });
-            console.log(response.rows);
             return response.rows;
         }
         return false;
