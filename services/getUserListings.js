@@ -155,12 +155,13 @@ async function getUserListings(req, userId){
             queryParams.push((pageNo - 1) * pageSize, pageSize);
 
             const response = await database.callQuery(paginationQuery, queryParams);
-            const listings = response.rows.forEach((listing) => {
+            response.rows.forEach((listing) => {
                 listing.isAllDayEvent =
                     listing.isAllDayEvent === 1 ? true : false;
                 return listing;
             });
-            return listings;
+            console.log(response.rows);
+            return response.rows;
         }
         return false;
     } catch (err) {
