@@ -771,13 +771,7 @@ router.get("/:id/listings", async function (req, res, next) {
     try {
         const listings = await getUserListings(req, userId);
         if(listings){
-            listings.forEach(
-                listing => {
-                    delete listing.viewCount;
-                    listing.isAllDayEvent = listing.isAllDayEvent === 1 ? true : false;
-                    return listing;
-                }
-            );
+            listings.forEach(listing => delete listing.viewCount);
             return res.status(200).json({
                 status: "success",
                 data: listings,
