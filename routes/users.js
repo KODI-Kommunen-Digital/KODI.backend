@@ -95,7 +95,7 @@ router.post("/login", async function (req, res, next) {
             userId: userData.id,
         });
         if (refreshData.rows.length > 0) {
-            const tokensToDelete = refreshData.rows.filter(token => 
+            const tokensToDelete = refreshData.rows.filter(token =>
                 token.sourceAddress === sourceAddress &&
                 (token.browser === head.browsername || (!token.browser && !head.browsername)) &&
                 (token.device === head.devicetype || (!token.device && !head.devicetype)));
@@ -130,7 +130,7 @@ router.post("/login", async function (req, res, next) {
 });
 
 router.post("/register", async function (req, res, next) {
-    const payload = req.body;  
+    const payload = req.body;
     const insertionData = {};
     if (!payload) {
         return next(new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD));
@@ -231,7 +231,7 @@ router.post("/register", async function (req, res, next) {
                 Number(process.env.SALT)
             );
         }
-        
+
     }
 
     if (payload.email) {
@@ -364,12 +364,12 @@ router.get("/:id", optionalAuthentication, async function (req, res, next) {
         if (!cityId) {
             return next(new AppError(`City id not given`, 400));
         }
-        
+
         if (isNaN(Number(cityId)) || Number(cityId) <= 0) {
             next(new AppError(`Invalid cityId ${cityId}`, 400));
             return;
         }
-        
+
         try {
             const { rows } = await database.get(tables.CITIES_TABLE, {
                 id: cityId,
@@ -535,7 +535,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 )
             );
         }
-            
+
         updationData.description = payload.description;
     }
 
@@ -582,7 +582,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         });
         updationData.socialMedia = JSON.stringify(socialMediaList);
     }
-    
+
     if (Object.keys(updationData).length > 0) {
         const cityUserResponse = await database.get(tables.USER_CITYUSER_MAPPING_TABLE, { userId: id });
         try {
@@ -590,11 +590,11 @@ router.patch("/:id", authentication, async function (req, res, next) {
             const cityUserUpdationData = { ...updationData, coreuserId: id };
             delete cityUserUpdationData.password;
             delete cityUserUpdationData.socialMedia;
-    
+
             for (const element of cityUserResponse.rows) {
                 await database.update(tables.USER_TABLE, cityUserUpdationData, { id: element.cityUserId }, element.cityId);
             }
-    
+
             res.status(200).json({
                 status: "success",
             });
@@ -771,7 +771,13 @@ router.get("/:id/listings", async function (req, res, next) {
     try {
         const listings = await getUserListings(req, userId);
         if(listings){
-            listings.forEach(listing => delete listing.viewCount);
+            listings.forEach(
+                listing => {
+                    delete listing.viewCount;
+                    listing.isAllDayEvent = listing.isAllDayEvent === 1 ? true : false;
+                    return listing;
+                }
+            );
             return res.status(200).json({
                 status: "success",
                 data: listings,

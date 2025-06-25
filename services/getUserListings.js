@@ -50,7 +50,7 @@ async function getUserListings(req, userId){
         const categoryId = req.query.categoryId;
         // check category id is valid or not before passing it into the query
         if (isNaN(Number(categoryId)) || Number(categoryId) <= 0) {
-            throw new AppError(`Invalid category ${categoryId}`, 400);    
+            throw new AppError(`Invalid category ${categoryId}`, 400);
         }
 
         try {
@@ -102,19 +102,19 @@ async function getUserListings(req, userId){
         const cityMappings = response.rows;
         const individualQueries = [];
         const queryParams = [];
-    
+
         for (const cityMapping of cityMappings) {
             // if the city database is present in the city's server, then we create a federated table in the format
             // heidi_city_{id}_listings and heidi_city_{id}_users in the core databse which points to the listings and users table respectively
             const listingImageTableName = `heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listing_images LI_${cityMapping.cityId}`;
             const cityListAlias = `L_${cityMapping.cityId}`;
-            let query = `SELECT  
+            let query = `SELECT
             sub.logo,
             sub.logoCount,
             ${cityListAlias}.*, ${cityMapping.cityId} as cityId,
             otherLogos FROM heidi_city_${cityMapping.cityId}${cityMapping.inCityServer ? "_" : "."}listings ${cityListAlias}
             LEFT JOIN (
-                SELECT 
+                SELECT
                     listingId,
                     MAX(CASE WHEN imageOrder = 1 THEN logo ELSE NULL END) as logo,
                     COUNT(*) as logoCount
@@ -130,7 +130,7 @@ async function getUserListings(req, userId){
             ) other ON ${cityListAlias}.id = other.listingId
             WHERE ${cityListAlias}.userId = ?`;
             queryParams.push(cityMapping.cityUserId);
-    
+
             // Handle filters with dynamic parameterization
             if (filters.categoryId || filters.statusId) {
                 if (filters.categoryId) {
@@ -148,14 +148,19 @@ async function getUserListings(req, userId){
             }
             individualQueries.push(query);
         }
-    
+
         if (individualQueries.length > 0) {
             const unionQuery = individualQueries.join(" UNION ALL ");
             const paginationQuery = `SELECT * FROM (${unionQuery}) a ORDER BY createdAt DESC LIMIT ?, ?;`;
             queryParams.push((pageNo - 1) * pageSize, pageSize);
-    
+
             const response = await database.callQuery(paginationQuery, queryParams);
-            return response.rows;
+            const listings = response.rows.forEach((listing) => {
+                listing.isAllDayEvent =
+                    listing.isAllDayEvent === 1 ? true : false;
+                return listing;
+            });
+            return listings;
         }
         return false;
     } catch (err) {

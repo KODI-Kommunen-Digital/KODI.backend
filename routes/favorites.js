@@ -102,20 +102,20 @@ router.get("/listings", authentication, async function (req, res, next) {
         for (const cityId in favDict) {
             listingFilter.id = favDict[cityId];
 
-            const query = `SELECT L.*, 
+            const query = `SELECT L.*,
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
-            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${cityId} as cityId 
+            U.username, U.firstname, U.lastname, U.image, U.id as coreUserId, ${cityId} as cityId
             FROM heidi_city_${cityId}.listings L
-            LEFT JOIN 
+            LEFT JOIN
             (
-                SELECT 
+                SELECT
                     listingId,
                     MIN(logo) as logo,
                     COUNT(listingId) as logoCount
                 FROM heidi_city_${cityId}.listing_images
                 GROUP BY listingId
-            ) sub ON L.id = sub.listingId 
+            ) sub ON L.id = sub.listingId
             inner join user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ${cityId}
             inner join users U on U.id = UM.userId
             WHERE 1=1 AND L.id IN (${listingFilter.id.join()}) ${listingFilter.categoryId ? "AND L.categoryId = ? " : ""}
@@ -123,6 +123,11 @@ router.get("/listings", authentication, async function (req, res, next) {
             response = await database.callQuery(query, listingFilter.categoryId ? listingFilter.categoryId : null , null)
             response.rows.forEach((l) => (l.cityId = cityId));
             listings.push(...response.rows);
+            listings.forEach((listing) => {
+                listing.isAllDayEvent =
+                    listing.isAllDayEvent === 1 ? true : false;
+                return listing;
+            });
         }
     } catch (err) {
         return next(new AppError(err));

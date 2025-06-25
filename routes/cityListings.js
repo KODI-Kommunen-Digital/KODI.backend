@@ -221,8 +221,11 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-
-    listings.forEach(listing => delete listing.viewCount);
+    listings.forEach((listing) => {
+        delete listing.viewCount;
+        listing.isAllDayEvent = listing.isAllDayEvent === 1 ? true : false;
+        return listing;
+    });
     res.status(200).json({
         status: "success",
         data: listings,
