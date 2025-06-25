@@ -298,6 +298,7 @@ router.get("/:id", rateLogger, async function (req, res, next) {
             }
 
             delete data[0].viewCount;
+            data[0].isAllDayEvent = data[0].isAllDayEvent === 1 ? true : false;
             res.status(200).json({
                 status: "success",
                 data: { ...data[0], logo, otherlogos: listingImagesList.rows },
