@@ -72,7 +72,7 @@ const getFavoriteListingsForUser = async function (
                         key: "isEnabled",
                         sign: "=",
                         value: true,
-                           
+
                     }
                 ]
             });
@@ -124,6 +124,9 @@ const getFavoriteListingsForUser = async function (
             filters: favFilters
         });
         const favListingIds = response?.rows?.map((fav) => fav.listingId) ?? [];
+        if (favListingIds.length === 0) {
+            return []
+        }
         listingFilters.push({
             key: 'id',
             sign: 'IN',
@@ -132,13 +135,12 @@ const getFavoriteListingsForUser = async function (
 
         // to eliminate duplicate cityIds
         const cityIds = [...new Set(response?.rows?.map((fav) => fav.cityId) ?? [])];
-
         const listingResponse = await listingRepository.retrieveListings({
             filters: listingFilters,
             cities: cityIds
         });
         listings = listingResponse ?? [];
-        
+
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
