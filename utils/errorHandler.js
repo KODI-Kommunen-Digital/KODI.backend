@@ -7,6 +7,7 @@ const getDateInFormate = require("./getDateInFormate")
 module.exports = (err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
+    console.log({ err })
     let sentryUrl = '';
     if (res?.sentry) {
         const eventId = res.sentry;
@@ -15,7 +16,7 @@ module.exports = (err, req, res, next) => {
 
     if (err.statusCode === 500) {
         const occuredAt = new Date()
-        database.create(tables.EXCEPTIONS_TABLE, { message:err.message, stackTrace:err.stack, occuredAt: getDateInFormate(occuredAt) })
+        database.create(tables.EXCEPTIONS_TABLE, { message: err.message, stackTrace: err.stack, occuredAt: getDateInFormate(occuredAt) })
         if (process.env.ENVIRONMENT === 'production') {
             const content = uncaughtException(process.env.APPLICATION, err.message, err.stack, getDateInFormate(occuredAt), sentryUrl)
             axios.post(process.env.WEBHOOK, content)
