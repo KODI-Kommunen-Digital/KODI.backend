@@ -10,8 +10,13 @@ function buildTree(services, parentId = null) {
             service: service.service,
             link: service.link,
             image: service.image,
-            serviceType: service.serviceType === "Deep Link" ? 1 : (service.serviceType === "Link" ? 2 : null),
-            children: buildTree(services, service.id)
+            serviceType: service.serviceType === "Deep Link"
+                ? 1
+                : service.serviceType === "Link"
+                    ? 2
+                    : service.serviceType === "Group Link"
+                        ? 3
+                        : null, children: buildTree(services, service.id)
         }));
 }
 
