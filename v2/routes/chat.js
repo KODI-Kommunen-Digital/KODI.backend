@@ -1,15 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const chatbotService = require('../services/chatbot');
-const authentication = require('../middlewares/authentication');
 const sessionsRepo = require('../repository/userChatbotSessionsRepo');
 
 
 // POST /chat/query - send a message to the chatbot and store the chat
-router.post('/query', authentication, async (req, res) => {
+router.post('/query', async (req, res) => {
     try {
-        const userId = req.userId
-        const { message, sessionId } = req.body;
+        // userId is now optional/public, can be provided in body or omitted
+        const { message, sessionId, userId } = req.body;
         if (!message) return res.status(400).json({ error: 'message is required' });
         const result = await chatbotService.sendMessage({ userId, message, sessionId });
         return res.status(200).json({
@@ -22,11 +21,11 @@ router.post('/query', authentication, async (req, res) => {
 });
 
 // GET /chat/history/:sessionId - get chat history for a session
-router.get('/history/:sessionId', authentication, async (req, res) => {
+router.get('/history/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const userId = req.userId
-        const session = await sessionsRepo.getOne({ filters: [{ key: 'id', sign: '=', value: sessionId }, { key: 'userId', sign: '=', value: userId }] });
+        // userId is not required for public access
+        const session = await sessionsRepo.getOne({ filters: [{ key: 'id', sign: '=', value: sessionId }] });
         if (!session) {
             throw new Error('Session not found')
         }
@@ -41,12 +40,10 @@ router.get('/history/:sessionId', authentication, async (req, res) => {
 });
 
 // GET /chat/list/:userId - get chat list for a user
-router.get('/list/:userId', authentication, async (req, res) => {
+router.get('/list/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        if (req.userId !== parseInt(userId)) {
-            throw new Error("You don't have permission to access this resource")
-        }
+        // No authentication, so no permission check
         const sessions = await chatbotService.getChatList(userId);
         return res.status(200).json({
             status: "success",
