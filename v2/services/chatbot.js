@@ -40,7 +40,7 @@ async function sendMessage({ userId, message, sessionId }) {
         // Capitalize message and use as session name
         const sessionName = capitalizeWords(message);
         session = await sessionsRepo.create({
-            data: { userId, name: sessionName },
+            data: { name: sessionName },
         });
         sessionId = session.id;
     } else {
