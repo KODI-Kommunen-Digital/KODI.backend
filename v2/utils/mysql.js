@@ -10,13 +10,13 @@ function getCorePool() {
         password: process.env.DATABASE_PASSWORD,
         database: process.env.DATABASE_NAME,
         port: process.env.DATABASE_PORT || 3306,
-        timezone: 'local',
-        typeCast: function (field, next) {
-            if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
-                return field.string();
-            }
-            return next();
-        }
+        // timezone: 'local',
+        // typeCast: function (field, next) {
+        //     if (field.type === 'DATETIME' || field.type === 'TIMESTAMP') {
+        //         return field.string();
+        //     }
+        //     return next();
+        // }
     });
 }
 const pool = { 0: getCorePool() };
