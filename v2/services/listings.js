@@ -20,12 +20,10 @@ const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const axios = require("axios");
-const parser = require("xml-js");
 const roles = require("../constants/roles");
 const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
-const bucketClient = require("../utils/bucketClient");
 const isValidDate = require("../utils/validateDate");
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 const { sendPushNotifications } = require("./sendPushNotification");
@@ -603,25 +601,28 @@ const deleteListing = async function (id, userId, roleId) {
 
     const transaction = await listingRepository.createTransaction();
     try {
-        const userImageList = await bucketClient.fetchUserImages(
-            userId,
-            null,
-            id
-        );
+        // Get images from listing_images table for this listing
+        const listingImagesResp = await listingImagesRepository.getAll({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: id,
+                },
+            ],
+        });
+        const listingImages = listingImagesResp?.rows || [];
 
-        const imagesToDelete = userImageList
-            .map((image) => ({ Key: image.Key._text }))
-            .filter(
-                (image) =>
-                    typeof image.Key === "string" &&
-                    image.Key &&
-                    !image.Key.startsWith("admin/")
-            );
-
-        if (imagesToDelete && imagesToDelete.length > 0) {
-            await imageDeleteAsync.deleteMultiple(
-                imagesToDelete.map((i) => i.Key)
-            );
+        // Delete each image that does not start with "admin/"
+        for (const image of listingImages) {
+            if (
+                image.logo &&
+                typeof image.logo === "string" &&
+                !image.logo.startsWith("admin/") &&
+                !image.logo.startsWith("https://")
+            ) {
+                await imageDeleteAsync.deleteImage(image.logo);
+            }
         }
 
         if (currentListingData.pdf) {
@@ -654,6 +655,7 @@ const deleteListing = async function (id, userId, roleId) {
         );
         await listingRepository.commitTransaction(transaction);
     } catch (err) {
+        console.log({ err });
         await listingRepository.rollbackTransaction(transaction);
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -1664,28 +1666,29 @@ const deleteImage = async function (id, userId, roleId) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
-    // todo: move this to a separate layer
-    let imageList = await axios.get(
-        "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
-    );
-    imageList = JSON.parse(
-        parser.xml2json(imageList.data, { compact: true, spaces: 4 })
-    );
-
-    const userListingFilter = `user_${userId}/listing_${id}`;
-    const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-        obj.Key._text.includes(userListingFilter)
-    ).filter((obj) => !obj.Key._text.includes("admin/"));
-
-    const imagesToDelete = userImageList.map((image) => ({
-        Key: image.Key._text,
-    }));
-
     try {
-        if (imagesToDelete && imagesToDelete.length > 0) {
-            await imageDeleteAsync.deleteMultiple(
-                imagesToDelete.map((i) => i.Key)
-            );
+        // Get images from listing_images table for this listing
+        const listingImagesResp = await listingImagesRepository.getAll({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: id,
+                },
+            ],
+        });
+        const listingImages = listingImagesResp?.rows || [];
+
+        // Delete each image that does not start with "admin/"
+        for (const image of listingImages) {
+            if (
+                image.logo &&
+                typeof image.logo === "string" &&
+                !image.logo.startsWith("admin/") &&
+                !image.logo.startsWith("https://")
+            ) {
+                await imageDeleteAsync.deleteImage(image.logo);
+            }
         }
 
         await listingImagesRepository.delete({
@@ -1699,6 +1702,7 @@ const deleteImage = async function (id, userId, roleId) {
         });
         await addDefaultImage(id, currentListingData.categoryId);
     } catch (err) {
+        console.log({ err });
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
