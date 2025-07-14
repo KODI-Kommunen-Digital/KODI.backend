@@ -15,7 +15,8 @@ const getCities = async function (hasForum) {
         // return await cityService.getCities(filter);
         const cities = await cityServiceRepository.getAll({
             filters,
-            columns: 'id, name, image, hasForum'
+            columns: 'id, name, image, hasForum',
+            orderBy: ["sort_order"]
         });
         return cities.rows;
     } catch (err) {
