@@ -34,6 +34,7 @@ const getAllListings = async ({
     statusId,
     subcategoryId,
     categoryId,
+    searchQuery,
     cityId,
     reqTranslate,
     showExternalListings,
@@ -245,6 +246,7 @@ const getAllListings = async ({
             pageNo,
             pageSize,
             cities,
+            searchQuery,
             sortByStartDate: sortByStartDateBool,
             startAfterDate, // Start date for range
             endBeforeDate,

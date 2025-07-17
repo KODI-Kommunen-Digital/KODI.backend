@@ -49,6 +49,13 @@ class ListingsRepo extends BaseRepo {
                 sub.logo,
                 sub.logoCount,
                 sub.otherLogos
+                ${searchQuery ? `,
+                (CASE 
+                    WHEN L.title LIKE ? THEN 1
+                    WHEN L.description LIKE ? THEN 2
+                    ELSE 3
+                END) AS searchRank
+                ` : ''}
             FROM listings L
             INNER JOIN (
                 SELECT 
@@ -59,7 +66,7 @@ class ListingsRepo extends BaseRepo {
                      FROM city_listing_mappings 
                      WHERE listingId = clm.listingId) AS allCities
                 FROM city_listing_mappings clm
-                ${cities.length > 0 ? " WHERE cityId IN (?)" : ""}
+                ${cities.length > 0 ? ` WHERE cityId IN (${cities.map(() => '?').join(',')})` : ""}
                 GROUP BY clm.listingId
             ) C ON L.id = C.listingId
             LEFT JOIN (
@@ -73,13 +80,21 @@ class ListingsRepo extends BaseRepo {
             ) sub ON L.id = sub.listingId
             WHERE 1=1
         `;
-
-        if (cities.length > 0) {
-            queryParams.push(cities);
+        // For searchRank
+        if (searchQuery) {
+            queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
         }
 
+        // For cityId IN clause in the subquery
+        if (cities.length > 0) {
+            // The subquery expects one parameter per city, so spread them
+            queryParams.push(...cities);
+        }
+        // WHERE clause
         if (searchQuery) {
             query += ` AND (L.title LIKE ? OR L.description LIKE ?)`;
+
+            // For WHERE clause
             queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
         }
 
@@ -89,15 +104,16 @@ class ListingsRepo extends BaseRepo {
         }
 
         if (endBeforeDate) {
-            query += ` AND DATE(L.startDate) <= ?`;
+            query += ` AND DATE(L.endDate) <= ?`;
             queryParams.push(endBeforeDate);
         }
 
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
                 if (filter.sign.toUpperCase() === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
-                    query += ` AND L.${filter.key} IN (?)`;
-                    queryParams.push(filter.value);
+                    // Expand the IN clause to the correct number of placeholders
+                    query += ` AND L.${filter.key} IN (${filter.value.map(() => '?').join(',')})`;
+                    queryParams.push(...filter.value);
                 } else {
                     query += ` AND L.${filter.key} = ?`;
                     queryParams.push(filter.value);
@@ -105,7 +121,18 @@ class ListingsRepo extends BaseRepo {
             }
         });
 
-        const orderByClause = sortByStartDate ? " ORDER BY L.startDate, L.createdAt DESC" : " ORDER BY L.createdAt DESC";
+        let orderByClause;
+        if (searchQuery) {
+            // Prioritize title matches, then description matches, then normal order
+            orderByClause = sortByStartDate
+                ? " ORDER BY searchRank, L.startDate, L.createdAt DESC"
+                : " ORDER BY searchRank, L.createdAt DESC";
+        } else {
+            orderByClause = sortByStartDate
+                ? " ORDER BY L.startDate, L.createdAt DESC"
+                : " ORDER BY L.createdAt DESC";
+        }
+
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
         const offset = (pageNo - 1) * pageSize;
         queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
