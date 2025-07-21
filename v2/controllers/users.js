@@ -7,7 +7,7 @@ const register = async function (req, res, next) {
     const payload = req.body;
 
     try {
-        const id = await userService.register(payload);
+        const id = await userService.register(payload, req);
         return res.status(200).json({
             status: "success",
             id,
@@ -27,12 +27,12 @@ const login = async function (req, res, next) {
 
     try {
         if (!payload.username && !payload.password) {
-            throw new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD);
+            throw new AppError(req.t(`empty_payload_sent`), 400, errorCodes.EMPTY_PAYLOAD);
         }
 
         if (!payload.username) {
             throw new AppError(
-                `Username is not present`,
+                req.t('username_not_present'),
                 400,
                 errorCodes.MISSING_USERNAME,
             );
@@ -40,7 +40,7 @@ const login = async function (req, res, next) {
 
         if (!payload.password) {
             throw new AppError(
-                `Password is not present`,
+                req.t('missing_password'),
                 400,
                 errorCodes.MISSING_PASSWORD,
             );
@@ -50,6 +50,7 @@ const login = async function (req, res, next) {
             sourceAddress,
             head.browsername,
             head.devicetype,
+            req
         );
         res.status(200).json({
             status: "success",
@@ -93,13 +94,13 @@ const updateUser = async function (req, res, next) {
 
     try {
         if (isNaN(id) || id <= 0) {
-            throw new AppError(`Invalid UserId ${id}`, 400);
+            throw new AppError(req.t("invalid_user_id", { id }), 400);
         }
         if (id !== userId) {
-            throw new AppError(`You are not allowed to access this resource`, 403);
+            throw new AppError(req.t("access_denied"), 403);
         }
 
-        await userService.updateUser(id, payload);
+        await userService.updateUser(id, payload, req);
         res.status(200).json({
             status: "success",
         });
@@ -135,13 +136,13 @@ const forgotPassword = async function (req, res, next) {
     const language = req.body.language || "de";
     try {
         if (!username) {
-            throw new AppError(`Username not present`, 400);
+            throw new AppError(req.t(`username_not_present`), 400);
         }
 
         if (language !== "en" && language !== "de") {
             throw new AppError(`Incorrect language given`, 400);
         }
-        await userService.forgotPassword(username, language);
+        await userService.forgotPassword(username, language, req);
         return res.status(200).json({
             status: "success",
         });
@@ -158,21 +159,21 @@ const resetPassword = async function (req, res, next) {
 
     try {
         if (!userId) {
-            return next(new AppError(`Username not present`, 400));
+            return next(new AppError(req.t("username_not_present"), 400));
         }
 
         if (!token) {
-            return next(new AppError(`Token not present`, 400));
+            return next(new AppError(req.t("username_not_present"), 400));
         }
 
         if (!password) {
-            return next(new AppError(`Password not present`, 400));
+            return next(new AppError(req.t("missing_password"), 400));
         }
 
         if (language !== "en" && language !== "de") {
             return next(new AppError(`Incorrect language given`, 400));
         }
-        await userService.resetPassword(userId, language, token, password);
+        await userService.resetPassword(userId, language, token, password, req);
         return res.status(200).json({
             status: "success",
         });

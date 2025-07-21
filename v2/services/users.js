@@ -23,7 +23,7 @@ const categoryRepository = require("../repository/categoriesRepo");
 const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
 
-const login = async function (payload, sourceAddress, browsername, devicetype) {
+const login = async function (payload, sourceAddress, browsername, devicetype, req) {
     try {
         const userData = await usersRepository.getOne({
             filters: [
@@ -43,7 +43,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
         });
         if (!userData) {
             throw new AppError(
-                `Invalid username or email`,
+                req.t("invalid_creds"),
                 401,
                 errorCodes.INVALID_CREDENTIALS,
             );
@@ -51,8 +51,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
 
         if (!userData.emailVerified) {
             throw new AppError(
-                `Verification email sent to your email id. Please verify first before trying to login.`,
-                401,
+                req.t("verify_email"), 401,
                 errorCodes.EMAIL_NOT_VERIFIED,
             );
         }
@@ -62,7 +61,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
             userData.password,
         );
         if (!correctPassword) {
-            throw new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD);
+            throw new AppError(req.t("invalid_password"), 401, errorCodes.INVALID_PASSWORD);
         }
 
         // const userMappings = await userRepo.getuserCityMappings(userData.id);
@@ -135,10 +134,10 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
     }
 };
 
-const register = async function (payload) {
+const register = async function (payload, req) {
     const insertionData = {};
     if (!payload) {
-        throw new AppError(`Empty payload sent`, 400, errorCodes.EMPTY_PAYLOAD);
+        throw new AppError(req.t("empty_payload_sent"), 400, errorCodes.EMPTY_PAYLOAD);
     }
     const language = payload.language || "de";
     if (language !== "en" && language !== "de") {
@@ -151,14 +150,14 @@ const register = async function (payload) {
 
     if (!payload.username) {
         throw new AppError(
-            `Username is not present`,
+            "username_not_present",
             400,
             errorCodes.MISSING_USERNAME,
         );
     } else {
         if (payload.username.length > 40) {
             throw new AppError(
-                `Username too long. Maximum 40 characters allowed.`,
+                'username_too_long',
                 400,
                 errorCodes.INVALID_USERNAME,
             );
@@ -176,7 +175,7 @@ const register = async function (payload) {
             });
             if (user) {
                 throw new AppError(
-                    `User with username '${payload.username}' already exists`,
+                    req.t('username_already_exits', { username: payload.username }),
                     400,
                     errorCodes.USER_ALREADY_EXISTS,
                 );
@@ -188,7 +187,7 @@ const register = async function (payload) {
                 /^[^a-z_]/.test(payload.username)
             ) {
                 throw new AppError(
-                    `Username '${payload.username}' is not valid`,
+                    req.t('invalid_username', { username: payload.username }),
                     400,
                     errorCodes.INVALID_USERNAME,
                 );
@@ -201,7 +200,7 @@ const register = async function (payload) {
     }
 
     if (!payload.email) {
-        throw new AppError(`Email is not present`, 400, errorCodes.MISSING_EMAIL);
+        throw new AppError(req.t("email_not_present"), 400, errorCodes.MISSING_EMAIL);
     } else {
         try {
             // const user = await userRepo.getUserWithEmail(payload.email);
@@ -216,7 +215,7 @@ const register = async function (payload) {
             });
             if (user) {
                 throw new AppError(
-                    `User with email '${payload.email}' is already registered`,
+                    req.t("email_already_registered", { email: payload.email }),
                     400,
                     errorCodes.EMAIL_ALREADY_EXISTS,
                 );
@@ -232,14 +231,14 @@ const register = async function (payload) {
 
     if (!payload.firstname) {
         throw new AppError(
-            `Firstname is not present`,
+            req.t("first_name_missing"),
             400,
             errorCodes.MISSING_FIRSTNAME,
         );
     } else {
         if (payload.firstname.length > 40) {
             throw new AppError(
-                `Firstname too long. Maximum 40 characters allowed`,
+                req.t("first_name_too_long"),
                 400,
                 errorCodes.INVALID_CREDENTIALS,
             );
@@ -249,14 +248,14 @@ const register = async function (payload) {
 
     if (!payload.lastname) {
         throw new AppError(
-            `Lastname is not present`,
+            req.t("last_name_missing"),
             400,
             errorCodes.MISSING_LASTNAME,
         );
     } else {
         if (payload.lastname.length > 40) {
             throw new AppError(
-                `Lastname too long. Maximum 40 characters allowed`,
+                req.t('last_name_too_long'),
                 400,
                 errorCodes.INVALID_CREDENTIALS,
             );
@@ -266,14 +265,14 @@ const register = async function (payload) {
 
     if (!payload.password) {
         throw new AppError(
-            `Password is not present`,
+            req.t("missing_password"),
             400,
             errorCodes.MISSING_PASSWORD,
         );
     } else {
         if (payload.password.length > 64) {
             throw new AppError(
-                `Password too long. Maximum 64 characters allowed.`,
+                req.t("password_too_long"),
                 400,
                 errorCodes.INVALID_PASSWORD,
             );
@@ -281,7 +280,7 @@ const register = async function (payload) {
         const re = /^\S{8,}$/;
         if (!re.test(payload.password)) {
             throw new AppError(
-                `Invalid Password. `,
+                req.t("invalid_password"),
                 400,
                 errorCodes.INVALID_PASSWORD,
             );
@@ -300,14 +299,14 @@ const register = async function (payload) {
     if (payload.phoneNumber) {
         const re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
         if (!re.test(payload.phoneNumber))
-            throw new AppError("Phone number is not valid");
+            throw new AppError(req.t("invalid_phone"));
         insertionData.website = payload.website;
     }
 
     if (payload.description) {
         if (payload.description.length > 255) {
             throw new AppError(
-                `Length of Description cannot exceed 255 characters`,
+                req.t("description_too_long"),
                 400,
             );
         }
@@ -323,7 +322,7 @@ const register = async function (payload) {
             const socialMediaList = payload.socialMedia;
             Object.keys(socialMediaList).forEach((socialMedia) => {
                 if (!supportedSocialMedia.includes(socialMedia)) {
-                    throw new AppError(`Unsupported social media '${socialMedia}'`, 400);
+                    throw new AppError(req.t("unsupported_social_media", { socialMedia }), 400);
                 }
 
                 if (
@@ -331,7 +330,7 @@ const register = async function (payload) {
                     !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
                 ) {
                     throw new AppError(
-                        `Invalid input given for social media '${socialMedia}' `,
+                        req.t("invalid_social_input", { socialMedia }),
                         400,
                     );
                 }
@@ -339,7 +338,8 @@ const register = async function (payload) {
             insertionData.socialMedia = JSON.stringify(socialMediaList);
         } catch (err) {
             if (err instanceof AppError) throw err;
-            throw new AppError(`Invalid input given for social media`, 400);
+            throw new AppError(req.t("invalid_social_input", { socialMedia: payload.socialMedia })
+                , 400);
         }
     }
 
@@ -423,7 +423,7 @@ const getUserById = async function (userId, cityUser, cityId, reqUserId) {
     }
 };
 
-const updateUser = async function (id, payload) {
+const updateUser = async function (id, payload, req) {
     const updationData = {};
 
     const currentUserData = await usersRepository.getOne({
@@ -436,18 +436,18 @@ const updateUser = async function (id, payload) {
         ]
     });
     if (!currentUserData) {
-        throw new AppError(`User with id ${id} does not exist`, 404);
+        throw new AppError(req.t("user_id_does_not_exist", { id }), 404);
     }
 
     if (payload.username && payload.username !== currentUserData.username) {
-        throw new AppError(`Username cannot be edited`, 400);
+        throw new AppError(req.t("username_not_editable"), 400);
     }
 
     if (payload.email && payload.email !== currentUserData.email) {
         const re =
             /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
-            throw new AppError(`Invalid email given`, 400);
+            throw new AppError(req.t("invalid_email"), 400);
         }
         updationData.email = payload.email;
     }
@@ -458,7 +458,7 @@ const updateUser = async function (id, payload) {
 
     if (payload.newPassword) {
         if (!payload.currentPassword) {
-            throw new AppError(`Current password not given to update password`, 400);
+            throw new AppError(req.t("current_password_missing"), 400);
         }
         const currentPasswordCorrect = await bcrypt.compare(
             payload.currentPassword,
@@ -466,7 +466,7 @@ const updateUser = async function (id, payload) {
         );
         if (!currentPasswordCorrect) {
             throw new AppError(
-                `Incorrect current password given`,
+                req.t("current_password_incorrect"),
                 401,
                 errorCodes.INVALID_PASSWORD,
             );
@@ -477,7 +477,7 @@ const updateUser = async function (id, payload) {
         );
         if (passwordCheck) {
             throw new AppError(
-                `New password should not be same as the old password`,
+                req.t("current_same_not_as_present"),
                 400,
                 errorCodes.SAME_PASSWORD_GIVEN,
             );
@@ -495,7 +495,7 @@ const updateUser = async function (id, payload) {
     if (Object.prototype.hasOwnProperty.call(payload, "phoneNumber")) {
         const re = /^(\d{8,15})$/;
         if (payload.phoneNumber !== "" && !re.test(payload.phoneNumber)) {
-            throw new AppError("Phone number is not valid", 400);
+            throw new AppError(req.t("invalid_phone"), 400);
         }
         // If phoneNumber is an empty string, set it to null
         updationData.phoneNumber =
@@ -505,7 +505,7 @@ const updateUser = async function (id, payload) {
     if (payload.description) {
         if (payload.description.length > 255) {
             throw new AppError(
-                `Length of Description cannot exceed 255 characters`,
+                req.t("description_too_long"),
                 400,
             );
         }
@@ -532,7 +532,7 @@ const updateUser = async function (id, payload) {
         const socialMediaList = JSON.parse(payload.socialMedia);
         socialMediaList.forEach((socialMedia) => {
             if (!supportedSocialMedia.includes(Object.keys(socialMedia)[0])) {
-                throw new AppError(`Unsupported social media '${socialMedia}'`, 400);
+                throw new AppError(req.t("nicht_unterstütztes_soziales_medium", { socialMedia }), 400);
             }
 
             if (
@@ -542,7 +542,7 @@ const updateUser = async function (id, payload) {
                 )
             ) {
                 throw new AppError(
-                    `Invalid input given for social '${socialMedia}' `,
+                    req.t("ungültige_eingabe_für_soziale_medien", { socialMedia }),
                     400,
                 );
             }
@@ -690,7 +690,7 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
     }
 };
 
-const forgotPassword = async function (username, language = "de") {
+const forgotPassword = async function (username, language = "de", req) {
     // const transaction = await database.createTransaction();
     const transaction = await usersRepository.createTransaction();
     try {
@@ -711,7 +711,7 @@ const forgotPassword = async function (username, language = "de") {
             joinFiltersBy: "OR"
         })
         if (!user) {
-            throw new AppError(`Username ${username} does not exist`, 404);
+            throw new AppError(req.t('user_does_not_exist'), 404);
         }
 
         // await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
@@ -759,7 +759,7 @@ const forgotPassword = async function (username, language = "de") {
 };
 
 // TODO: implement transaction
-const resetPassword = async function (userId, language, token, password) {
+const resetPassword = async function (userId, language, token, password, req) {
     try {
         // const user = await userRepo.getUserDataById(userId);
         const user = await usersRepository.getOne({
@@ -772,13 +772,13 @@ const resetPassword = async function (userId, language, token, password) {
             ]
         });
         if (!user) {
-            throw new AppError(`UserId ${userId} does not exist`, 400);
+            throw new AppError(req.t("user_id_does_not_exist"), 400);
         }
 
         const passwordCheck = await bcrypt.compare(password, user.password);
         if (passwordCheck) {
             throw new AppError(
-                `New password should not be same as the old password`,
+                req.t("current_same_not_as_present"),
                 400,
                 errorCodes.NEW_OLD_PASSWORD_DIFFERENT,
             );
@@ -799,7 +799,7 @@ const resetPassword = async function (userId, language, token, password) {
             ]
         })
         if (!tokenData) {
-            throw new AppError(`Invalid token sent`, 400);
+            throw new AppError(req.t("invalid_token"), 400);
         }
         // await tokenRepo.deleteForgotPasswordToken(userId, token);
         await forgotPasswordTokenRepository.delete({
@@ -818,7 +818,7 @@ const resetPassword = async function (userId, language, token, password) {
         });
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
-            throw new AppError(`Token Expired`, 400);
+            throw new AppError(req.t("token_expired"), 400);
         }
 
         const hashedPassword = await bcrypt.hash(
