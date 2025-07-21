@@ -35,7 +35,7 @@ async function get(
         connection.release();
         return { rows, totalCount };
     } catch (err) {
-        connection.end();
+        connection.release();
         throw new Error(`Error executing query: ${err.message}`);
     }
 }

@@ -35,7 +35,7 @@ async function get(
         connection.release();
         return { rows, totalCount };
     } catch (err) {
-        connection.end();
+        connection?.release();
         throw new Error(`Error executing query: ${err.message}`);
     }
 }
@@ -143,6 +143,7 @@ async function callStoredProcedure(spName, parameters, cityId) {
 }
 
 async function callQuery(query, params, cityId) {
+    console.log({ query, params })
     const connection = await getConnection(cityId);
     const [rows, fields] = await connection.query(query, params);
     connection.release();

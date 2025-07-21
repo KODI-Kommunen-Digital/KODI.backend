@@ -3,6 +3,7 @@ require("dotenv").config();
 
 function getCorePool() {
     return mysql.createPool({
+        connectTimeout: 6000000,
         host: process.env.DATABASE_HOST,
         user: process.env.DATABASE_USER,
         password: process.env.DATABASE_PASSWORD,
