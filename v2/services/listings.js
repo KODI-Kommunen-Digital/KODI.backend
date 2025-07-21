@@ -257,6 +257,7 @@ const getAllListings = async ({
             reqTranslate &&
             supportedLanguages.includes(reqTranslate)
         ) {
+            console.log('tanslating here')
             const textToTranslate = [];
             listings.forEach((listing) => {
                 textToTranslate.push(listing.title);
@@ -274,6 +275,7 @@ const getAllListings = async ({
                 ) {
                     listings[i].titleLanguage = translations[2 * i].detectedSourceLang;
                     listings[i].titleTranslation = translations[2 * i].text;
+                    listings[i].title = translations[2 * i].text;
                 }
                 if (
                     translations[2 * i + 1].detectedSourceLang !==
@@ -282,6 +284,8 @@ const getAllListings = async ({
                     listings[i].descriptionLanguage =
                         translations[2 * i + 1].detectedSourceLang;
                     listings[i].descriptionTranslation = translations[2 * i + 1].text;
+                    listings[i].description = translations[2 * i + 1].text;
+
                 }
             }
         }
