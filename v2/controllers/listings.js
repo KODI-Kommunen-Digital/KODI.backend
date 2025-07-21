@@ -12,7 +12,7 @@ const getAllListings = async (req, res, next) => {
         searchQuery,
         categoryId,
         cityId,
-        translate = 'de',
+        translate,
         showExternalListings,
         startAfterDate,
         endBeforeDate,
