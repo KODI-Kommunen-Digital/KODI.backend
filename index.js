@@ -27,6 +27,7 @@ const swaggerUi = require('swagger-ui-express');
 const apiDocumentation = require('./docs/docRoot');
 const apiVersions = require('./constants/apiVersions');
 const bridgeRoutes = require('./bridgeRoutes');
+const { translationMiddleware } = require("./v2/middlewares/translate.js");
 
 // defining the Express app
 const app = express();
@@ -60,6 +61,9 @@ app.use(
         abortOnLimit: true,
     })
 );
+
+app.use(translationMiddleware);
+
 
 app.get("/", (req, res) => {
     res.send(message);
