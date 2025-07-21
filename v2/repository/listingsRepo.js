@@ -17,6 +17,11 @@ class ListingsRepo extends BaseRepo {
         startAfterDate = null, // Start date for range
         endBeforeDate = null,   // End date for range
     }) => {
+        let words = [];
+        if (searchQuery) {
+            // normalize input (you can also replace hyphens with spaces optionally)
+            words = searchQuery.trim().split(/[\s\-]+/).filter(Boolean);
+        }
         const queryParams = [];
 
         let query = `
@@ -50,12 +55,12 @@ class ListingsRepo extends BaseRepo {
                 sub.logoCount,
                 sub.otherLogos
                 ${searchQuery ? `,
-                (CASE 
-                    WHEN L.title LIKE ? THEN 1
-                    WHEN L.description LIKE ? THEN 2
-                    ELSE 3
-                END) AS searchRank
-                ` : ''}
+                    (CASE 
+                        WHEN ${words.map(() => `(L.title LIKE ?)`).join(' AND ')} THEN 1
+                        WHEN ${words.map(() => `(L.description LIKE ?)`).join(' AND ')} THEN 2
+                        ELSE 3
+                    END) AS searchRank
+                    ` : ''}
             FROM listings L
             INNER JOIN (
                 SELECT 
@@ -82,7 +87,9 @@ class ListingsRepo extends BaseRepo {
         `;
         // For searchRank
         if (searchQuery) {
-            queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+            // searchRank title AND description word match
+            words.forEach(word => queryParams.push(`%${word}%`)); // title
+            words.forEach(word => queryParams.push(`%${word}%`)); // description
         }
 
         // For cityId IN clause in the subquery
@@ -91,11 +98,11 @@ class ListingsRepo extends BaseRepo {
             queryParams.push(...cities);
         }
         // WHERE clause
+        // WHERE clause
         if (searchQuery) {
-            query += ` AND (L.title LIKE ? OR L.description LIKE ?)`;
-
-            // For WHERE clause
-            queryParams.push(`%${searchQuery}%`, `%${searchQuery}%`);
+            query += ` AND (${words.map(() => `L.title LIKE ?`).join(' AND ')} OR ${words.map(() => `L.description LIKE ?`).join(' AND ')})`;
+            words.forEach(word => queryParams.push(`%${word}%`)); // title WHERE
+            words.forEach(word => queryParams.push(`%${word}%`)); // description WHERE
         }
 
         if (startAfterDate) {
