@@ -98,20 +98,24 @@ class ListingsRepo extends BaseRepo {
             queryParams.push(...cities);
         }
         // WHERE clause
-        // WHERE clause
         if (searchQuery) {
             query += ` AND (${words.map(() => `L.title LIKE ?`).join(' AND ')} OR ${words.map(() => `L.description LIKE ?`).join(' AND ')})`;
             words.forEach(word => queryParams.push(`%${word}%`)); // title WHERE
             words.forEach(word => queryParams.push(`%${word}%`)); // description WHERE
         }
 
-        if (startAfterDate) {
-            query += ` AND DATE(L.startDate) >= ?`;
+        // Date range overlap logic:
+        // A listing is "active" in the window [startAfterDate, endBeforeDate] if:
+        // (L.startDate <= endBeforeDate) AND (L.endDate >= startAfterDate)
+        // If only one bound is provided, adjust accordingly.
+        if (startAfterDate && endBeforeDate) {
+            query += ` AND (DATE(L.startDate) <= ? AND DATE(L.endDate) >= ?)`;
+            queryParams.push(endBeforeDate, startAfterDate);
+        } else if (startAfterDate) {
+            query += ` AND (DATE(L.endDate) >= ?)`;
             queryParams.push(startAfterDate);
-        }
-
-        if (endBeforeDate) {
-            query += ` AND DATE(L.endDate) <= ?`;
+        } else if (endBeforeDate) {
+            query += ` AND (DATE(L.startDate) <= ?)`;
             queryParams.push(endBeforeDate);
         }
 
