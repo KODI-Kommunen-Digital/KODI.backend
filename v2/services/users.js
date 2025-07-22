@@ -711,7 +711,7 @@ const forgotPassword = async function (username, language = "de", req) {
             joinFiltersBy: "OR"
         })
         if (!user) {
-            throw new AppError(req.t('user_does_not_exist'), 404);
+            throw new AppError(req.t('user_does_not_exist', { username }), 404);
         }
 
         // await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
