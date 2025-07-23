@@ -748,8 +748,9 @@ const forgotPassword = async function (username, language = "de", req) {
             token,
             user.id,
         );
-        await sendMail(user.email, subject, null, body);
-
+        console.log({ subject, body })
+        const result = await sendMail(user.email, subject, null, body);
+        console.log({ result })
         await usersRepository.commitTransaction(transaction);
     } catch (err) {
         await usersRepository.rollbackTransaction(transaction);
