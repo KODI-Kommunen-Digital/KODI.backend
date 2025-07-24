@@ -1,4 +1,5 @@
 {
+    "success": "Erfolg",
     "empty_payload_sent": "Empty payload sent",
     "username_not_present": "Username not present",
     "username_too_long": "Username too long. Maximum 40 characters allowed.",
@@ -30,5 +31,23 @@
     "token_expired": "Token Expired",
     "token_not_present": "Token Not present",
     "invalid_creds": "Invalid username or email",
-    "verify_email": "Verification email sent to your email id. Please verify first before trying to login."
+    "verify_email": "Verification email sent to your email id. Please verify first before trying to login.",
+    "refresh_token_missing": "Refresh Token not sent",
+    "device_token_missing": "Device token is required",
+    "filter_missing": "You need to send some params to filter",
+    "invalid_refresh_token": "Invalid refresh token",
+    "expired_refresh_token": "Unauthorized! Refresh Token was expired!",
+    "email_does_not_exist": "Email ${email} does not exist",
+    "email_verified": "Email already verified",
+    "invalid_data": "Invalid data sent",
+    "send_mail_again": "Token Expired, send verification mail again",
+    "user_fetch_limit": "You can only fetch upto 10 users",
+    "image_not_uploaded": "invalid_user_id",
+    "postive_page_no": "Please enter a positive integer for pageNo",
+    "positive_page_size": "Please enter a positive integer less than or equal to 20 for pageSize",
+    "missing_firebase_token": "Fire base token not present",
+    "missing_device_id": "Device Id not present",
+    "invalid_status": "Invalid status {{statusId}}",
+    "invalid_category": "Invalid Category {{categoryId}} given",
+    "invalid_subcategory": "Invalid subcategory ${subcategoryId}"
 }

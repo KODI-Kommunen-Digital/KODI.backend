@@ -5,6 +5,7 @@ const axios = require("axios");
 const getDateInFormate = require("./getDateInFormate");
 
 module.exports = (err, req, res, next) => {
+    console.log({ lang: req.lang })
     err.statusCode = err.statusCode || 500;
     err.status = err.status || "error";
     let sentryUrl = "";
