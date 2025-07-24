@@ -43,7 +43,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype, r
         });
         if (!userData) {
             throw new AppError(
-                req.t("invalid_creds"),
+                "invalid_creds",
                 401,
                 errorCodes.INVALID_CREDENTIALS,
             );
@@ -51,7 +51,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype, r
 
         if (!userData.emailVerified) {
             throw new AppError(
-                req.t("verify_email"), 401,
+                "verify_email", 401,
                 errorCodes.EMAIL_NOT_VERIFIED,
             );
         }
@@ -61,7 +61,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype, r
             userData.password,
         );
         if (!correctPassword) {
-            throw new AppError(req.t("invalid_password"), 401, errorCodes.INVALID_PASSWORD);
+            throw new AppError("invalid_password", 401, errorCodes.INVALID_PASSWORD);
         }
 
         // const userMappings = await userRepo.getuserCityMappings(userData.id);
@@ -137,7 +137,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype, r
 const register = async function (payload, req) {
     const insertionData = {};
     if (!payload) {
-        throw new AppError(req.t("empty_payload_sent"), 400, errorCodes.EMPTY_PAYLOAD);
+        throw new AppError("empty_payload_sent", 400, errorCodes.EMPTY_PAYLOAD);
     }
     const language = payload.language || "de";
     if (language !== "en" && language !== "de") {
@@ -175,9 +175,10 @@ const register = async function (payload, req) {
             });
             if (user) {
                 throw new AppError(
-                    req.t('username_already_exits', { username: payload.username }),
+                    'username_already_exits',
                     400,
                     errorCodes.USER_ALREADY_EXISTS,
+                    { username: payload.username }
                 );
             }
 
@@ -187,9 +188,10 @@ const register = async function (payload, req) {
                 /^[^a-z_]/.test(payload.username)
             ) {
                 throw new AppError(
-                    req.t('invalid_username', { username: payload.username }),
+                    'invalid_username',
                     400,
                     errorCodes.INVALID_USERNAME,
+                    { username: payload.username }
                 );
             }
         } catch (err) {
@@ -200,7 +202,7 @@ const register = async function (payload, req) {
     }
 
     if (!payload.email) {
-        throw new AppError(req.t("email_not_present"), 400, errorCodes.MISSING_EMAIL);
+        throw new AppError("email_not_present", 400, errorCodes.MISSING_EMAIL);
     } else {
         try {
             // const user = await userRepo.getUserWithEmail(payload.email);
@@ -215,9 +217,10 @@ const register = async function (payload, req) {
             });
             if (user) {
                 throw new AppError(
-                    req.t("email_already_registered", { email: payload.email }),
+                    "email_already_registered",
                     400,
                     errorCodes.EMAIL_ALREADY_EXISTS,
+                    { email: payload.email }
                 );
             }
         } catch (err) {
@@ -231,14 +234,14 @@ const register = async function (payload, req) {
 
     if (!payload.firstname) {
         throw new AppError(
-            req.t("first_name_missing"),
+            "first_name_missing",
             400,
             errorCodes.MISSING_FIRSTNAME,
         );
     } else {
         if (payload.firstname.length > 40) {
             throw new AppError(
-                req.t("first_name_too_long"),
+                "first_name_too_long",
                 400,
                 errorCodes.INVALID_CREDENTIALS,
             );
@@ -248,14 +251,14 @@ const register = async function (payload, req) {
 
     if (!payload.lastname) {
         throw new AppError(
-            req.t("last_name_missing"),
+            "last_name_missing",
             400,
             errorCodes.MISSING_LASTNAME,
         );
     } else {
         if (payload.lastname.length > 40) {
             throw new AppError(
-                req.t('last_name_too_long'),
+                'last_name_too_long',
                 400,
                 errorCodes.INVALID_CREDENTIALS,
             );
@@ -265,14 +268,14 @@ const register = async function (payload, req) {
 
     if (!payload.password) {
         throw new AppError(
-            req.t("missing_password"),
+            "missing_password",
             400,
             errorCodes.MISSING_PASSWORD,
         );
     } else {
         if (payload.password.length > 64) {
             throw new AppError(
-                req.t("password_too_long"),
+                "password_too_long",
                 400,
                 errorCodes.INVALID_PASSWORD,
             );
@@ -280,7 +283,7 @@ const register = async function (payload, req) {
         const re = /^\S{8,}$/;
         if (!re.test(payload.password)) {
             throw new AppError(
-                req.t("invalid_password"),
+                "invalid_password",
                 400,
                 errorCodes.INVALID_PASSWORD,
             );
@@ -299,14 +302,14 @@ const register = async function (payload, req) {
     if (payload.phoneNumber) {
         const re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
         if (!re.test(payload.phoneNumber))
-            throw new AppError(req.t("invalid_phone"));
+            throw new AppError("invalid_phone");
         insertionData.website = payload.website;
     }
 
     if (payload.description) {
         if (payload.description.length > 255) {
             throw new AppError(
-                req.t("description_too_long"),
+                "description_too_long",
                 400,
             );
         }
@@ -322,7 +325,7 @@ const register = async function (payload, req) {
             const socialMediaList = payload.socialMedia;
             Object.keys(socialMediaList).forEach((socialMedia) => {
                 if (!supportedSocialMedia.includes(socialMedia)) {
-                    throw new AppError(req.t("unsupported_social_media", { socialMedia }), 400);
+                    throw new AppError("unsupported_social_media", 400, undefined, { socialMedia });
                 }
 
                 if (
@@ -330,16 +333,18 @@ const register = async function (payload, req) {
                     !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
                 ) {
                     throw new AppError(
-                        req.t("invalid_social_input", { socialMedia }),
+                        "invalid_social_input",
                         400,
+                        undefined,
+                        { socialMedia }
                     );
                 }
             });
             insertionData.socialMedia = JSON.stringify(socialMediaList);
         } catch (err) {
             if (err instanceof AppError) throw err;
-            throw new AppError(req.t("invalid_social_input", { socialMedia: payload.socialMedia })
-                , 400);
+            throw new AppError("invalid_social_input"
+                , 400, undefined, { socialMedia: payload.socialMedia });
         }
     }
 
@@ -402,7 +407,7 @@ const getUserById = async function (userId, cityUser, cityId, reqUserId) {
             columns: "id, username, socialMedia, email, website, description, image, phoneNumber, firstname, lastname, roleId"
         });
         if (!userData) {
-            throw new AppError(`User with id ${userId} does not exist`, 404);
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
         }
 
         if (reqUserId !== userId) {
@@ -436,18 +441,18 @@ const updateUser = async function (id, payload, req) {
         ]
     });
     if (!currentUserData) {
-        throw new AppError(req.t("user_id_does_not_exist", { id }), 404);
+        throw new AppError("user_id_does_not_exist", 404, undefined, { id });
     }
 
     if (payload.username && payload.username !== currentUserData.username) {
-        throw new AppError(req.t("username_not_editable"), 400);
+        throw new AppError("username_not_editable", 400);
     }
 
     if (payload.email && payload.email !== currentUserData.email) {
         const re =
             /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
-            throw new AppError(req.t("invalid_email"), 400);
+            throw new AppError("invalid_email", 400);
         }
         updationData.email = payload.email;
     }
@@ -458,7 +463,7 @@ const updateUser = async function (id, payload, req) {
 
     if (payload.newPassword) {
         if (!payload.currentPassword) {
-            throw new AppError(req.t("current_password_missing"), 400);
+            throw new AppError("current_password_missing", 400);
         }
         const currentPasswordCorrect = await bcrypt.compare(
             payload.currentPassword,
@@ -466,7 +471,7 @@ const updateUser = async function (id, payload, req) {
         );
         if (!currentPasswordCorrect) {
             throw new AppError(
-                req.t("current_password_incorrect"),
+                "current_password_incorrect",
                 401,
                 errorCodes.INVALID_PASSWORD,
             );
@@ -477,7 +482,7 @@ const updateUser = async function (id, payload, req) {
         );
         if (passwordCheck) {
             throw new AppError(
-                req.t("current_same_not_as_present"),
+                "current_same_not_as_present",
                 400,
                 errorCodes.SAME_PASSWORD_GIVEN,
             );
@@ -495,7 +500,7 @@ const updateUser = async function (id, payload, req) {
     if (Object.prototype.hasOwnProperty.call(payload, "phoneNumber")) {
         const re = /^(\d{8,15})$/;
         if (payload.phoneNumber !== "" && !re.test(payload.phoneNumber)) {
-            throw new AppError(req.t("invalid_phone"), 400);
+            throw new AppError("invalid_phone", 400);
         }
         // If phoneNumber is an empty string, set it to null
         updationData.phoneNumber =
@@ -505,7 +510,7 @@ const updateUser = async function (id, payload, req) {
     if (payload.description) {
         if (payload.description.length > 255) {
             throw new AppError(
-                req.t("description_too_long"),
+                "description_too_long",
                 400,
             );
         }
@@ -532,7 +537,7 @@ const updateUser = async function (id, payload, req) {
         const socialMediaList = JSON.parse(payload.socialMedia);
         socialMediaList.forEach((socialMedia) => {
             if (!supportedSocialMedia.includes(Object.keys(socialMedia)[0])) {
-                throw new AppError(req.t("nicht_unterstütztes_soziales_medium", { socialMedia }), 400);
+                throw new AppError("nicht_unterstütztes_soziales_medium", 400, undefined, { socialMedia });
             }
 
             if (
@@ -542,8 +547,10 @@ const updateUser = async function (id, payload, req) {
                 )
             ) {
                 throw new AppError(
-                    req.t("ungültige_eingabe_für_soziale_medien", { socialMedia }),
+                    "ungültige_eingabe_für_soziale_medien",
                     400,
+                    undefined,
+                    { socialMedia }
                 );
             }
         });
@@ -607,12 +614,12 @@ const updateUser = async function (id, payload, req) {
 
 const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        throw new AppError(`Invalid UserId ${userId}`, 404);
+        throw new AppError(`invalid_user_id`, 404, undefined, { id: userId });
     }
 
     try {
         if (!refreshToken) {
-            throw new AppError(`Refresh token not present`, 400);
+            throw new AppError(`refresh_token_missing`, 400);
         }
 
         const decodedToken = tokenUtil.verify(
@@ -620,7 +627,7 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
             process.env.REFRESH_PUBLIC,
         );
         if (decodedToken.userId !== parseInt(userId)) {
-            throw new AppError(`Invalid refresh token`, 403);
+            throw new AppError(`invalid_refresh_token`, 403);
         }
 
         // const refreshTokenData =
@@ -635,11 +642,11 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
             ]
         });
         if (!refreshTokenData) {
-            throw new AppError(`Invalid refresh token`, 400);
+            throw new AppError(`invalid_refresh_token`, 400);
         }
 
         if (refreshTokenData.userId !== parseInt(userId)) {
-            throw new AppError(`Invalid refresh token`, 400);
+            throw new AppError(`invalid_refresh_token`, 400);
         }
         const newTokens = tokenUtil.generator({
             userId: decodedToken.userId,
@@ -683,7 +690,7 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
                     }
                 ]
             });
-            throw new AppError(`Unauthorized! Refresh Token was expired!`, 401);
+            throw new AppError(`expired_refresh_token`, 401);
         }
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -711,7 +718,7 @@ const forgotPassword = async function (username, language = "de", req) {
             joinFiltersBy: "OR"
         })
         if (!user) {
-            throw new AppError(req.t('user_does_not_exist', { username }), 404);
+            throw new AppError('user_does_not_exist', 404, undefined, { username });
         }
 
         // await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
@@ -773,13 +780,13 @@ const resetPassword = async function (userId, language, token, password, req) {
             ]
         });
         if (!user) {
-            throw new AppError(req.t("user_id_does_not_exist"), 400);
+            throw new AppError("user_id_does_not_exist", 400);
         }
 
         const passwordCheck = await bcrypt.compare(password, user.password);
         if (passwordCheck) {
             throw new AppError(
-                req.t("current_same_not_as_present"),
+                "current_same_not_as_present",
                 400,
                 errorCodes.NEW_OLD_PASSWORD_DIFFERENT,
             );
@@ -800,7 +807,7 @@ const resetPassword = async function (userId, language, token, password, req) {
             ]
         })
         if (!tokenData) {
-            throw new AppError(req.t("invalid_token"), 400);
+            throw new AppError("invalid_token", 400);
         }
         // await tokenRepo.deleteForgotPasswordToken(userId, token);
         await forgotPasswordTokenRepository.delete({
@@ -819,7 +826,7 @@ const resetPassword = async function (userId, language, token, password, req) {
         });
 
         if (tokenData.expiresAt < new Date().toLocaleString()) {
-            throw new AppError(req.t("token_expired"), 400);
+            throw new AppError("token_expired", 400);
         }
 
         const hashedPassword = await bcrypt.hash(
@@ -865,10 +872,10 @@ const sendVerificationEmail = async function (email, language = "de") {
             ]
         });
         if (!user) {
-            throw new AppError(`Email ${email} does not exist`, 400);
+            throw new AppError(`email_does_not_exist`, 400, undefined, { email });
         }
         if (user.emailVerified) {
-            throw new AppError(`Email already verified`, 400);
+            throw new AppError(`email_verified`, 400);
         }
 
         // await tokenRepo.deleteVerificationToken({ userId: user.id });
@@ -924,7 +931,7 @@ const verifyEmail = async function (userId, token, language = "de") {
             ]
         });
         if (!user) {
-            throw new AppError(`UserId ${userId} does not exist`, 400);
+            throw new AppError(`user_id_does_not_exist`, 400, undefined, { id: userId });
         }
         if (user.emailVerified) {
             return "Email has already been vefified!!";
@@ -946,7 +953,7 @@ const verifyEmail = async function (userId, token, language = "de") {
             ]
         });
         if (!tokenData) {
-            throw new AppError(`Invalid data sent`, 400);
+            throw new AppError(`invalid_data`, 400);
         }
 
         const transaction = await usersRepository.createTransaction();
@@ -968,7 +975,7 @@ const verifyEmail = async function (userId, token, language = "de") {
             }, transaction);
 
             if (tokenData.expiresAt < getDateInFormate(new Date())) {
-                throw new AppError(`Token Expired, send verification mail again`, 400);
+                throw new AppError(`send_mail_again`, 400);
             }
 
             // await userRepo.updateUserById(userId, { emailVerified: true });
@@ -1016,10 +1023,10 @@ const logout = async function (userId, refreshToken, deviceToken) {
             ]
         });
         if (!token) {
-            throw new AppError(`User with id ${refreshToken} does not exist`, 404);
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: refreshToken });
         }
         if (!deviceToken) {
-            throw new AppError(`Device token is required`, 400);
+            throw new AppError(`device_token_missing`, 400);
         }
         // await tokenRepo.deleteRefreshTokenFor({ refreshToken, userId });
         await tokenRepository.delete({
@@ -1086,7 +1093,7 @@ const getUsers = async function (userIds, username, reqUserId) {
         });
     }
     if (!filter) {
-        throw new AppError("You need to send some params to filter");
+        throw new AppError("filter_missing");
     }
     try {
         // const users = await userRepo.getAllUsers(filter, columsToQuery);
@@ -1219,7 +1226,7 @@ const deleteUserProfileImage = async function (userId) {
             ]
         });
         if (!user) {
-            throw new AppError(`User ${userId} does not exist`, 404);
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
         }
 
         const onSuccess = async () => {
@@ -1260,10 +1267,10 @@ const getUserListings = async function (
 
     // Validate userId, pageNo, and pageSize
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
-        throw new AppError(`Invalid UserId ${userId}`, 400);
+        throw new AppError(`invalid_user_id`, 400, undefined, { id: userId });
     }
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
-        throw new AppError(`Please enter a positive integer for pageNo`, 400);
+        throw new AppError(`postive_page_no`, 400);
     }
     if (
         isNaN(Number(pageSize)) ||
@@ -1271,7 +1278,7 @@ const getUserListings = async function (
         Number(pageSize) > 20
     ) {
         throw new AppError(
-            `Please enter a positive integer less than or equal to 20 for pageSize`,
+            `positive_page_size`,
             400,
         );
     }
@@ -1279,7 +1286,7 @@ const getUserListings = async function (
     // Validate and apply statusId filter
     if (statusId) {
         if (isNaN(Number(statusId)) || Number(statusId) <= 0) {
-            throw new AppError(`Invalid status ${statusId}`, 400);
+            throw new AppError(`invalid_status`, 400, undefined, { statusId });
         }
 
         try {
@@ -1287,7 +1294,7 @@ const getUserListings = async function (
                 filters: [{ key: "id", sign: "=", value: statusId }]
             });
             if (!status) {
-                throw new AppError(`Invalid Status '${statusId}' given`, 400);
+                throw new AppError(`invalid_status`, 400, undefined, { statusId });
             }
         } catch (err) {
             if (err instanceof AppError) throw err;
@@ -1318,7 +1325,7 @@ const getUserListings = async function (
                 ]
             });
             if (!category) {
-                throw new AppError(`Invalid Category '${categoryId}' given`, 400);
+                throw new AppError(`invalid_category`, 400, undefined, { categoryId });
             }
 
             // filters.categoryId = categoryId;
@@ -1330,7 +1337,7 @@ const getUserListings = async function (
 
             if (subcategoryId) {
                 if (isNaN(Number(subcategoryId)) || Number(subcategoryId) <= 0) {
-                    throw new AppError(`Invalid subcategory ${subcategoryId}`, 400);
+                    throw new AppError(`invalid_subcategory`, 400, undefined, { subcategoryId });
                 }
 
                 try {
@@ -1349,7 +1356,7 @@ const getUserListings = async function (
                         ],
                     });
                     if (!subcategory) {
-                        throw new AppError(`Invalid subCategory '${subcategoryId}' given`, 400);
+                        throw new AppError(`invalid_subcategory`, 400, undefined, { subcategoryId });
                     }
                 } catch (err) {
                     if (err instanceof AppError) throw err;
@@ -1404,7 +1411,7 @@ const deleteUser = async function (userId) {
             ]
         });
         if (!userData) {
-            throw new AppError(`User with id ${userId} does not exist`, 404);
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
         }
 
         // const cityUsers = await userRepo.getuserCityMappings(userId);
@@ -1456,7 +1463,7 @@ const storeFirebaseUserToken = async function (userId, newFirebaseToken, deviceT
             ]
         });
         if (!userData) {
-            throw new AppError(`User with id ${userId} does not exist`, 404);
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
         }
 
         const response = await firebaseTokenRepository.getOne({
