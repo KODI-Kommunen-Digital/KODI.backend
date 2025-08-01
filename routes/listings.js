@@ -283,19 +283,16 @@ router.get("/", async function (req, res, next) {
             }
         }
 
-        // Remove viewCount from listings
-        listings.forEach(
-            listing => {
-                delete listing.viewCount;
-                listing.isAllDayEvent = listing.isAllDayEvent === 1 ? true : false;
-                return listing;
-            }
-        );
-
         // Send response
         return res.status(200).json({
             status: "success",
-            data: listings,
+            data: listings.map(listing => ({
+                ...listing,
+                firstname: "****",
+                lastname: '****',
+                viewCount: undefined, // Exclude viewCount
+                isAllDayEvent: listing.isAllDayEvent === 1 ? true : false,
+            })),
         });
     } catch (err) {
         return next(new AppError(err));
