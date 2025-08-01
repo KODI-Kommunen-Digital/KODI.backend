@@ -283,13 +283,15 @@ router.get("/", async function (req, res, next) {
             }
         }
 
-        // Remove viewCount from listings
-        listings.forEach(listing => delete listing.viewCount);
-
         // Send response
         return res.status(200).json({
             status: "success",
-            data: listings,
+            data: listings.map(listing => ({
+                ...listing,
+                firstname: "****",
+                lastname: '****',
+                viewCount: undefined, // Exclude viewCount
+            })),
         });
     } catch (err) {
         return next(new AppError(err));
