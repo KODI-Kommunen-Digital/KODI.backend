@@ -141,7 +141,7 @@ class ListingsRepo extends BaseRepo {
         } else {
             orderByClause = sortByStartDate
                 ? " ORDER BY L.startDate, L.createdAt DESC"
-                : " ORDER BY L.createdAt DESC";
+                : " ORDER BY L.createdAt DESC,L.id";
         }
 
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
