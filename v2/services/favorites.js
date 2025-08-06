@@ -35,6 +35,9 @@ const getFavoriteListingsForUser = async function (
     userId,
     categoryId,
     cityId,
+    pageNo,
+    pageSize,
+
 ) {
     let listings = [];
     // const listingFilter = {};
@@ -132,12 +135,14 @@ const getFavoriteListingsForUser = async function (
             sign: 'IN',
             value: favListingIds
         });
-
         // to eliminate duplicate cityIds
         const cityIds = [...new Set(response?.rows?.map((fav) => fav.cityId) ?? [])];
+
         const listingResponse = await listingRepository.retrieveListings({
             filters: listingFilters,
-            cities: cityIds
+            cities: cityIds,
+            pageNo,
+            pageSize
         });
         listings = listingResponse ?? [];
 

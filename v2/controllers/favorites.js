@@ -19,6 +19,9 @@ const getAllFavoritesForUser = async function (req, res, next) {
 
 const getFavoriteListingsForUser = async function (req, res, next) {
     try {
+
+        const pageNo = Number(req.query.pageNo) || 1;
+        const pageSize = Number(req.query.pageSize) || 9;
         const paramUserId = parseInt(req.paramUserId);
         const userId = parseInt(req.userId);
         const categoryId = parseInt(req.query.categoryId);
@@ -28,6 +31,8 @@ const getFavoriteListingsForUser = async function (req, res, next) {
             userId,
             categoryId,
             cityId,
+            pageNo,
+            pageSize
         );
         res.status(200).json({
             status: "success",
