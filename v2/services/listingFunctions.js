@@ -26,7 +26,7 @@ async function createListing(cityIds, payload, userId, roleId) {
     let cities = [];
     const hasDefaultImage =
         (payload.logo !== undefined && payload.logo !== null) ||
-        payload.hasAttachment
+            payload.hasAttachment
             ? false
             : true;
 
@@ -330,7 +330,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(insertionData.createdAt).getTime() +
-                            1000 * 60 * 60 * 24 * 14
+                        1000 * 60 * 60 * 24 * 14
                     )
                 );
             }
@@ -368,14 +368,14 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(payload.endDate).getTime() +
-                            1000 * 60 * 60 * 24
+                        1000 * 60 * 60 * 24
                     )
                 );
             } else {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(payload.startDate).getTime() +
-                            1000 * 60 * 60 * 24
+                        1000 * 60 * 60 * 24
                     )
                 );
             }
@@ -487,7 +487,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (
                 parseInt(insertionData.categoryId) === categories.News &&
                 parseInt(insertionData.subcategoryId) ===
-                    subcategories.newsflash &&
+                subcategories.newsflash &&
                 insertionData.statusId === status.Active &&
                 roleId === roles.Admin
             ) {
@@ -699,7 +699,7 @@ const updateListing = async (
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(updationData.updatedAt).getTime() +
-                            1000 * 60 * 60 * 24 * 14
+                        1000 * 60 * 60 * 24 * 14
                     )
                 );
             }
@@ -709,7 +709,7 @@ const updateListing = async (
                     new Date(listingData.startDate)
                 );
             } else if (!currentListingData.startDate) {
-                return new AppError(`Start date is not present`, 400);
+                throw new AppError(`Start date is not present`, 400);
             }
 
             if (listingData.endDate && listingData.endDate.length > 0) {
@@ -719,14 +719,14 @@ const updateListing = async (
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(listingData.endDate).getTime() +
-                            1000 * 60 * 60 * 24
+                        1000 * 60 * 60 * 24
                     )
                 );
             } else if (!currentListingData.endDate) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(listingData.startDate).getTime() +
-                            1000 * 60 * 60 * 24
+                        1000 * 60 * 60 * 24
                     )
                 );
             }
@@ -755,63 +755,62 @@ const updateListing = async (
         // Override any user-sent status to Pending
         updationData.statusId = status.Pending;
     } else {
-        if (!allowedStatuses.includes(listingData.statusId)) {
-            throw new AppError(
-                `Invalid status: ${listingData.statusId} does not exist`,
-                400
-            );
-        }
-        if (!isValidTransition(currentStatusId, listingData.statusId)) {
-            throw new AppError(
-                `Cannot change status from ${StatusMap[currentStatusId]} to ${
-                    StatusMap[listingData.statusId]
-                }.`,
-                400
-            );
-        }
-        // Admin: handle status change if any
-        if (listingData.statusId && listingData.statusId !== currentStatusId) {
-            try {
-                const statusData = await statusRepository.getOne({
-                    filters: [
-                        {
-                            key: "id",
-                            sign: "=",
-                            value: listingData.statusId,
-                        },
-                    ],
-                });
-                if (!statusData) {
-                    throw new AppError(
-                        `Invalid Status '${listingData.statusId}' given`,
-                        400
-                    );
-                }
-                updationData.statusId = listingData.statusId;
-            } catch (err) {
-                throw err instanceof AppError ? err : new AppError(err);
+        if (listingData.statusId) {
+            if (!allowedStatuses.includes(listingData.statusId)) {
+                throw new AppError(
+                    `Invalid status: ${listingData.statusId} does not exist`,
+                    400
+                );
             }
-            try {
-                console.log(
-                    `Your listing status has been updated to ${
-                        listingData.statusId === 3 ? "Feedback" : "Approved"
-                    } `
+            if (!isValidTransition(currentStatusId, listingData.statusId)) {
+                throw new AppError(
+                    `Cannot change status from ${StatusMap[currentStatusId]} to ${StatusMap[listingData.statusId]
+                    }.`,
+                    400
                 );
-                const result = await sendPushNotification.sendPushNotifications(
-                    [currentListingData.userId],
-                    "Listing Status Updated",
-                    `Your listing status has been updated to ${
-                        listingData.statusId === 3 ? "Feedback" : "Approved"
-                    } `,
-                    {
-                        type: "listing_status_update",
-                        status: `${listingData.statusId}`,
-                        listingId,
+            }
+            // Admin: handle status change if any
+            if (listingData.statusId && listingData.statusId !== currentStatusId) {
+                try {
+                    const statusData = await statusRepository.getOne({
+                        filters: [
+                            {
+                                key: "id",
+                                sign: "=",
+                                value: listingData.statusId,
+                            },
+                        ],
+                    });
+                    if (!statusData) {
+                        throw new AppError(
+                            `Invalid Status '${listingData.statusId}' given`,
+                            400
+                        );
                     }
-                );
-                console.log({ result });
-            } catch (err) {
-                console.log({ err });
+                    updationData.statusId = listingData.statusId;
+                } catch (err) {
+                    throw err instanceof AppError ? err : new AppError(err);
+                }
+                try {
+                    console.log(
+                        `Your listing status has been updated to ${listingData.statusId === 3 ? "Feedback" : "Approved"
+                        } `
+                    );
+                    const result = await sendPushNotification.sendPushNotifications(
+                        [currentListingData.userId],
+                        "Listing Status Updated",
+                        `Your listing status has been updated to ${listingData.statusId === 3 ? "Feedback" : "Approved"
+                        } `,
+                        {
+                            type: "listing_status_update",
+                            status: `${listingData.statusId}`,
+                            listingId,
+                        }
+                    );
+                    console.log({ result });
+                } catch (err) {
+                    console.log({ err });
+                }
             }
         }
     }
@@ -878,6 +877,7 @@ const updateListing = async (
             };
         });
     } catch (err) {
+        console.log(err)
         await listingsRepository.rollbackTransaction(transaction);
         throw err instanceof AppError ? err : new AppError(err);
     }
@@ -1214,9 +1214,8 @@ async function updateCityMappings(
             const notifications = updatedCityIds.map((cityId) => ({
                 topic: "warnings",
                 title: "Eilmeldung",
-                message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${
-                    updationData.title
-                }`,
+                message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${updationData.title
+                    }`,
                 payload: {
                     cityId: cityId.toString(),
                     id: listingId.toString(),

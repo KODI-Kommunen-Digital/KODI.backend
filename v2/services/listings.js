@@ -1375,6 +1375,17 @@ const uploadImage = async function (
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
+    // Add check: if user is not admin, statusId should not be status.approved
+    if (
+        roleId !== roles.Admin &&
+        currentListingData.statusId === status.Approved
+    ) {
+        throw new AppError(
+            `You are not allowed to upload images for an approved listing.`,
+            403
+        );
+    }
+
     if (currentListingData.pdf && currentListingData.pdf.length > 0) {
         throw new AppError(
             `Pdf is present in listing So can not upload image.`,
@@ -1526,6 +1537,15 @@ const uploadPDF = async function (listingId, userId, roleId, pdf) {
 
     if (currentListingData.userId !== userId && roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
+    }
+    if (
+        roleId !== roles.Admin &&
+        currentListingData.statusId === status.Approved
+    ) {
+        throw new AppError(
+            `You are not allowed to upload pdf for an approved listing.`,
+            403
+        );
     }
 
     if (currentListingData.logo && currentListingData.logo.length > 0) {
