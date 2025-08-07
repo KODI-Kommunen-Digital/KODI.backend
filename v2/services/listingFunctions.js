@@ -762,7 +762,7 @@ const updateListing = async (
                     400
                 );
             }
-            if (!isValidTransition(currentStatusId, listingData.statusId)) {
+            if (currentStatusId !== listingData.statusId && !isValidTransition(currentStatusId, listingData.statusId)) {
                 throw new AppError(
                     `Cannot change status from ${StatusMap[currentStatusId]} to ${StatusMap[listingData.statusId]
                     }.`,
