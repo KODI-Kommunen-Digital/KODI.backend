@@ -745,13 +745,6 @@ const updateListing = async (
 
     if (!isAdmin) {
         // Non-admin user restrictions
-        if (currentStatusId === status.Approved) {
-            throw new AppError(
-                `Approved listings cannot be updated by this user`,
-                403
-            );
-        }
-
         // Override any user-sent status to Pending
         updationData.statusId = status.Pending;
     } else {
