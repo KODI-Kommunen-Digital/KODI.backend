@@ -84,12 +84,12 @@ class ListingsRepo extends BaseRepo {
         }
 
         if (startAfterDate) {
-            query += ` AND DATE(L.startDate) >= ?`;
+            query += ` AND DATE(COALESCE(L.startDate,L.createdAt)) >= ?`;
             queryParams.push(startAfterDate);
         }
 
         if (endBeforeDate) {
-            query += ` AND DATE(L.startDate) <= ?`;
+            query += ` AND DATE(COALESCE(L.startDate,L.createdAt)) <= ?`;
             queryParams.push(endBeforeDate);
         }
 
@@ -111,6 +111,7 @@ class ListingsRepo extends BaseRepo {
         queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
 
         try {
+            console.log("Executing query:", paginationQuery, "with params:", queryParams);
             const response = await database.callQuery(paginationQuery, queryParams);
             return response.rows;
         } catch (error) {
