@@ -387,7 +387,7 @@ const searchListings = async ({
         filters.push({
             key: "statusId",
             sign: "=",
-            value: status.Active
+            value: status.Approved
         });
     }
 

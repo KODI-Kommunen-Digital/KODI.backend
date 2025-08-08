@@ -247,7 +247,7 @@ const getAllCityListings = async function (params, cityId, isAdmin) {
         listingFilters.push({
             key: "statusId",
             sign: "=",
-            value: status.Active
+            value: status.Approved
         });
     }
 
