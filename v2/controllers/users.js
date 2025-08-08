@@ -455,7 +455,7 @@ const deleteUser = async function (req, res, next) {
 
 const storeFirebaseUserToken = async function (req, res, next) {
     const userId = parseInt(req.params.id);
-    const token = req.body.token;
+    const token = req.body.token || req.body.firebaseToken;
     const deviceToken = req.body.deviceId;
 
     try {
