@@ -84,12 +84,12 @@ class ListingsRepo extends BaseRepo {
         }
 
         if (startAfterDate) {
-            query += ` AND DATE(L.startDate) >= ?`;
+            query += ` AND DATE(COALESCE(L.startDate,L.createdAt)) >= ?`;
             queryParams.push(startAfterDate);
         }
 
         if (endBeforeDate) {
-            query += ` AND DATE(L.startDate) <= ?`;
+            query += ` AND DATE(COALESCE(L.startDate,L.createdAt)) <= ?`;
             queryParams.push(endBeforeDate);
         }
 
