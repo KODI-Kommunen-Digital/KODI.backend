@@ -40,7 +40,9 @@ const getAllListings = async ({
     isAdmin,
     startAfterDate,
     endBeforeDate,
-    dateFilter
+    dateFilter,
+    searchQuery,
+    timeFilter
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -179,6 +181,42 @@ const getAllListings = async ({
         }
     }
 
+    if (timeFilter) {
+        const timeRanges = {
+            'morning': { start: 6, end: 12 },    // 6am to 12pm
+            'daytime': { start: 6, end: 18 },    // 6am to 6pm
+            'afternoon': { start: 12, end: 18 },  // 12pm to 6pm
+            'evening': { start: 18, end: 22 },    // 6pm to 10pm
+            'night': { start: 22, end: 6 }        // 10pm to 6am (next day)
+        };
+
+        const timeRange = timeRanges[timeFilter.toLowerCase()];
+        if (!timeRange) {
+            throw new AppError("Invalid time filter. Allowed values are 'morning', 'daytime', 'afternoon', 'evening', or 'night'.", 400);
+        }
+
+        if (timeRange.start > timeRange.end) {
+            filters.push({
+                value: `(TIME(COALESCE(L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00'`,
+                customCondition: true
+            });
+            filters.push({
+                value: `TIME(COALESCE(L.startDate, L.createdAt)) < '${timeRange.end.toString().padStart(2, '0')}:00:00')`,
+                or: true,
+                customCondition: true
+            });
+        } else {
+            filters.push({
+                value: `TIME(COALESCE(L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00'`,
+                customCondition: true
+            });
+            filters.push({
+                value: `TIME(COALESCE(L.startDate, L.createdAt)) < '${timeRange.end.toString().padStart(2, '0')}:00:00'`,
+                customCondition: true
+            });
+        }
+    }
+
     if (startAfterDate && !isValidDate(startAfterDate)) {
         throw new AppError(`Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`, 400);
     }
@@ -248,6 +286,7 @@ const getAllListings = async ({
             sortByStartDate: sortByStartDateBool,
             startAfterDate, // Start date for range
             endBeforeDate,
+            searchQuery
         });
         const noOfListings = listings.length;
         if (

@@ -95,22 +95,30 @@ class ListingsRepo extends BaseRepo {
 
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
-                if (filter.sign.toUpperCase() === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
+                if (filter.sign?.toUpperCase() === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
                     query += ` AND L.${filter.key} IN (?)`;
                     queryParams.push(filter.value);
+                } else if (filter.customCondition) {
+                    // Handle custom conditions (like time filters with TIME() function)
+                    if (filter.or) {
+                        query += ` OR ${filter.value}`;
+                    } else {
+                        query += ` AND ${filter.value}`;
+                    }
                 } else {
-                    query += ` AND L.${filter.key} = ?`;
+                    query += ` AND L.${filter.key} ${filter.sign} ?`;
                     queryParams.push(filter.value);
                 }
             }
         });
 
-        const orderByClause = sortByStartDate ? " ORDER BY L.startDate, L.createdAt DESC" : " ORDER BY L.createdAt DESC";
+        const orderByClause = sortByStartDate ? " ORDER BY COALESCE(L.startDate, L.createdAt), L.createdAt DESC" : " ORDER BY L.createdAt DESC";
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
         const offset = (pageNo - 1) * pageSize;
         queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
 
         try {
+            console.log("Executing query:", paginationQuery, "with params:", queryParams);
             const response = await database.callQuery(paginationQuery, queryParams);
             return response.rows;
         } catch (error) {
