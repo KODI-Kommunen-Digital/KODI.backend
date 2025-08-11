@@ -15,7 +15,9 @@ const getAllListings = async (req, res, next) => {
         showExternalListings,
         startAfterDate,
         endBeforeDate,
-        dateFilter
+        dateFilter,
+        searchQuery,
+        timeFilter
     } = params;
     const isAdmin = req.roleId === roles.Admin;
     try {
@@ -32,7 +34,9 @@ const getAllListings = async (req, res, next) => {
             isAdmin,
             startAfterDate,
             endBeforeDate,
-            dateFilter
+            dateFilter,
+            searchQuery,
+            timeFilter
         });
         res.status(200).json({
             status: "success",
