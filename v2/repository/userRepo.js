@@ -32,6 +32,16 @@ class UserRepo extends BaseRepo {
         return response.rows;
     }
 
+    getUsersForFavListingNotification = async (listingId) => {
+        const query = `SELECT DISTINCT u.id AS userId
+                        FROM favorites f
+                        JOIN users u ON f.userId = u.id
+                        WHERE f.listingId = ?;
+        `;
+        const response = await database.callQuery(query, [listingId]);
+        return response.rows;
+    }
+
     getUsersForNotificationWithUserFilter = async (cityId, categoryId, userIds) => {
         const query = `SELECT DISTINCT u.id AS userId FROM users u
             JOIN user_preference_cities upc ON u.id = upc.userId
