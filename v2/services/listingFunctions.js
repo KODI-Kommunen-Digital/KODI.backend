@@ -430,19 +430,19 @@ async function createListing(cityIds, payload, userId, roleId) {
                 mappingId: response.id
             });
 
-            if (
-                parseInt(insertionData.categoryId) === categories.News &&
-                parseInt(insertionData.subcategoryId) === subcategories.newsflash &&
-                insertionData.statusId === status.Approved &&
-                roleId === roles.Admin
-            ) {
-                await sendPushNotification.sendPushNotificationToAll(
-                    "warnings",
-                    "Eilmeldung",
-                    city.name + " - " + insertionData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() },
-                );
-            }
+            // if (
+            //     parseInt(insertionData.categoryId) === categories.News &&
+            //     parseInt(insertionData.subcategoryId) === subcategories.newsflash &&
+            //     insertionData.statusId === status.Approved &&
+            //     roleId === roles.Admin
+            // ) {
+            //     await sendPushNotification.sendPushNotificationToAll(
+            //         "warnings",
+            //         "Eilmeldung",
+            //         city.name + " - " + insertionData.title,
+            //         { cityId: cityId.toString(), id: listingId.toString() },
+            //     );
+            // }
         }
         if (roleId === roles.Admin && insertionData.statusId === status.Approved) {
             await sendPushNotification.sendPushNotificationsToUsers(
@@ -679,7 +679,7 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
     try {
         transaction = await listingsRepository.createTransaction();
         await listingsRepository.updateWithTransaction({
-            data: updationData,
+            data: {...updationData, updatedNotification: 1},
             filters: [
                 {
                     key: "id",

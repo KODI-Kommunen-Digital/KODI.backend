@@ -33,9 +33,7 @@ async function sendPushNotificationToAll(
             },
             data,
         };
-        const response = await admin.messaging().send(message);
-        console.log("response",message, response);
-        return true;
+        return await admin.messaging().send(message);
     } catch (err) {
         try {
             const occuredAt = new Date();
@@ -72,11 +70,10 @@ async function sendPushNotificationsForFavListingToUsers(listingId, title = "", 
     try {
         if (!serviceAccount) return false;
         const users = await usersRepository.getUsersForFavListingNotification(listingId);
-        console.log("users", users);
         if (!users || users.length === 0) {
             return false;
         }
-        const userIds = [ { userId: 20 } ].map(user => user.userId);
+        const userIds = users.map(user => user.userId);
         await sendPushNotifications(userIds, title, body, data);
     } catch (error) {
         return false;
