@@ -817,7 +817,7 @@ const resetPassword = async function (userId, language, token, password) {
             ]
         });
 
-        if (tokenData.expiresAt < new Date().toLocaleString()) {
+        if (new Date(tokenData.expiresAt) < new Date()) {
             throw new AppError(`Token Expired`, 400);
         }
 
