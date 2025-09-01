@@ -27,6 +27,7 @@ const swaggerUi = require('swagger-ui-express');
 const apiDocumentation = require('./docs/docRoot');
 const apiVersions = require('./constants/apiVersions');
 const bridgeRoutes = require('./bridgeRoutes');
+const listingNotificationCron = require('./v2/services/listingNotificationCron');
 
 // defining the Express app
 const app = express();
@@ -222,6 +223,12 @@ app.use(errorHandler);
 // starting the server
 app.listen(process.env.PORT, () => {
     console.log(`listening on port ${process.env.PORT}`);
+    
+    // Start the cron job when the server starts
+    if (process.env.NODE_ENV !== 'test') {
+        console.log('Starting notification cron job...');
+        listingNotificationCron.start();
+    }
 });
 
 process.on("uncaughtException", function (err) {

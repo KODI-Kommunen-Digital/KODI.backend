@@ -33,8 +33,7 @@ async function sendPushNotificationToAll(
             },
             data,
         };
-        const response = await admin.messaging().send(message);
-        return response;
+        return await admin.messaging().send(message);
     } catch (err) {
         try {
             const occuredAt = new Date();
@@ -57,6 +56,20 @@ async function sendPushNotificationsToUsers(cityIds, categoryId, title = "", bod
     try {
         if (!serviceAccount) return false;
         const users = await usersRepository.getUsersForNotification(cityIds, categoryId);
+        if (!users || users.length === 0) {
+            return false;
+        }
+        const userIds = users.map(user => user.userId);
+        await sendPushNotifications(userIds, title, body, data);
+    } catch (error) {
+        return false;
+    }
+}
+
+async function sendPushNotificationsForFavListingToUsers(listingId, title = "", body = "Check it out", data = null) {
+    try {
+        if (!serviceAccount) return false;
+        const users = await usersRepository.getUsersForFavListingNotification(listingId);
         if (!users || users.length === 0) {
             return false;
         }
@@ -123,7 +136,7 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
             try {
                 return await admin.messaging().send(message);
             } catch (error) {
-                console.error(`Error sending to token ${token.firebaseToken}:`, error);
+                console.error(`Error sending to token ${token}:`, error);
                 return null;
             }
         });
@@ -145,5 +158,6 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
 module.exports = {
     sendPushNotificationToAll,
     sendPushNotificationsToUsers,
-    sendPushNotificationsToAdmin
+    sendPushNotificationsToAdmin,
+    sendPushNotificationsForFavListingToUsers
 };
