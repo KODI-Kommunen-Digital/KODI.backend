@@ -28,7 +28,7 @@ const getAllListings = async (req, res, next) => {
             subcategoryId,
             searchQuery,
             categoryId,
-            cityId,
+            cityId: categoryId === '1' ? undefined : cityId,
             reqTranslate: translate,
             showExternalListings,
             isAdmin,
