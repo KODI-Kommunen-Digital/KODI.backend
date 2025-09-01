@@ -4,10 +4,11 @@ const sendPushNotification = require('./sendPushNotification');
 const status = require('../constants/status');
 require('dotenv').config();
 
-const NOTIFICATION_THRESHOLD_MINUTES = process.env.REMINDER_NOTIFICATION_THRESHOLD_MINUTES || 1440;
-const newsFlashCategoryId = process.env.NEWS_FLASH_CATEGORY_ID || 1;
-const newsFlashSubcategoryId = process.env.NEWS_FLASH_SUBCATEGORY_ID || 1;
-const eventCategoryId = process.env.EVENT_CATEGORY_ID || 3;
+const NOTIFICATION_THRESHOLD_MINUTES = process.env.REMINDER_NOTIFICATION_THRESHOLD_MINUTES? parseInt(process.env.REMINDER_NOTIFICATION_THRESHOLD_MINUTES) : 1440;
+const newsFlashCategoryId = process.env.NEWS_FLASH_CATEGORY_ID? parseInt(process.env.NEWS_FLASH_CATEGORY_ID) : 1;
+const newsFlashSubcategoryId = process.env.NEWS_FLASH_SUBCATEGORY_ID? parseInt(process.env.NEWS_FLASH_SUBCATEGORY_ID) : 1;
+const eventCategoryId = process.env.EVENT_CATEGORY_ID? parseInt(process.env.EVENT_CATEGORY_ID) : 3;
+const cronSchedule = process.env.CRON_SCHEDULE || '*/5 * * * *';
 
 class ListingNotificationCron {
     constructor() {
@@ -15,7 +16,7 @@ class ListingNotificationCron {
     }
 
     start() {
-        this.cronJob = cron.schedule('* * * * *', async () => {
+        this.cronJob = cron.schedule(cronSchedule, async () => {
             try {
                 await this.checkAndSendNotifications();
                 console.log('Cron job executed successfully');
