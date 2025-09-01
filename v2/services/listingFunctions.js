@@ -429,21 +429,24 @@ async function createListing(cityIds, payload, userId, roleId) {
                 listingId,
                 mappingId: response.id
             });
-
-            if (
-                parseInt(insertionData.categoryId) === categories.News &&
-                parseInt(insertionData.subcategoryId) === subcategories.newsflash &&
-                insertionData.statusId === status.Active &&
-                roleId === roles.Admin
-            ) {
-                await sendPushNotification.sendPushNotificationToAll(
-                    "warnings",
-                    "Eilmeldung",
-                    city.name + " - " + insertionData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() },
-                );
-            }
         }
+
+        // sending push notifications in context to main city selected only while creating listing with additional city selection.
+        const mainCity = cities.find(city => city.id === cityIds[0]);
+        if (
+            parseInt(insertionData.categoryId) === categories.News &&
+            parseInt(insertionData.subcategoryId) === subcategories.newsflash &&
+            insertionData.statusId === status.Active &&
+            roleId === roles.Admin
+        ) {
+            await sendPushNotification.sendPushNotificationToAll(
+                "warnings",
+                "Eilmeldung",
+                mainCity.name + " - " + insertionData.title,
+                { cityId: mainCity.id.toString(), id: listingId.toString() },
+            );
+        }
+
         if (roleId === roles.Admin && insertionData.statusId === status.Active) {
             await sendPushNotification.sendPushNotificationsToUsers(
                 cityIds,
