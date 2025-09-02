@@ -11,6 +11,7 @@ function buildTree(services, parentId = null) {
             service: service.service,
             link: service.link,
             image: service.image,
+            description: service.description,
             serviceType: service.serviceType === "Deep Link"
                 ? 1
                 : service.serviceType === "Link"
@@ -31,4 +32,4 @@ router.get("/", async (req, res, next) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;
