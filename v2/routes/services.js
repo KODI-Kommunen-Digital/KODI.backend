@@ -7,7 +7,7 @@ function buildTree(services, parentId = null) {
     return services
         .filter(service => service.parentId === parentId)
         .map(service => ({
-            id:service.id,
+            id: service.id,
             service: service.service,
             link: service.link,
             image: service.image,
@@ -18,7 +18,7 @@ function buildTree(services, parentId = null) {
                     ? 2
                     : service.serviceType === "Group Link"
                         ? 3
-                        : null, children: buildTree(services, service.id)
+                        : service.serviceType === "Form" ? 4 : null, children: buildTree(services, service.id)
         }));
 }
 
