@@ -4,19 +4,24 @@ const database = require("../utils/database");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const crypto = require("crypto");
-const authentication = require("../middlewares/authentication");
 const sendCustomMail = require("../utils/sendCustomMail");
 
-router.post("/", authentication, async (req, res, next) => {
+router.post("/", async (req, res, next) => {
     const payload = req.body;
     const language = payload.language || "de";
-    const userId = req.userId;
 
     try {
-        const { title, description } = payload;
+        const { title, description, email } = payload;
 
+        // check if all mandatory fields are present, currently email is not included as mandatory
         if (!title || !description || !req.files || !req.files.image) {
             return next(new AppError("All fields are mandatory", 400));
+        }
+
+        let tag = email;
+        if (!tag) {
+            // if tag is null/undefined then assign current date time in YYYY-MM-DDTHH:MM:SS format.
+            tag = new Date().toISOString().slice(0,-5);
         }
 
         const imageFile = req.files.image;
@@ -27,7 +32,7 @@ router.post("/", authentication, async (req, res, next) => {
             .digest("hex");
 
         const defectReport = {
-            userId,
+            email,
             title,
             description,
             hashOfImage: imageHash,
@@ -43,7 +48,7 @@ router.post("/", authentication, async (req, res, next) => {
             pass: process.env.DEFECT_REPORTER_SENDER_PASSWORD,
         },recipients, subject, null, body, [
             {
-                filename: `defect_image_${userId}.jpg`,
+                filename: `defect_image_${tag}.jpg`,
                 content: imageFile.data, // Buffer
                 contentType: imageFile.mimetype || "image/jpeg",
             },
