@@ -12,6 +12,7 @@ const categoriesRouter = require("./categories");
 const statusRouter = require("./status");
 const citizenServicesRouter = require("./citizenServices");
 const contactUsRouter = require("./contactUs");
+const contactServiceRouter = require("./contactService");
 const moreInfoRouter = require("./moreInfo");
 const advertisement = require("./ads");
 const wasteCalender = require("./wasteCalender");
@@ -30,6 +31,7 @@ router.use("/categories", categoriesRouter);
 router.use("/status", statusRouter);
 router.use("/citizenServices", citizenServicesRouter);
 router.use("/contactUs", contactUsRouter);
+router.use("/contact-service", contactServiceRouter);
 router.use("/moreInfo", moreInfoRouter);
 router.use(
     "/users/:userId/favorites",
