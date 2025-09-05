@@ -54,6 +54,7 @@ const searchListings = async (req, res, next) => {
         statusId,
         cityId,
         searchQuery,
+        translate
     } = params;
 
     try {
@@ -64,6 +65,7 @@ const searchListings = async (req, res, next) => {
             statusId,
             cityId,
             searchQuery,
+            translate
         });
 
         res.status(200).json({

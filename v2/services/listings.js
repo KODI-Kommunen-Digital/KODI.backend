@@ -1,6 +1,5 @@
 const supportedLanguages = require("../constants/supportedLanguages");
 const AppError = require("../utils/appError");
-const deepl = require("deepl-node");
 const listingImagesRepository = require("../repository/listingsImagesRepo");
 const pollRepository = require("../repository/pollOptionsRepo");
 const listingRepository = require("../repository/listingsRepo");
@@ -26,6 +25,7 @@ const DEFAULTIMAGE = "Defaultimage";
 const bucketClient = require("../utils/bucketClient");
 const isValidDate = require('../utils/validateDate');
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
+const { translateObjectValues } = require("./translationService");
 
 const getAllListings = async ({
     pageNo,
@@ -251,42 +251,19 @@ const getAllListings = async ({
             startAfterDate, // Start date for range
             endBeforeDate,
         });
-        const noOfListings = listings.length;
-        if (
-            noOfListings > 0 &&
-            reqTranslate &&
-            supportedLanguages.includes(reqTranslate)
-        ) {
-            console.log('tanslating here')
-            const textToTranslate = [];
-            listings.forEach((listing) => {
-                textToTranslate.push(listing.title);
-                textToTranslate.push(listing.description);
-            });
-            const translator = new deepl.Translator(process.env.DEEPL_AUTH_KEY);
-            const translations = await translator.translateText(
-                textToTranslate,
-                null,
-                reqTranslate,
-            );
-            for (let i = 0; i < noOfListings; i++) {
-                if (
-                    translations[2 * i].detectedSourceLang !== reqTranslate.slice(0, 2)
-                ) {
-                    listings[i].titleLanguage = translations[2 * i].detectedSourceLang;
-                    listings[i].titleTranslation = translations[2 * i].text;
-                    listings[i].title = translations[2 * i].text;
-                }
-                if (
-                    translations[2 * i + 1].detectedSourceLang !==
-                    reqTranslate.slice(0, 2)
-                ) {
-                    listings[i].descriptionLanguage =
-                        translations[2 * i + 1].detectedSourceLang;
-                    listings[i].descriptionTranslation = translations[2 * i + 1].text;
-                    listings[i].description = translations[2 * i + 1].text;
-
-                }
+        if (listings.length && reqTranslate && supportedLanguages.includes(reqTranslate)) {
+            try {
+                // Translate all listings in parallel
+                await Promise.all(
+                    listings.map(async (listing) => {
+                        await translateObjectValues(listing, reqTranslate, ['title', 'description', 'address']);
+                        // Always set language indicators when translation is requested
+                        listing.titleLanguage = 'auto';
+                        listing.descriptionLanguage = 'auto';
+                    })
+                );
+            } catch (error) {
+                console.error("Translation error:", error);
             }
         }
         return listings;
@@ -303,7 +280,8 @@ const searchListings = async ({
     statusId,
     cityId,
     searchQuery,
-    isAdmin
+    isAdmin,
+    translate
 }) => {
     const filters = [];
     let cities = [];
@@ -407,11 +385,24 @@ const searchListings = async ({
             sortByStartDate: sortByStartDateBool
         });
 
-        // Remove viewCount from listings
-        return listings.map((listing) => {
-            const { viewCount, ...listingWithoutViewCount } = listing;
-            return listingWithoutViewCount;
-        });
+        const processedListings = listings.map(({ viewCount, ...listingWithoutViewCount }) => listingWithoutViewCount);
+        if (translate && supportedLanguages.includes(translate)) {
+            try {
+                // Translate all listings in parallel
+                await Promise.all(
+                    processedListings.map(async (listing) => {
+                        await translateObjectValues(listing, translate, ['title', 'description', 'address']);
+                        // Always set language indicators when translation is requested
+                        listing.titleLanguage = 'auto';
+                        listing.descriptionLanguage = 'auto';
+                        return listing;
+                    })
+                );
+            } catch (error) {
+                console.error("Translation error:", error);
+            }
+        }
+        return processedListings
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(`Error searching listings: ${err.message}`);
