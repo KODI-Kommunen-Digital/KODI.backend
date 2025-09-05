@@ -1,4 +1,6 @@
+const supportedLanguages = require("../constants/supportedLanguages");
 const favoritesService = require("../services/favorites");
+const { translateObjectValues } = require("../services/translationService");
 
 const getAllFavoritesForUser = async function (req, res, next) {
     const paramUserId = parseInt(req.paramUserId);
@@ -26,6 +28,13 @@ const getFavoriteListingsForUser = async function (req, res, next) {
         const userId = parseInt(req.userId);
         const categoryId = parseInt(req.query.categoryId);
         const cityId = parseInt(req.query.cityId);
+        const acceptLanguage = req.headers["accept-language"] || "";
+        const requested = acceptLanguage.split(",")[0].trim().toLowerCase();
+        const fallback = "de";
+        const supportedLower = new Set(supportedLanguages.map(l => l.toLowerCase()));
+        const targetLang = supportedLower.has(requested) ? (requested === 'en' ? 'en-US' : requested) : fallback;
+
+        // Translate only description fields
         const data = await favoritesService.getFavoriteListingsForUser(
             paramUserId,
             userId,
@@ -34,9 +43,11 @@ const getFavoriteListingsForUser = async function (req, res, next) {
             pageNo,
             pageSize
         );
+        const translated = await translateObjectValues(data, targetLang, ["title", "description", "address"]);
+
         res.status(200).json({
             status: "success",
-            data,
+            data: translated,
         });
     } catch (err) {
         return next(err);
