@@ -1,4 +1,5 @@
 const roles = require("../constants/roles");
+const supportedLanguages = require("../constants/supportedLanguages");
 const listingService = require("../services/listings");
 
 const getAllListings = async (req, res, next) => {
@@ -12,13 +13,18 @@ const getAllListings = async (req, res, next) => {
         searchQuery,
         categoryId,
         cityId,
-        translate,
         showExternalListings,
         startAfterDate,
         endBeforeDate,
         dateFilter
     } = params;
     const isAdmin = req.roleId === roles.Admin;
+    const acceptLanguage = req.headers["accept-language"] || "";
+    const requested = acceptLanguage.split(",")[0].trim().toLowerCase();
+    const fallback = "de";
+    const supportedLower = new Set(supportedLanguages.map(l => l.toLowerCase()));
+    const targetLang = supportedLower.has(requested) ? (requested === 'en' ? 'en-US' : requested) : fallback;
+
     try {
         const listings = await listingService.getAllListings({
             pageNo,
@@ -29,7 +35,7 @@ const getAllListings = async (req, res, next) => {
             searchQuery,
             categoryId,
             cityId: categoryId === '1' ? undefined : cityId,
-            reqTranslate: translate,
+            reqTranslate: targetLang,
             showExternalListings,
             isAdmin,
             startAfterDate,

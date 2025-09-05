@@ -60,7 +60,7 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
             }
             const keys = path.replace(/\[(\w+)\]/g, '.$1').replace(/^\./, '').split('.');
             let current = obj;
-            
+
             for (let i = 0; i < keys.length - 1; i++) {
                 const key = keys[i];
                 if (current[key] === undefined || current[key] === null) {

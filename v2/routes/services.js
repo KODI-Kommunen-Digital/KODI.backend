@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const serviceRepo = require("../repository/serviceRepo");
+const { translateObjectValues } = require("../services/translationService");
+const supportedLanguages = require("../constants/supportedLanguages");
 
 // Helper to build nested structure
 function buildTree(services, parentId = null) {
@@ -26,7 +28,17 @@ router.get("/", async (req, res, next) => {
     try {
         const services = await serviceRepo.getAll();
         const tree = buildTree(services.rows);
-        res.json({ success: true, data: { services: tree } });
+
+        // Resolve language from Accept-Language header
+        const acceptLanguage = req.headers["accept-language"] || "";
+        const requested = acceptLanguage.split(",")[0].trim().toLowerCase();
+        const fallback = "de";
+        const supportedLower = new Set(supportedLanguages.map(l => l.toLowerCase()));
+        const targetLang = supportedLower.has(requested) ? (requested === 'en' ? 'en-US' : requested) : fallback;
+
+        // Translate only description fields
+        const translated = await translateObjectValues({ services: tree }, targetLang, ["service", "description"]);
+        res.json({ success: true, data: translated });
     } catch (err) {
         next(err);
     }
