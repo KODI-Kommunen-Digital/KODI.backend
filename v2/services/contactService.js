@@ -7,7 +7,6 @@ const contactService = async function (username, useremail, description, languag
         const { subject, body } = contactServiceEmail(username, useremail, description);
 
         const recipientEmail = process.env.OFFICIAL_EMAIL || "narendra.kumar@fiftyfivetech.io";
-
         await sendMail(recipientEmail, subject, null, body);
     } catch (err) {
         if (err instanceof AppError) throw err;
