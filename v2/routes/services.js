@@ -37,7 +37,7 @@ router.get("/", async (req, res, next) => {
         const targetLang = supportedLower.has(requested) ? (requested === 'en' ? 'en-US' : requested) : fallback;
 
         // Translate only description fields
-        const translated = await translateObjectValues({ services: tree }, targetLang, ["service", "description"]);
+        const translated = await translateObjectValues({ services: tree }, targetLang, ["service", "text"]);
         res.json({ success: true, data: translated });
     } catch (err) {
         next(err);
