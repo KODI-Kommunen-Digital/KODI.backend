@@ -201,7 +201,7 @@ const getAllListings = async ({
                 customCondition: true
             });
             filters.push({
-                value: `(TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00' OR TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) <= '${timeRange.end.toString().padStart(2, '0')}:00:00')`,
+                value: `(TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00' OR TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) <= '${timeRange.end.toString().padStart(2, '0')}:00:00'))`,
                 or: true,
                 customCondition: true
             });
@@ -215,12 +215,12 @@ const getAllListings = async ({
                 or: true,
                 customCondition: true
             });
+            filters.push({
+                value: `(TIME(COALESCE(L.startDate, L.createdAt)) < '${timeRange.start.toString().padStart(2, '0')}:00:00' AND TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) > '${timeRange.end.toString().padStart(2, '0')}:00:00'))`,
+                or: true,
+                customCondition: true
+            });
         }
-        filters.push({
-            value: `(TIME(COALESCE(L.startDate, L.createdAt)) < '${timeRange.start.toString().padStart(2, '0')}:00:00' AND TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) > '${timeRange.end.toString().padStart(2, '0')}:00:00'))`,
-            or: true,
-            customCondition: true
-        });
     }
 
     if (startAfterDate && !isValidDate(startAfterDate)) {
