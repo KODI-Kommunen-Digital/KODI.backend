@@ -197,7 +197,7 @@ const getAllListings = async ({
 
         if (timeRange.start > timeRange.end) {
             filters.push({
-                value: `(TIME(COALESCE(L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00' OR TIME(COALESCE(L.startDate, L.createdAt)) <= '${timeRange.end.toString().padStart(2, '0')}:00:00')`,
+                value: `((TIME(COALESCE(L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00' OR TIME(COALESCE(L.startDate, L.createdAt)) <= '${timeRange.end.toString().padStart(2, '0')}:00:00')`,
                 customCondition: true
             });
             filters.push({
@@ -207,7 +207,7 @@ const getAllListings = async ({
             });
         } else {
             filters.push({
-                value: `(TIME(COALESCE(L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00' AND TIME(COALESCE(L.startDate, L.createdAt)) <= '${timeRange.end.toString().padStart(2, '0')}:00:00')`,
+                value: `((TIME(COALESCE(L.startDate, L.createdAt)) >= '${timeRange.start.toString().padStart(2, '0')}:00:00' AND TIME(COALESCE(L.startDate, L.createdAt)) <= '${timeRange.end.toString().padStart(2, '0')}:00:00')`,
                 customCondition: true
             });
             filters.push({
@@ -217,7 +217,7 @@ const getAllListings = async ({
             });
         }
         filters.push({
-            value: `(TIME(COALESCE(L.startDate, L.createdAt)) < '${timeRange.start.toString().padStart(2, '0')}:00:00' AND TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) > '${timeRange.end.toString().padStart(2, '0')}:00:00')`,
+            value: `(TIME(COALESCE(L.startDate, L.createdAt)) < '${timeRange.start.toString().padStart(2, '0')}:00:00' AND TIME(COALESCE(L.endDate, L.startDate, L.createdAt)) > '${timeRange.end.toString().padStart(2, '0')}:00:00'))`,
             or: true,
             customCondition: true
         });
