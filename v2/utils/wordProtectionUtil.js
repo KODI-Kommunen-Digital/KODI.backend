@@ -4,11 +4,11 @@
 
 // Words that should be protected from translation
 const PROTECTED_WORDS = [
-    'Zeigmal',
-    'Lauschtour',
-    'Village',
-    'Naldo',
-    'Parkster'
+    'Zeigmal App',
+    'Lauschtour App',
+    'Village App',
+    'Naldo App',
+    'Parkster App'
 ];
 
 /**
