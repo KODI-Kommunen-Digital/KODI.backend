@@ -1,5 +1,6 @@
 const supportedLanguages = require("../constants/supportedLanguages");
 const { translateWithCache } = require("../utils/translationCacheUtil");
+const { maskTexts, unmaskProtectedWords } = require("../utils/wordProtectionUtil");
 
 
 /**
@@ -51,7 +52,18 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
         if (textsToTranslate.length === 0) {
             return data;
         }
-        const results = await translateWithCache(textsToTranslate, targetLang);
+
+        // Mask protected words before translation
+        const { maskedTexts, wordMap } = maskTexts(textsToTranslate);
+
+        // Translate the masked texts
+        const results = await translateWithCache(maskedTexts, targetLang);
+
+        // Unmask protected words after translation
+        const unmaskedResults = results.map((result, index) => ({
+            ...result,
+            text: unmaskProtectedWords(result.text, wordMap)
+        }));
         const setNestedValue = (obj, path, value) => {
             if (!path) return;
             if (Object.prototype.hasOwnProperty.call(obj, path)) {
@@ -76,7 +88,7 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
                 current[lastKey] = value;
             }
         };
-        results.forEach((translation, index) => {
+        unmaskedResults.forEach((translation, index) => {
             const { path } = map[index];
             if (path) {
                 setNestedValue(data, path, translation.text);
