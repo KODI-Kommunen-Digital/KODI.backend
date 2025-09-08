@@ -2,13 +2,13 @@
  * Utility functions for protecting sensitive words during translation
  */
 
-// Words that should be protected from translation
+// Words that should be protected from translation (brand roots only)
 const PROTECTED_WORDS = [
-    'Zeigmal App',
-    'Lauschtour App',
-    'Village App',
-    'Naldo App',
-    'Parkster App'
+    'Zeigmal',
+    'Lauschtour',
+    'Village',
+    'Naldo',
+    'Parkster'
 ];
 
 /**
@@ -31,7 +31,8 @@ const maskProtectedWords = (text) => {
 
         // Replace all occurrences of the word with placeholder
         maskedText = maskedText.replace(regex, (match) => {
-            const placeholder = `PROTECTEDWORD${placeholderIndex}PLACEHOLDER`;
+            // Use a translation-safe placeholder that contains no dictionary words or underscores
+            const placeholder = `KODIMASK${placeholderIndex}X`;
             wordMap[placeholder] = match; // Preserve original case
             placeholderIndex++;
             return placeholder;
@@ -85,7 +86,8 @@ const maskTexts = (texts) => {
             const regex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
 
             maskedText = maskedText.replace(regex, (match) => {
-                const placeholder = `PROTECTEDWORD${globalPlaceholderIndex}PLACEHOLDER`;
+                // Use the same translation-safe placeholder format here as well
+                const placeholder = `KODIMASK${globalPlaceholderIndex}X`;
                 wordMap[placeholder] = match;
                 combinedWordMap[placeholder] = match;
                 globalPlaceholderIndex++;
