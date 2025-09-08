@@ -8,7 +8,8 @@ const PROTECTED_WORDS = [
     'Lauschtour',
     'Village',
     'Naldo',
-    'Parkster'
+    'Parkster',
+    "App"
 ];
 
 /**
@@ -57,7 +58,7 @@ const unmaskProtectedWords = (text, wordMap) => {
 
     // Replace all placeholders with their original words
     Object.entries(wordMap).forEach(([placeholder, originalWord]) => {
-        unmaskedText = unmaskedText.replace(new RegExp(placeholder, 'g'), originalWord);
+        unmaskedText = unmaskedText.replace(new RegExp(placeholder, 'gi'), originalWord);
     });
 
     return unmaskedText;
