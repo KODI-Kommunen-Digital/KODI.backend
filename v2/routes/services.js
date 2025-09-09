@@ -41,7 +41,7 @@ router.get("/", async (req, res, next) => {
             const translated = await translateObjectValues({ services: tree }, targetLang, ["service", "text"]);
             res.json({ success: true, data: translated });
         } else {
-            res.json({ success: true, data: services });
+            res.json({ success: true, data: { services: tree } });
         }
 
     } catch (err) {
