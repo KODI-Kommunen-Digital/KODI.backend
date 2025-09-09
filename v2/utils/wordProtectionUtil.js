@@ -33,7 +33,7 @@ const maskProtectedWords = (text) => {
         // Replace all occurrences of the word with placeholder
         maskedText = maskedText.replace(regex, (match) => {
             // Use a translation-safe placeholder that contains no dictionary words or underscores
-            const placeholder = `KODIMASK${placeholderIndex}X`;
+            const placeholder = `__brand${placeholderIndex}__`;
             wordMap[placeholder] = match; // Preserve original case
             placeholderIndex++;
             return placeholder;
