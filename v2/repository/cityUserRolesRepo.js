@@ -13,7 +13,8 @@ class CityUserRolesRepo extends BaseRepo {
         const query = `
         SELECT 
             u.id,
-            u.name,
+            u.firstName,
+            u.lastName,
             u.username,
             u.email,
             u.phoneNumber
@@ -21,7 +22,7 @@ class CityUserRolesRepo extends BaseRepo {
         JOIN ${tableNames.USER_TABLE} u ON u.id = cur.userId
         WHERE cur.cityId = ?
         AND cur.isAdmin = 1
-        ${searchQuery.length > 0 ? "AND (u.name LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)" : ''}
+        ${searchQuery.length > 0 ? "AND (u.firstName LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)" : ''}
         LIMIT ?, ?`;
 
         const countQuery = `
@@ -31,7 +32,7 @@ class CityUserRolesRepo extends BaseRepo {
         JOIN ${tableNames.USER_TABLE} u ON u.id = cur.userId
         WHERE cur.cityId = ?
         AND cur.isAdmin = 1
-        ${searchQuery.length > 0 ? "AND (u.name LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)" : ''}
+        ${searchQuery.length > 0 ? "AND (u.firstName LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR u.phoneNumber LIKE ?)" : ''}
         `;
 
         if (searchQuery.length > 0) {
