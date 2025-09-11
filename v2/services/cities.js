@@ -3,6 +3,8 @@ const cityServiceRepository = require("../repository/citiesRepo");
 const roles = require("../constants/roles");
 const imageUpload = require("../utils/imageUpload");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
+const cityUserRolesRepo = require("../repository/cityUserRolesRepo");
+const userRepository = require("../repository/userRepo");
 
 const getCities = async function (hasForum) {
     try {
@@ -25,6 +27,271 @@ const getCities = async function (hasForum) {
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
+    }
+};
+
+const citiesListingsByUserId = async function (
+    userId,
+    isSuperAdmin,
+    pageNo,
+    pageSize,
+    searchQuery,
+    orderBy,
+    isDescending
+) {
+    try {
+        const filters = [];
+        if (!isSuperAdmin && userId) {
+            const cityUserRoles = await cityUserRolesRepo.getAll({
+                filters: [
+                    { key: "userId", sign: "=", value: userId },
+                    { key: "isAdmin", sign: "=", value: 1 }
+                ],
+                columns: ["cityId"]
+            });
+            const cityIds = cityUserRoles.rows.map(row => row.cityId);
+            if (cityIds.length === 0) {
+                return [];
+            }
+            filters.push({
+                key: "id",
+                sign: "IN",
+                value: cityIds
+            });
+        }
+        if (searchQuery) {
+            filters.push({
+                key: "name",
+                sign: "LIKE",
+                value: `%${searchQuery.trim().replace(/'/g, "''")}%`,
+            });
+        }
+        let effectiveOrderBy = orderBy;
+        if (!effectiveOrderBy) {
+            effectiveOrderBy = "name";
+        }
+        const cities = await cityServiceRepository.getAll({
+            columns: 'id, name, image, hasForum',
+            filters,
+            pageNo,
+            pageSize,
+            orderBy: [effectiveOrderBy],
+            isDescending,
+        });
+        return cities.rows;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
+const getCityById = async function (id) {
+    try {
+        const filters = []
+        if (id) {
+            filters.push(
+                {
+                    key: 'id',
+                    sign: '=',
+                    value: id
+                })
+        }
+        const cities = await cityServiceRepository.getOne({
+            filters,
+            columns: 'id, name, image, hasForum',
+        });
+        return cities;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
+const getCityAdmins = async function (pageNo, pageSize, roleId, cityId, searchQuery) {
+
+    if (roleId !== roles.Admin) {
+        throw new AppError(`You are not authorized to perform this action`, 403);
+    }
+    if (isNaN(cityId)) {
+        throw new AppError(`City Id must be a number`, 400);
+    }
+    if (isNaN(pageNo)) {
+        throw new AppError(`Page number must be a number`, 400);
+    }
+    if (isNaN(pageSize)) {
+        throw new AppError(`Page size must be a number`, 400);
+    }
+
+    if (cityId) {
+        const city = await cityServiceRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: cityId
+                }
+            ],
+            columns: "id"
+        });
+        if (!city) {
+            throw new AppError(`City not found`, 404);
+        }
+    }
+
+    return cityUserRolesRepo.getCityAdmins(pageNo, pageSize, cityId, searchQuery);
+};
+
+const createCityAdmin = async function (roleId, cityId, userId) {
+
+    if (roleId !== roles.Admin) {
+        throw new AppError(`You are not authorized to perform this action`, 403);
+    }
+    if (!userId || !cityId || isNaN(Number(userId)) || isNaN(Number(cityId))) {
+        throw new AppError("Invalid payload", 400);
+    }
+    const user = await userRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: userId
+            }
+        ],
+        columns: "id, roleId"
+    });
+    if (!user) {
+        throw new AppError(`User not found`, 404);
+    }
+    if (user.roleId === roles.Admin) {
+        throw new AppError(`User is already a super admin`, 400);
+    }
+
+    const city = await cityServiceRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: cityId
+            }
+        ],
+        columns: "id"
+    });
+    if (!city) {
+        throw new AppError(`City not found`, 404);
+    }
+
+    const cityAdmin = await cityUserRolesRepo.getOne({
+        filters: [
+            {
+                key: "userId",
+                sign: "=",
+                value: userId
+            },
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId
+            },
+            {
+                key: "isAdmin",
+                sign: "=",
+                value: 1
+            }
+        ]
+    });
+    if (cityAdmin) {
+        throw new AppError(`User is already a city admin`, 400);
+    }
+
+    await cityUserRolesRepo.create({
+        data: {
+            userId,
+            cityId,
+            isAdmin: 1
+        }
+    });
+
+    // Update user role to city admin
+    await userRepository.update({
+        data: { roleId: roles["City Admin"] },
+        filters: [{ key: "id", sign: "=", value: userId }]
+    });
+};
+
+const deleteCityAdmin = async function (roleId, cityId, userId) {
+
+    if (roleId !== roles.Admin) {
+        throw new AppError(`You are not authorized to perform this action`, 403);
+    }
+    if (!userId || !cityId || isNaN(Number(userId)) || isNaN(Number(cityId))) {
+        throw new AppError("Invalid payload", 400);
+    }
+
+    const cityAdmin = await cityUserRolesRepo.getOne({
+        filters: [
+            {
+                key: "userId",
+                sign: "=",
+                value: userId
+            },
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId
+            },
+            {
+                key: "isAdmin",
+                sign: "=",
+                value: 1
+            }
+        ]
+    });
+    if (!cityAdmin) {
+        throw new AppError(`User is not a city admin`, 400);
+    }
+
+    await cityUserRolesRepo.delete({
+        filters: [
+            {
+                key: "userId",
+                sign: "=",
+                value: userId
+            },
+            {
+                key: "cityId",
+                sign: "=",
+                value: cityId
+            },
+            {
+                key: "isAdmin",
+                sign: "=",
+                value: 1
+            }
+        ]
+    });
+
+    // Check if user is admin for any other city
+    const otherCityAdmin = await cityUserRolesRepo.getOne({
+        filters: [
+            {
+                key: "userId",
+                sign: "=",
+                value: userId
+            },
+            {
+                key: "isAdmin",
+                sign: "=",
+                value: 1
+            }
+        ]
+    });
+
+    if (!otherCityAdmin) {
+        // Update user role to Content Creator
+        await userRepository.update({
+            data: { roleId: roles["Content Creator"]},
+            filters: [{ key: "id", sign: "=", value: userId }]
+        });
     }
 };
 
@@ -221,5 +488,10 @@ module.exports = {
     updateCity,
     deleteCity,
     uploadImage,
-    deleteImage
+    deleteImage,
+    getCityById,
+    getCityAdmins,
+    createCityAdmin,
+    deleteCityAdmin,
+    citiesListingsByUserId
 };

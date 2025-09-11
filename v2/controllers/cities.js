@@ -1,4 +1,6 @@
 const cityService = require("../services/cities");
+const roles = require("../constants/roles");
+const AppError = require("../utils/appError");
 
 const getCities = async function (req, res, next) {
     let hasForum = false;
@@ -15,6 +17,98 @@ const getCities = async function (req, res, next) {
         return next(err);
     }
 };
+
+const citiesListingsByUserId = async function (req, res, next) {
+    const UserId = req.params.UserId;
+    const pageNo = req.query.pageNo;
+    const pageSize = req.query.pageSize;
+    const searchQuery = req.query.searchQuery;
+    const orderBy = req.query.orderBy;
+    const isDescending = req.query.isDescending === 'true' ? true : false;
+    try {
+        if (UserId && req.roleId && (req.userId == UserId || req.roleId === roles.Admin)) { // eslint-disable-line
+            const data = await cityService.citiesListingsByUserId(
+                UserId,
+                (req.userId == UserId && req.roleId === roles.Admin), // eslint-disable-line
+                pageNo,
+                pageSize,
+                searchQuery,
+                orderBy,
+                isDescending
+            );
+            return res.status(200).json({
+                status: "success",
+                data: data,
+            });
+        } else {
+            throw new AppError(`Access denied`, 401);
+        }
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const getCityById = async function (req, res, next) {
+    try {
+        const data = await cityService.getCityById(req.params.id);
+        res.status(200).json({
+            status: "success",
+            data,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const getCityAdmins = async function (req, res, next) {
+    const cityId = Number(req.params.id);
+
+    const roleId = req.roleId;
+
+    const pageNo = Number(req.query.pageNo ?? 1);
+    const pageSize = Number(req.query.pageSize ?? 10);
+    const searchQuery = req.query.searchQuery ?? '';
+    try {
+        const data = await cityService.getCityAdmins(pageNo, pageSize, roleId, cityId, searchQuery);
+        res.status(200).json({
+            status: "success",
+            data: data.data,
+            count: data.count,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const addCityAdmin = async function (req, res, next) {
+    const cityId = Number(req.params.id);
+    const roleId = req.roleId;
+    const { userId } = req.body;
+
+    try {
+        await cityService.createCityAdmin(roleId, cityId, userId);
+        res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+}
+
+const removeCityAdmin = async function (req, res, next) {
+    const cityId = Number(req.params.id);
+    const roleId = req.roleId;
+    const { userId } = req.body;
+
+    try {
+        await cityService.deleteCityAdmin(roleId, cityId, userId);
+        res.status(200).json({
+            status: "success",
+        });
+    } catch (err) {
+        return next(err);
+    }
+}
 
 const createCity = async (req, res, next) => {
     try {
@@ -95,5 +189,10 @@ module.exports = {
     updateCity,
     deleteCity,
     uploadImage,
-    deleteImage
+    deleteImage,
+    getCityById,
+    getCityAdmins,
+    addCityAdmin,
+    removeCityAdmin,
+    citiesListingsByUserId
 };
