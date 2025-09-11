@@ -17,7 +17,7 @@ const authentication = require("../middlewares/authentication");
 
 router.get("/", getCities);
 router.post("/", authentication, createCity);
-router.put("/:id", authentication, updateCity);
+router.patch("/:id", authentication, updateCity);
 router.delete("/:id", authentication, deleteCity);
 router.get("/:id", getCityById);
 
