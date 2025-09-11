@@ -26,6 +26,7 @@ const bucketClient = require("../utils/bucketClient");
 const isValidDate = require('../utils/validateDate');
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 const { translateObjectValues } = require("./translationService");
+const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
 
 const getAllListings = async ({
     pageNo,
@@ -41,7 +42,8 @@ const getAllListings = async ({
     isAdmin,
     startAfterDate,
     endBeforeDate,
-    dateFilter
+    dateFilter,
+    userId
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -68,36 +70,6 @@ const getAllListings = async ({
         } else {
             sortByStartDateBool = sortByStartDateString === "true";
         }
-    }
-    if (isAdmin) {
-        if (statusId) {
-            // const response = await cityListingRepo.getStatusById(statusId);
-            const response = await statusRepository.getOne({
-                filters: [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: statusId
-                    }
-                ]
-            }); // removing the cityId
-            if (!response) {
-                throw new AppError(`Invalid Status '${statusId}' given`, 400);
-            }
-            // filters.statusId = statusId;
-            filters.push({
-                key: "statusId",
-                sign: "=",
-                value: statusId
-            });
-        }
-    } else {
-        // filters.statusId = status.Active;
-        filters.push({
-            key: "statusId",
-            sign: "=",
-            value: status.Approved
-        });
     }
 
     if (categoryId) {
@@ -231,6 +203,36 @@ const getAllListings = async ({
         cities = citiesResp?.rows?.map(city => city.id) ?? [];
     }
 
+    let statusData = status.Approved;
+    const cityAdminMap = {};
+    const cityIds = cityId?.split(',').map(id => parseInt(id.trim(), 10));
+    if (cityIds && cityIds.length > 0) {
+        await Promise.all(cityIds?.map(async (city) => {
+            cityAdminMap[city] = userId ? await cityUserRolesRepository.isUserCityAdmin(userId, city) : false;
+        }));
+    }
+    const isAnAdmin = Object.keys(cityAdminMap).some((city) => cityAdminMap[city]);
+    if (isAdmin || isAnAdmin) {
+        if (statusId) {
+            // const response = await cityListingRepo.getStatusById(statusId);
+            const response = await statusRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: statusId
+                    }
+                ]
+            }); // removing the cityId
+            if (!response) {
+                throw new AppError(`Invalid Status '${statusId}' given`, 400);
+            }
+            statusData = statusId;
+        } else {
+            statusData = '*';
+        }
+    }
+
     if (showExternalListings !== "true") {
         // filters.sourceId = source.UserEntry;
         filters.push({
@@ -250,6 +252,7 @@ const getAllListings = async ({
             sortByStartDate: sortByStartDateBool,
             startAfterDate, // Start date for range
             endBeforeDate,
+            statusId: statusData
         });
         if (listings.length && reqTranslate && supportedLanguages.includes(reqTranslate)) {
             try {
@@ -588,6 +591,133 @@ const isValidTransition = (currentStatus, newStatus) => {
     return false;
 };
 
+const updateCityListingStatus = async ({ listingId, cityListingStatus, userId, roleId, }) => {
+    if (!cityListingStatus) throw new AppError(`Invalid payload sent`, 400);
+    if (!userId) throw new AppError(`userId not present`, 404);
+    if (!listingId) throw new AppError('listingId not present', 404);
+    try {
+        const listing = await listingRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: listingId,
+                },
+            ]
+        });
+        if (!listing) {
+            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+        }
+    }
+    catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+
+    const cityIds = cityListingStatus.map(element => element.cityId);
+    cityIds.forEach(cityId => {
+        if (isNaN(Number(cityId)) || Number(cityId) <= 0)
+            throw new AppError(`Invalid City '${cityId}' given`, 400);
+    });
+    try {
+        const cities = await cityRepository.getAll({ filters: [{ key: "id", sign: "IN", value: cityIds }] });
+        if (!cities.rows || cities.rows.length !== cityIds.length) {
+            const invalidCityIds = cityIds.filter(cityId => !cities.rows.some(city => city.id === cityId));
+            throw new AppError(`Invalid City '${invalidCityIds[0]}' given`, 400);
+        }
+    }
+    catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+    const existingCityMappings = await cityListingMappingRepo.getAll({
+        filters: [
+            {
+                key: "listingId",
+                sign: "=",
+                value: listingId,
+            },
+            {
+                key: "cityId",
+                sign: "IN",
+                value: cityIds,
+            }
+        ]
+    });
+    const existingCityIds = existingCityMappings.rows.map(cityListing => cityListing.cityId);
+    cityIds.forEach(cityId => {
+        if (!existingCityIds.includes(cityId)) {
+            throw new AppError(`Listing does not have certain cities`, 400);
+        }
+    });
+
+    const statusIds = Array.from(new Set(cityListingStatus.map(element => element.statusId)));
+
+    const statusData = await statusRepository.getAll({
+        filters: [
+            {
+                key: "id",
+                sign: "IN",
+                value: statusIds,
+            }
+        ]
+    });
+    if (statusData.count !== statusIds.length) {
+        throw new AppError(`Invalid status given`, 400);
+    }
+
+    const isSuperAdmin = roleId === roles.Admin;
+
+    const userCityAdminStatusList = await Promise.all(cityIds.map(async (cityId) => {
+        return await cityUserRolesRepository.isUserCityAdmin(userId, cityId);
+    }));
+
+    const isCityAdminAtAllCities = userCityAdminStatusList.every(isAdmin => isAdmin);
+    if (!isSuperAdmin && !isCityAdminAtAllCities) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
+    }
+
+    // const isValidMessages = cityListingStatus.every(cityListing => {
+    //     if (cityListing.message) {
+    //         return typeof cityListing.message === "string" && cityListing.message.length <= 255;
+    //     }
+    //     return true;
+    // });
+    // if (!isValidMessages) {
+    //     throw new AppError(`Invalid message given. Message should be a string and less than 255 characters`, 400);
+    // }
+
+    const transaction = await listingRepository.createTransaction();
+    try {
+        await Promise.all(cityListingStatus.map(async (cityListing) => {
+            await cityListingMappingRepo.updateWithTransaction({
+                data: {
+                    status: cityListing.statusId,
+                    // message: cityListing.message,
+                },
+                filters: [
+                    {
+                        key: "listingId",
+                        sign: "=",
+                        value: listingId,
+                    },
+                    {
+                        key: "cityId",
+                        sign: "=",
+                        value: cityListing.cityId,
+                    },
+                ],
+            }, transaction);
+        }));
+
+        await listingRepository.commitTransaction(transaction);
+    } catch (e) {
+        await listingRepository.rollbackTransaction(transaction);
+        if (e instanceof AppError) throw e;
+        throw new AppError(`Error updating listing status: ${e.message}`);
+    }
+}
+
 const updateListingStatus = async function ({ id, roleId, newStatus }) {
     if (roleId !== roles.Admin) {
         throw new AppError(`You are not allowed to access this resource`, 403);
@@ -603,7 +733,6 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
                 },
             ]
         });
-        console.log({ listing })
         if (!listing) {
             throw new AppError(`Listing with id ${id} does not exist`, 404);
         }
@@ -1348,5 +1477,6 @@ module.exports = {
     uploadPDF,
     deleteImage,
     deletePDF,
+    updateCityListingStatus,
     vote
 };

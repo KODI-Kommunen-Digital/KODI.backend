@@ -19,12 +19,14 @@ const wasteCalender = require("./wasteCalender");
 const defectReportRouter = require("./defectReporter");
 const chatRouter = require("./chat");
 const servicesRouter = require("./services");
+const adminRouter = require("./admin");
 
 router.get("/", (req, res) => {
     res.json({ message: "Hello world!! Welcome to HEIDI!!" });
 });
 
 router.use("/users", usersRouter);
+router.use("/admin", adminRouter);
 router.use("/cities", citiesRouter);
 router.use("/listings", listingsRouter);
 router.use("/categories", categoriesRouter);

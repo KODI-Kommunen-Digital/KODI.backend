@@ -19,6 +19,7 @@ const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const listingsRepository = require("../repository/listingsRepo");
 const listingsImageRepository = require("../repository/listingsImagesRepo");
 const pollOptionsRepository = require("../repository/pollOptionsRepo");
+const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
 
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
@@ -173,30 +174,29 @@ async function createListing(cityIds, payload, userId, roleId) {
         insertionData.subcategoryId = payload.subcategoryId;
     }
 
-    if (!payload.statusId) {
-        insertionData.statusId = status.Pending;
-    } else {
-        if (roleId !== roles.Admin) {
-            insertionData.statusId = status.Pending;
-        } else {
-            try {
-                const statusData = await statusRepository.getOne({
-                    filters: [
-                        {
-                            key: "id",
-                            sign: "=",
-                            value: payload.statusId,
-                        },
-                    ],
-                });
+    const cityAdminMap = {};
+    await Promise.all(cityIds.map(async (cityId) => {
+        cityAdminMap[cityId] = await cityUserRolesRepository.isUserCityAdmin(userId, cityId);
+    }));
+    const isAnAdmin = Object.keys(cityAdminMap).some((cityId) => cityAdminMap[cityId]);
 
-                if (!statusData) {
-                    throw new AppError(`Invalid Status '${payload.statusId}' given`, 400);
-                }
-            } catch (err) {
-                throw err instanceof AppError ? err : new AppError(err);
+    if (payload.statusId && (roleId === roles.Admin || isAnAdmin)) {
+        try {
+            const statusData = await statusRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: payload.statusId,
+                    },
+                ],
+            });
+
+            if (!statusData) {
+                throw new AppError(`Invalid Status '${payload.statusId}' given`, 400);
             }
-            insertionData.statusId = payload.statusId;
+        } catch (err) {
+            throw err instanceof AppError ? err : new AppError(err);
         }
     }
 
@@ -350,6 +350,7 @@ async function createListing(cityIds, payload, userId, roleId) {
     try {
         transaction = await listingsRepository.createTransaction();
         insertionData.userId = userId;
+        insertionData.statusId = (roleId === roles.Admin || isAnAdmin) ? payload.statusId || status.Active : status.Pending;
         const response = await listingsRepository.createWithTransaction({
             data: insertionData,
         }, transaction);
@@ -411,6 +412,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
         for (const city of cities) {
             const cityId = city.id;
+            const mappingStatus = (roleId === roles.Admin || cityAdminMap[city.id]) ? payload.statusId || status.Active : status.Pending;
 
             const cityOrder = cityIdOrderMap[cityId];
             if (!cityOrder) {
@@ -420,7 +422,8 @@ async function createListing(cityIds, payload, userId, roleId) {
                 data: {
                     cityId,
                     listingId,
-                    cityOrder
+                    cityOrder,
+                    status: mappingStatus
                 }
             }, transaction);
 
