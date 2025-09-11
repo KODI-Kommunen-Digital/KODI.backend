@@ -2,7 +2,7 @@ const AppError = require("../utils/appError");
 const cityServiceRepository = require("../repository/citiesRepo");
 const roles = require("../constants/roles");
 const imageUpload = require("../utils/imageUpload");
-const imageDeleteAsync = require("../utils/imageDeleteAsync");
+// const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const cityUserRolesRepo = require("../repository/cityUserRolesRepo");
 const userRepository = require("../repository/userRepo");
 
@@ -464,7 +464,7 @@ const deleteImage = async (cityId, roleId) => {
         }
 
         try {
-            await imageDeleteAsync.deleteImage(city.image);
+            // await imageDeleteAsync.deleteImage(city.image);
         } catch (deleteErr) {
             console.error("Failed to delete image file:", deleteErr);
             throw new AppError("Failed to delete image file", 500);

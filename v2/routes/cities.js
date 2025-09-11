@@ -10,8 +10,8 @@ const {
     getCityAdmins,
     addCityAdmin,
     removeCityAdmin,
-    citiesListingsByUserId
-    // deleteImage
+    citiesListingsByUserId,
+    deleteImage
 } = require("../controllers/cities");
 const authentication = require("../middlewares/authentication");
 
@@ -34,10 +34,10 @@ router.post(
     uploadImage,
 );
 
-// router.delete(
-//     "/:id/imageDelete",
-//     authentication,
-//     deleteImage,
-// );
+router.delete(
+    "/:id/image",
+    authentication,
+    deleteImage,
+);
 
 module.exports = router;
