@@ -430,13 +430,14 @@ async function createListing(cityIds, payload, userId, roleId) {
             allResponses.push({
                 cityId: Number(cityId),
                 listingId,
-                mappingId: response.id
+                mappingId: response.id,
+                status: mappingStatus
             });
 
             if (
                 parseInt(insertionData.categoryId) === categories.News &&
                 parseInt(insertionData.subcategoryId) === subcategories.newsflash &&
-                insertionData.statusId === status.Active &&
+                mappingStatus === status.Active &&
                 roleId === roles.Admin
             ) {
                 await sendPushNotification.sendPushNotificationToAll(
@@ -447,24 +448,26 @@ async function createListing(cityIds, payload, userId, roleId) {
                 );
             }
         }
-        if (roleId === roles.Admin && insertionData.statusId === status.Active) {
+        const activeListingsCities = allResponses?.filter(response => response.status === status.Active).map(response => response.cityId);
+        const pendingListingsCities = allResponses?.filter(response => response.status === status.Pending).map(response => response.cityId);
+        if (roleId === roles.Admin && activeListingsCities?.length > 0 ) {
             await sendPushNotification.sendPushNotificationsToUsers(
                 cityIds,
                 insertionData.categoryId,
                 "Neue Meldung",
                 insertionData.title,
-                { cities: JSON.stringify(cities), id: listingId.toString() },
+                { cities: JSON.stringify(activeListingsCities), id: listingId.toString() },
             );
         }
 
         if ((roleId === roles["Content Creator"] || roleId === roles["Department Head"]) &&
-            insertionData.statusId === status.Pending) {
+            pendingListingsCities?.length > 0) {
             await sendPushNotification.sendPushNotificationsToAdmin(
                 cityIds,
                 insertionData.categoryId,
                 "Neue Meldung von einem Benutzer, bitte überprüfen Sie die Meldung",
                 insertionData.title,
-                { cities: JSON.stringify(cities), id: listingId.toString() },
+                { cities: JSON.stringify(pendingListingsCities), id: listingId.toString() },
             );
         }
         await listingsRepository.commitTransaction(transaction);
@@ -522,8 +525,14 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         }
     }
     const isOwner = currentListingData.userId === userId
-    const isAdmin = roleId === roles.Admin
     const currentStatusId = currentListingData.statusId
+    const cityAdminMap = {};
+    await Promise.all(cityIds.map(async (cityId) => {
+        cityAdminMap[cityId] = await cityUserRolesRepository.isUserCityAdmin(userId, cityId);
+    }));
+    const isAnCityAdmin = Object.keys(cityAdminMap).some((cityId) => cityAdminMap[cityId]);
+    const isAdmin = (roleId === roles.Admin || isAnCityAdmin);
+
     if (!isAdmin && !isOwner) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
@@ -671,7 +680,7 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
                 if (!statusData) {
                     throw new AppError(`Invalid Status '${listingData.statusId}' given`, 400);
                 }
-                updationData.statusId = listingData.statusId;
+                updationData.statusId = listingData.statusId; // tobe removed
             } catch (err) {
                 throw err instanceof AppError ? err : new AppError(err);
             }
@@ -694,7 +703,7 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
 
         let responseCityIds;
         if (cityIds && cityIds.length > 0) {
-            await updateCityMappings(updationData, listingId, cityIds, transaction, roleId);
+            await updateCityMappings(updationData, listingId, cityIds, transaction, roleId, cityAdminMap, listingData.statusId);
             responseCityIds = cityIds;
         } else {
             const cityMappingData = await cityListingMappingRepo.getAll({
@@ -954,7 +963,7 @@ function validateAndAssignListingParameters(updationData, payload, next) {
     }
 }
 
-async function updateCityMappings(updationData, listingId, updatedCityIds, transaction, roleId) {
+async function updateCityMappings(updationData, listingId, updatedCityIds, transaction, roleId, cityAdminMap = {}, statusId) {
     if (!Array.isArray(updatedCityIds) || updatedCityIds.length === 0) {
         return;
     }
@@ -976,12 +985,15 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
             { filters: [{ key: "listingId", sign: "=", value: listingId }] },
             transaction
         );
-
-        const data = updatedCityIds.map((cityId, index) => ({
-            listingId,
-            cityId,
-            cityOrder: index + 1, // Maintain order
-        }));
+        const data = updatedCityIds.map((cityId, index) => {
+            const mappingStatus = (roleId === roles.Admin || cityAdminMap[cityId]) ? statusId || status.Active : status.Pending;
+            return {
+                listingId,
+                cityId,
+                cityOrder: index + 1, // Maintain order
+                status: mappingStatus
+            }
+        });
 
         await Promise.all(
             data.map(async (cityListingsMapping) =>
@@ -992,13 +1004,15 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
             )
         );
 
+        const activeListeningCityIds = data?.filter(mapping => mapping.status === status.Active).map(mapping => mapping.cityId);
+
         if (
             parseInt(updationData.categoryId) === categories.News &&
             parseInt(updationData.subcategoryId) === subcategories.newsflash &&
-            updationData.statusId === status.Active &&
+            activeListeningCityIds?.length &&
             roleId === roles.Admin
         ) {
-            const notifications = updatedCityIds.map(cityId => ({
+            const notifications = activeListeningCityIds.map(cityId => ({
                 topic: "warnings",
                 title: "Eilmeldung",
                 message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${updationData.title}`,
