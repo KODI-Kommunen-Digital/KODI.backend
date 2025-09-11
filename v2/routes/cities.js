@@ -29,7 +29,7 @@ router.delete("/:id/admins", authentication, removeCityAdmin);
 router.get("/:UserId/cityAdmin", authentication, citiesListingsByUserId);
 
 router.post(
-    "/:id/imageUpload",
+    "/:id/image",
     authentication,
     uploadImage,
 );
