@@ -105,7 +105,14 @@ class ListingsRepo extends BaseRepo {
             }
         });
 
-        const orderByClause = sortByStartDate ? " ORDER BY COALESCE(L.startDate, L.createdAt) DESC" : " ORDER BY L.createdAt DESC";
+        let orderByClause;
+        // determine if listing is fetched for recent listings(categoryId is not a filter) or sepcific events or news
+        if (filters.some(filter => filter.key === "categoryId")) {
+            orderByClause = sortByStartDate ? " ORDER BY L.startDate, L.createdAt DESC" : " ORDER BY L.createdAt DESC";
+        } else {
+            orderByClause = " ORDER BY L.createdAt DESC, L.id";
+        }
+        
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
         const offset = (pageNo - 1) * pageSize;
         queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
