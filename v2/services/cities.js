@@ -331,7 +331,7 @@ const createCity = async (roleId ,city) => {
 
 const updateCity = async (roleId, id, city) => {
     try {
-        if(roleId !== roles.Admin){
+        if(roleId !== roles.Admin && roleId !== roles["City Admin"]){
             throw new AppError("Unauthorized", 401);
         }
         if (!city.name || typeof city.name !== "string" || city.name.trim() === "") {
@@ -386,7 +386,7 @@ const deleteCity = async (roleId, id) => {
 
 const uploadImage = async (cityId, roleId, imageFiles) => {
     try {
-        if (roleId !== roles.Admin) {
+        if(roleId !== roles.Admin && roleId !== roles["City Admin"]){
             throw new AppError("Unauthorized", 401);
         }
 
@@ -446,7 +446,7 @@ const uploadImage = async (cityId, roleId, imageFiles) => {
 
 const deleteImage = async (cityId, roleId) => {
     try {
-        if (roleId !== roles.Admin) {
+        if (roleId !== roles.Admin && roleId !== roles["City Admin"]) {
             throw new AppError("Unauthorized", 401);
         }
 
