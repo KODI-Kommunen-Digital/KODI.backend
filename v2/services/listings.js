@@ -22,7 +22,7 @@ const roles = require("../constants/roles");
 const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
-const bucketClient = require("../utils/bucketClient");
+// const bucketClient = require("../utils/bucketClient");
 const isValidDate = require('../utils/validateDate');
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 const { translateObjectValues } = require("./translationService");
@@ -542,17 +542,17 @@ const deleteListing = async function (id, userId, roleId) {
 
     const transaction = await listingRepository.createTransaction();
     try {
-        const userImageList = await bucketClient.fetchUserImages(userId, null, id);
+        // const userImageList = await bucketClient.fetchUserImages(userId, null, id);
 
-        const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text })).filter((image) => typeof image.Key === 'string' && image.Key && !image.Key.startsWith("admin/"));
+        // const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text })).filter((image) => typeof image.Key === 'string' && image.Key && !image.Key.startsWith("admin/"));
 
-        if (imagesToDelete && imagesToDelete.length > 0) {
-            await imageDeleteAsync.deleteMultiple(imagesToDelete.map((i) => i.Key));
-        }
+        // if (imagesToDelete && imagesToDelete.length > 0) {
+        //     await imageDeleteAsync.deleteMultiple(imagesToDelete.map((i) => i.Key));
+        // }
 
-        if (currentListingData.pdf) {
-            await imageDeleteAsync.deleteImage(currentListingData.pdf);
-        }
+        // if (currentListingData.pdf) {
+        //     await imageDeleteAsync.deleteImage(currentListingData.pdf);
+        // }
 
         await listingImagesRepository.deleteWithTransaction({
             filters: [
@@ -574,6 +574,7 @@ const deleteListing = async function (id, userId, roleId) {
         }, transaction);
         await listingRepository.commitTransaction(transaction);
     } catch (err) {
+        console.error(err);
         await listingRepository.rollbackTransaction(transaction);
         if (err instanceof AppError) throw err;
         throw new AppError(err);
