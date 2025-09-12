@@ -16,6 +16,7 @@ class ListingsRepo extends BaseRepo {
         sortByStartDate = false,
         startAfterDate = null, // Start date for range
         endBeforeDate = null,   // End date for range
+        statusId,
     }) => {
         let words = [];
         if (searchQuery) {
@@ -51,6 +52,7 @@ class ListingsRepo extends BaseRepo {
                 C.cityId,
                 C.cityCount,
                 C.allCities,
+                C.cityData,
                 sub.logo,
                 sub.logoCount,
                 sub.otherLogos
@@ -69,9 +71,18 @@ class ListingsRepo extends BaseRepo {
                     COUNT(*) AS cityCount,
                     (SELECT CAST(CONCAT('[', GROUP_CONCAT(cityId ORDER BY cityOrder ASC SEPARATOR ','), ']') AS JSON)
                      FROM city_listing_mappings 
-                     WHERE listingId = clm.listingId) AS allCities
+                    WHERE listingId = clm.listingId) AS allCities,
+                    JSON_ARRAYAGG(JSON_OBJECT(
+                        'id', c.id,
+                        'name', c.name,
+                        'listingStatus', clm.status,
+                        'image', c.image
+                    )) AS cityData
                 FROM city_listing_mappings clm
-                ${cities.length > 0 ? ` WHERE cityId IN (${cities.map(() => '?').join(',')})` : ""}
+                INNER JOIN cities c ON c.id = clm.cityId
+                WHERE 1 = 1
+                ${cities.length > 0 ? ` AND clm.cityId IN (${cities.map(() => '?').join(',')})` : ""}
+                ${statusId ? (statusId === '*' ? '' : ` AND clm.status = ${statusId}`) : ' AND clm.status = 1'} -- default status.Active = 1
                 GROUP BY clm.listingId
             ) C ON L.id = C.listingId
             LEFT JOIN (

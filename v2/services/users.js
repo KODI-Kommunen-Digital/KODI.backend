@@ -22,6 +22,8 @@ const listingRepository = require("../repository/listingsRepo");
 const categoryRepository = require("../repository/categoriesRepo");
 const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
+const adminRepository = require("../repository/adminRepo");
+const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
 
 const login = async function (payload, sourceAddress, browsername, devicetype, req) {
     try {
@@ -347,21 +349,60 @@ const register = async function (payload, req) {
                 , 400, undefined, { socialMedia: payload.socialMedia });
         }
     }
-
+    let cities;
     // const connection = await database.createTransaction();
     const connection = await usersRepository.createTransaction();
     try {
+        try {
+            const AdminUser = await adminRepository.getOne({
+                filters: [
+                    {
+                        key: "email",
+                        sign: "=",
+                        value: insertionData.email
+                    }
+                ]
+            });
+            if (AdminUser) {
+                cities = AdminUser.cities;
+                await adminRepository.updateWithTransaction({
+                    data: {
+                        onBoarded: 1
+                    },
+                    filters: [
+                        {
+                            key: "email",
+                            sign: "=",
+                            value: insertionData.email
+                        }
+                    ]
+                },connection);
+                insertionData.roleId = AdminUser.roleId;
+            }
+        } catch (err) {
+        }
         // const response = await userRepo.createUser(insertionData, connection);
         const response = await usersRepository.createWithTransaction({
             data: insertionData
         }, connection);
-
         const userId = response.id;
+        if (cities && cities.length !== 0) {
+            await Promise.all(cities.map(async cityId => {
+                await cityUserRolesRepository.createWithTransaction({
+                    data: {
+                        userId,
+                        cityId,
+                        isAdmin: true
+                    }
+                }, connection);
+            }));
+        }
+
         const now = new Date();
         now.setHours(now.getHours() + 24);
         const token = crypto.randomBytes(32).toString("hex");
         const tokenData = {
-            userId,
+            userId: response.id,
             token,
             expiresAt: getDateInFormate(now),
         };

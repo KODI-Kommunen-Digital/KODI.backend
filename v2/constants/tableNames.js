@@ -6,6 +6,7 @@ module.exports = {
     LISTINGS_CHATS_TABLE: "listing_chats",
     LISTINGS_CHAT_REACTIONS_TABLE: "listing_chat_reactions",
     CITIES_TABLE: "cities",
+    CITY_USER_ROLES_TABLE: "city_user_roles",
     USER_CITYUSER_MAPPING_TABLE: "user_cityuser_mapping",
     USER_LISTING_MAPPING_TABLE: "user_listing_mapping",
     CITY_LISTING_MAPPING_TABLE: "city_listing_mappings",
@@ -38,4 +39,5 @@ module.exports = {
     USER_PREFERENCE_CATEGORIES_TABLE: 'user_preference_categories',
     USER_CHATBOT_SESSIONS_TABLE: "user_chatbot_sessions",
     USER_CHATBOT_CHATS_TABLE: "user_chatbot_chats",
+    ONBOARD_USER_TABLE: "users_onboarded",
 };

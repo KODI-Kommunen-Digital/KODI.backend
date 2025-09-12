@@ -40,7 +40,8 @@ const getAllListings = async (req, res, next) => {
             isAdmin,
             startAfterDate,
             endBeforeDate,
-            dateFilter
+            dateFilter,
+            userId: req.userId
         });
         res.status(200).json({
             status: "success",
@@ -176,11 +177,15 @@ const deleteListing = async function (req, res, next) {
 
 const updateListingStatus = async (req, res, next) => {
     const listingId = req.params.listingId
-    const { status } = req.body
-    const roleId = req.roleId
+    const { data } = req.body
 
     try {
-        await listingService.updateListingStatus({ id: listingId, roleId, newStatus: status });
+        await listingService.updateCityListingStatus({
+            listingId,
+            cityListingStatus: data,
+            userId: req.userId,
+            roleId: req.roleId,
+        });
         return res.status(200).json({
             status: "success",
             id: Number(listingId)

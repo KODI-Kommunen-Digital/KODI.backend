@@ -234,7 +234,7 @@ const verifyEmail = async function (req, res, next) {
 const logout = async function (req, res, next) {
     const userId = parseInt(req.params.id);
     const refreshToken = req.body.refreshToken;
-    const deviceToken = req.body.deviceId;
+    const deviceToken = req.body.deviceId || req.body.accesToken;
 
     try {
         if (userId !== parseInt(req.userId)) {
