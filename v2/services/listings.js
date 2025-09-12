@@ -97,7 +97,7 @@ const getAllListings = async ({
             value: status.Active
         });
     }
-
+    let sortByOrder;
     if (categoryId) {
         // const category = await cityListingRepo.getCategoryById(categoryId);
         const categoryResp = await categoriesRepository.getAll({
@@ -118,7 +118,7 @@ const getAllListings = async ({
         if (!categoryResp || !categoryResp.rows || !categoryResp.rows.length) {
             throw new AppError(`Invalid Category '${categoryId}' given`, 400);
         }
-
+        if(categoryId == categories.Events) sortByOrder = "ASC"; // eslint-disable-line
         if (subcategoryId) {
             const subcategory =
                 // await cityListingRepo.getSubCategoryById(subcategoryId);
@@ -247,6 +247,7 @@ const getAllListings = async ({
             sortByStartDate: sortByStartDateBool,
             startAfterDate, // Start date for range
             endBeforeDate,
+            sortByOrder
         });
         const noOfListings = listings.length;
         if (
