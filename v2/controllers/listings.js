@@ -185,7 +185,6 @@ const updateListingStatus = async (req, res, next) => {
             cityListingStatus: data,
             userId: req.userId,
             roleId: req.roleId,
-            translateLang: req.headers['accept-language']
         });
         return res.status(200).json({
             status: "success",

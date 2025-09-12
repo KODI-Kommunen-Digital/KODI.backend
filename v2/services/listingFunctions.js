@@ -350,7 +350,7 @@ async function createListing(cityIds, payload, userId, roleId) {
     try {
         transaction = await listingsRepository.createTransaction();
         insertionData.userId = userId;
-        insertionData.statusId = (roleId === roles.Admin || isAnAdmin) ? payload.statusId || status.Active : status.Pending;
+        insertionData.statusId = (roleId === roles.Admin || cityAdminMap?.[cityIds?.[0]]) ? payload.statusId || status.Active : status.Pending;
         const response = await listingsRepository.createWithTransaction({
             data: insertionData,
         }, transaction);
@@ -680,7 +680,7 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
                 if (!statusData) {
                     throw new AppError(`Invalid Status '${listingData.statusId}' given`, 400);
                 }
-                updationData.statusId = listingData.statusId; // tobe removed
+                updationData.statusId = (roleId === roles.Admin || cityAdminMap?.[cities?.[0].id]) ? listingData.statusId : currentStatusId;
             } catch (err) {
                 throw err instanceof AppError ? err : new AppError(err);
             }

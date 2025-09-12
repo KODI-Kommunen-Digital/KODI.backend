@@ -677,23 +677,12 @@ const updateCityListingStatus = async ({ listingId, cityListingStatus, userId, r
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
-    // const isValidMessages = cityListingStatus.every(cityListing => {
-    //     if (cityListing.message) {
-    //         return typeof cityListing.message === "string" && cityListing.message.length <= 255;
-    //     }
-    //     return true;
-    // });
-    // if (!isValidMessages) {
-    //     throw new AppError(`Invalid message given. Message should be a string and less than 255 characters`, 400);
-    // }
-
     const transaction = await listingRepository.createTransaction();
     try {
         await Promise.all(cityListingStatus.map(async (cityListing) => {
             await cityListingMappingRepo.updateWithTransaction({
                 data: {
                     status: cityListing.statusId,
-                    // message: cityListing.message,
                 },
                 filters: [
                     {
@@ -709,6 +698,25 @@ const updateCityListingStatus = async ({ listingId, cityListingStatus, userId, r
                 ],
             }, transaction);
         }));
+
+        const cityOrder1Mapping = existingCityMappings.rows.find(mapping => mapping.cityOrder === 1);
+        if (cityOrder1Mapping) {
+            const cityOrder1StatusObj = cityListingStatus.find(cl => cl.cityId === cityOrder1Mapping.cityId);
+            if (cityOrder1StatusObj) {
+                await listingRepository.update({
+                    data: {
+                        statusId: cityOrder1StatusObj.statusId,
+                    },
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: listingId,
+                        },
+                    ]
+                }, transaction);
+            }
+        }
 
         await listingRepository.commitTransaction(transaction);
     } catch (e) {
