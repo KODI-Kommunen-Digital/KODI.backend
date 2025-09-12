@@ -536,7 +536,7 @@ const deleteListing = async function (id, userId, roleId) {
     }
 
 
-    if (currentListingData.userId !== userId && roleId !== roles.Admin) {
+    if (currentListingData.userId !== userId && roleId !== roles.Admin && roleId !== roles["City Admin"]) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
 
