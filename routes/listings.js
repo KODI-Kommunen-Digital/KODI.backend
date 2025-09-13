@@ -12,6 +12,7 @@ router.get("/", async function (req, res, next) {
     const params = req.query;
     const pageNo = Number(params.pageNo) || 1;
     const pageSize = Number(params.pageSize) || 9;
+    const searchQuery = params.searchQuery;
     let sortByStartDate = false;
     let cities = [];
     const queryFilterParams = [];
@@ -222,6 +223,12 @@ router.get("/", async function (req, res, next) {
         const individualQueries = [];
         const queryParams = [];
         for (const city of cities) {
+            let searchFilter = '';
+            let searchParams = [];
+            if (searchQuery) {
+                searchFilter = ` AND (L.title LIKE ? OR L.description LIKE ?)`;
+                searchParams = [`%${searchQuery}%`, `%${searchQuery}%`];
+            }
             const cityQuery = `SELECT L.*, 
             IFNULL(sub.logo, '') as logo,
             IFNULL(sub.logoCount, 0) as logoCount,
@@ -238,10 +245,10 @@ router.get("/", async function (req, res, next) {
             ) sub ON L.id = sub.listingId 
             INNER JOIN user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ?
             INNER JOIN users U on U.id = UM.userId
-            WHERE 1=1 ${queryFilters}
+            WHERE 1=1 ${queryFilters}${searchFilter}
             GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
             individualQueries.push(cityQuery);
-            queryParams.push(city.id, city.id, ...queryFilterParams);
+            queryParams.push(city.id, city.id, ...queryFilterParams, ...searchParams);
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
         const fullQuery = `SELECT DISTINCT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
