@@ -5,6 +5,7 @@ const AppError = require("../utils/appError");
 async function getUserListings(req, userId){
     const pageNo = Number(req.query.pageNo) || 1;
     const pageSize = Number(req.query.pageSize) || 9;
+    const searchQuery = req.query.searchQuery || null;
 
     const filters = {};
 
@@ -146,6 +147,14 @@ async function getUserListings(req, userId){
                     queryParams.push(filters.statusId);
                 }
             }
+
+            // Add searchQuery filter
+            if (searchQuery) {
+                query += ` AND (${cityListAlias}.title LIKE ? OR ${cityListAlias}.description LIKE ?)`;
+                const likeQuery = `%${searchQuery}%`;
+                queryParams.push(likeQuery, likeQuery);
+            }
+
             individualQueries.push(query);
         }
 
