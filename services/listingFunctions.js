@@ -173,7 +173,7 @@ async function createListing(cityIds, payload, userId, roleId) {
     if (!payload.statusId) {
         insertionData.statusId = status.Pending;
     } else {
-        if (roleId !== roles.Admin) {
+        if (roleId !== roles.Admin && roleId !== roles["City Admin"]) {
             insertionData.statusId = status.Pending;
         } else {
             try {
