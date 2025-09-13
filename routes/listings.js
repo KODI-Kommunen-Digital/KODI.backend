@@ -128,19 +128,22 @@ router.get("/", async function (req, res, next) {
     // Validate cityId
     try {
         if (params.cityId) {
-            if (isNaN(Number(params.cityId)) || Number(params.cityId) <= 0) {
-                return next(
-                    new AppError(`Invalid City '${params.cityId}' given`, 400)
-                );
+            const cityId = params.cityId.split(",");
+            for (let i = 0; i < cityId.length; i++) {
+                if (isNaN(Number(cityId[i])) || Number(cityId[i]) <= 0) {
+                    return next(
+                        new AppError(`Invalid City '${cityId[i]}' given`, 400)
+                    );
+                }
             }
 
             const response = await database.get(
                 tables.CITIES_TABLE,
-                { id: params.cityId },
+                { id: cityId },
                 null
             );
             cities = response.rows;
-            if (cities && cities.length === 0) {
+            if (cities && (cities.length === 0 || cities.length !== cityId.length)) {
                 return next(
                     new AppError(`Invalid CityId '${params.cityId}' given`, 400)
                 );

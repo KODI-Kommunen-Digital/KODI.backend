@@ -295,11 +295,44 @@ router.post("/register", async function (req, res, next) {
         }
     }
 
+    let cities;
+
     try {
+        try {
+            const AdminUser = await database.get(
+                tables.USER_ONBOARDING_TABLE,
+                {
+                    email: insertionData.email
+                },
+                ["id", "cities", "roleId"]
+            );
+            if (AdminUser?.rows?.length > 0) {
+                cities = AdminUser.rows?.[0]?.cities;
+                await database.update(tables.USER_ONBOARDING_TABLE,
+                    {
+                        onBoarded: 1
+                    },
+                    {
+                        email: insertionData.email
+                    }
+                );
+                insertionData.roleId = AdminUser.rows?.[0]?.roleId;
+            }
+        } catch (err) {
+        }
         const response = await database.create(
             tables.USER_TABLE,
             insertionData
         );
+        if (cities) { // add in city_user_role table
+            cities.forEach(async (city) => {
+                await database.create(tables.CITY_USER_ROLES_TABLE, {
+                    cityId: city,
+                    userId: response.id,
+                    isAdmin: 1,
+                });
+            });
+        }
         const userId = response.id;
         const now = new Date();
         now.setHours(now.getHours() + 24);

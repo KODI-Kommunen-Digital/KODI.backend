@@ -581,7 +581,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
         }
         updationData.subcategoryId = payload.subcategoryId;
     }
-    if (currentListingData.userId !== cityUserId && req.roleId !== roles.Admin) {
+    if (currentListingData.userId !== cityUserId && req.roleId !== roles.Admin && req.roleId !== roles["City Admin"]) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -668,7 +668,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
 
     if (
         payload.statusId !== currentListingData.statusId &&
-        req.roleId === roles.Admin
+        (req.roleId === roles.Admin || req.roleId === roles["City Admin"]) 
     ) {
         try {
             const response = await database.get(
@@ -761,7 +761,8 @@ router.delete("/:id", authentication, async function (req, res, next) {
         );
 
         if (
-            req.roleId !== roles.Admin &&
+            req.roleId !== roles.Admin && 
+            req.roleId !== roles["City Admin"] &&
             (!response.rows ||
                 response.rows.length === 0 ||
                 response.rows[0].cityUserId !== currentListingData.userId)
@@ -853,7 +854,8 @@ router.post(
 
         if (
             currentListingData.userId !== cityUserId &&
-            req.roleId !== roles.Admin
+            req.roleId !== roles.Admin &&
+            req.roleId !== roles["City Admin"]
         ) {
             return next(
                 new AppError(`You are not allowed to access this resource`, 403)
@@ -1091,7 +1093,7 @@ router.post("/:id/pdfUpload", authentication, async function (req, res, next) {
     }
     const currentListingData = response.rows[0];
 
-    if (currentListingData.userId !== cityUserId && req.roleId !== roles.Admin) {
+    if (currentListingData.userId !== cityUserId && req.roleId !== roles.Admin && req.roleId !== roles["City Admin"]) {
         return next(
             new AppError(`You are not allowed to access this resource`, 403)
         );
@@ -1244,7 +1246,8 @@ router.delete(
 
         if (
             currentListingData.userId !== cityUserId &&
-            req.roleId !== roles.Admin
+            req.roleId !== roles.Admin &&
+            req.roleId !== roles["City Admin"]
         ) {
             return next(
                 new AppError(`You are not allowed to access this resource`, 403)
@@ -1335,7 +1338,8 @@ router.delete(
 
         if (
             currentListingData.userId !== cityUserId &&
-            req.roleId !== roles.Admin
+            req.roleId !== roles.Admin &&
+            req.roleId !== roles["City Admin"]
         ) {
             return next(
                 new AppError(`You are not allowed to access this resource`, 403)
