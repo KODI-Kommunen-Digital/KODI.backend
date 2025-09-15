@@ -1428,6 +1428,7 @@ const getUserListings = async function (
             filters,
             pageNo,
             pageSize,
+            statusId: '*'
         })
         return data;
     } catch (err) {
