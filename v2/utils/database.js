@@ -143,7 +143,6 @@ async function callStoredProcedure(spName, parameters, cityId) {
 }
 
 async function callQuery(query, params, cityId) {
-    console.log({ query, params })
     const connection = await getConnection(cityId);
     const [rows, fields] = await connection.query(query, params);
     connection.release();
