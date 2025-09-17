@@ -25,6 +25,15 @@ class ListingsRepo extends BaseRepo {
         }
         const queryParams = [];
 
+        const today = new Date().toISOString().split("T")[0];
+
+        const ongoingSelect = `
+        CASE 
+            WHEN DATE(L.startDate) <= ? AND DATE(L.endDate) >= ? THEN 1
+            ELSE 0
+        END AS isOngoing
+        `;
+
         let query = `
             SELECT  
                 L.id,
@@ -55,7 +64,8 @@ class ListingsRepo extends BaseRepo {
                 C.cityData,
                 sub.logo,
                 sub.logoCount,
-                sub.otherLogos
+                sub.otherLogos,
+                ${ongoingSelect}
                 ${searchQuery ? `,
                     (CASE 
                         WHEN ${words.map(() => `(L.title LIKE ?)`).join(' AND ')} THEN 1
@@ -96,6 +106,9 @@ class ListingsRepo extends BaseRepo {
             ) sub ON L.id = sub.listingId
             WHERE 1=1
         `;
+
+        queryParams.push(today, today);
+        
         // For searchRank
         if (searchQuery) {
             // searchRank title AND description word match
@@ -115,6 +128,9 @@ class ListingsRepo extends BaseRepo {
             words.forEach(word => queryParams.push(`%${word}%`)); // description WHERE
         }
 
+        query += ` AND (L.endDate IS NULL OR DATE(L.endDate) >= ?)`;
+        queryParams.push(today);
+        
         // Date range overlap logic:
         // A listing is "active" in the window [startAfterDate, endBeforeDate] if:
         // (L.startDate <= endBeforeDate) AND (L.endDate >= startAfterDate)
@@ -145,15 +161,24 @@ class ListingsRepo extends BaseRepo {
 
         let orderByClause;
         if (searchQuery) {
-            // Prioritize title matches, then description matches, then normal order
-            orderByClause = sortByStartDate
-                ? " ORDER BY searchRank, L.startDate, L.createdAt DESC"
-                : " ORDER BY searchRank, L.createdAt DESC";
+            orderByClause = `
+                ORDER BY
+                isOngoing DESC,
+                (CASE WHEN isOngoing = 1 THEN L.startDate ELSE NULL END) DESC,
+                (CASE WHEN isOngoing = 0 THEN L.startDate ELSE NULL END) ASC,
+                searchRank,
+                L.createdAt DESC
+            `;
         } else {
-            orderByClause = sortByStartDate
-                ? " ORDER BY L.startDate, L.createdAt DESC"
-                : " ORDER BY L.createdAt DESC,L.id";
+            orderByClause = `
+            ORDER BY
+            isOngoing DESC,
+            (CASE WHEN isOngoing = 1 THEN L.startDate ELSE NULL END) DESC,
+            (CASE WHEN isOngoing = 0 THEN L.startDate ELSE NULL END) ASC,
+            L.createdAt DESC
+        `;
         }
+
 
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
         const offset = (pageNo - 1) * pageSize;
