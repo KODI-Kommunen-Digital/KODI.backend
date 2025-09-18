@@ -22,7 +22,8 @@ const advertisement = require("./routes/ads");
 const wasteCalender = require("./routes/wasteCalender");
 const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
-const headers = require("./middlewares/headers")
+const headers = require("./middlewares/headers");
+require("./services/pollservice"); // Start the polling service
 
 // defining the Express app
 const app = express();
@@ -44,7 +45,7 @@ app.use(cors());
 // adding morgan to log HTTP requests
 app.use(morgan("combined"));
 
-app.use(headers)
+app.use(headers);
 
 app.use("/reportDefect", defectReportRouter);
 app.use(
@@ -110,7 +111,7 @@ app.use(
     },
     cityListingsRouter
 );
-if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+if (process.env.WASTE_CALENDER_ENABLED === "True") {
     app.use(
         "/cities/:cityId/wasteCalender",
         function (req, res, next) {
@@ -126,12 +127,12 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
         wasteCalender
     );
 }
-app.use("/ads", advertisement)
+app.use("/ads", advertisement);
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
 
-Sentry.setupExpressErrorHandler(app)
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 // starting the server
