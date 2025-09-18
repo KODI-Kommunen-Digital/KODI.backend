@@ -161,22 +161,13 @@ class ListingsRepo extends BaseRepo {
 
         let orderByClause;
         if (searchQuery) {
-            orderByClause = `
-                ORDER BY
-                isOngoing DESC,
-                (CASE WHEN isOngoing = 1 THEN L.startDate ELSE NULL END) DESC,
-                (CASE WHEN isOngoing = 0 THEN L.startDate ELSE NULL END) ASC,
-                searchRank,
-                L.createdAt DESC
-            `;
+           orderByClause = sortByStartDate
+                ? " ORDER BY searchRank, L.startDate, L.createdAt DESC"
+                : " ORDER BY searchRank, L.createdAt DESC";
         } else {
-            orderByClause = `
-            ORDER BY
-            isOngoing DESC,
-            (CASE WHEN isOngoing = 1 THEN L.startDate ELSE NULL END) DESC,
-            (CASE WHEN isOngoing = 0 THEN L.startDate ELSE NULL END) ASC,
-            L.createdAt DESC
-        `;
+           orderByClause = sortByStartDate
+                ? " ORDER BY L.startDate, L.createdAt DESC"
+                : " ORDER BY L.createdAt DESC,L.id";
         }
 
 
