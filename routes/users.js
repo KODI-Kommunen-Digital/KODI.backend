@@ -598,11 +598,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
                     )
                 );
             }
-
             if (
                 typeof socialMedia[Object.keys(socialMedia)[0]] !== "string" ||
                 !socialMedia[Object.keys(socialMedia)[0]].includes(
-                    Object.values(socialMedia)[0].toLowerCase()
+                    Object.keys(socialMedia)[0].toLowerCase()
                 )
             ) {
                 return next(
