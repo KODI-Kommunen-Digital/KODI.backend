@@ -195,7 +195,7 @@ router.get("/", async function (req, res, next) {
             const firstDayStr = firstDayOfWeek.toISOString().split("T")[0];
             const lastDayStr = lastDayOfWeek.toISOString().split("T")[0];
 
-            startDateCondition = ` AND L.startDate BETWEEN '${firstDayStr}' AND '${lastDayStr}' `;
+            startDateCondition = ` AND L.startDate BETWEEN '${firstDayStr}' AND '${lastDayStr} 23:59:59' `;
             break;
         }
         case "month":{
@@ -206,7 +206,7 @@ router.get("/", async function (req, res, next) {
             const firstMonthStr = firstDayOfMonth.toISOString().split("T")[0];
             const lastMonthStr = lastDayOfMonth.toISOString().split("T")[0];
 
-            startDateCondition = ` AND L.startDate BETWEEN '${firstMonthStr}' AND '${lastMonthStr}' `;
+            startDateCondition = ` AND L.startDate BETWEEN '${firstMonthStr}' AND '${lastMonthStr} 23:59:59' `;
             break;
         }
         default:
