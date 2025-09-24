@@ -13,6 +13,9 @@ const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const sendPushNotification = require("../services/sendPushNotification");
 const sendMail = require("./sendMail");
+require("dotenv").config();
+
+const NO_OF_DAYS_TO_EXPIRY = process.env.NO_OF_DAYS_TO_EXPIRY ? parseInt(process.env.NO_OF_DAYS_TO_EXPIRY) : 15;
 
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
@@ -256,7 +259,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(insertionData.createdAt).getTime() +
-                        1000 * 60 * 60 * 24 * 14
+                        1000 * 60 * 60 * 24 * NO_OF_DAYS_TO_EXPIRY
                     )
                 );
             }
@@ -273,11 +276,11 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (payload.endDate) {
                 insertionData.endDate = getDateInFormate(new Date(payload.endDate));
                 insertionData.expiryDate = getDateInFormate(
-                    new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24)
+                    new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 1)
                 );
             } else {
                 insertionData.expiryDate = getDateInFormate(
-                    new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24)
+                    new Date(new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 1)
                 );
             }
         }
