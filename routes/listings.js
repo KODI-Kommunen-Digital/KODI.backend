@@ -251,10 +251,14 @@ router.get("/", async function (req, res, next) {
             queryParams.push(city.id, city.id, ...queryFilterParams, ...searchParams);
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
-        const fullQuery = `SELECT DISTINCT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
-        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
+        // const fullQuery = `SELECT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
+        // ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
+        const newFullQuery = `WITH all_listings AS(${individualQueries.join(" UNION ALL ")}),
+        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
+        SELECT * FROM ranked WHERE rn = 1
+        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : "createdAt DESC"} LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
-        const response = await database.callQuery(fullQuery, finalQueryParams);
+        const response = await database.callQuery(newFullQuery, finalQueryParams);
         const listings = response.rows;
         const noOfListings = listings.length;
 
