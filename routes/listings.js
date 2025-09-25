@@ -14,6 +14,7 @@ router.get("/", async function (req, res, next) {
     const pageSize = Number(params.pageSize) || 9;
     const searchQuery = params.searchQuery;
     let sortByStartDate = false;
+    let showRecentListings = false;
     let cities = [];
     const queryFilterParams = [];
     let queryFilters = '';
@@ -218,6 +219,25 @@ router.get("/", async function (req, res, next) {
         queryFilters += startDateCondition;
     }
 
+    // Validate recent listings check
+    if (params.showRecentListings) {
+        const showRecentListingsString = params.showRecentListings.toString();
+        if (showRecentListingsString !== 'true' && showRecentListingsString !== 'false') {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            showRecentListings = showRecentListingsString === 'true';
+            if(showRecentListings) {
+                const today = new Date();
+                const todayDateStr = today.toISOString().split("T")[0];
+                const recentListingCondition = ` AND L.startDate <= ${todayDateStr} 
+                OR (L.categoryId = 1 AND L.createdAt IS NOT NULL) `;
+                queryFilters += recentListingCondition;
+            }
+        }
+    }
+
     // Construct and execute the final query
     try {
         const individualQueries = [];
@@ -256,7 +276,7 @@ router.get("/", async function (req, res, next) {
         const newFullQuery = `WITH all_listings AS(${individualQueries.join(" UNION ALL ")}),
         ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
         SELECT * FROM ranked WHERE rn = 1
-        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : "createdAt DESC"}, externalId LIMIT ?, ?;`;
+        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : showRecentListings ? "COALESCE(startDate, createdAt) DESC" : "createdAt DESC"}, externalId LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
         const response = await database.callQuery(newFullQuery, finalQueryParams);
         const listings = response.rows;
