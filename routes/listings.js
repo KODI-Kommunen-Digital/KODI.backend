@@ -256,7 +256,7 @@ router.get("/", async function (req, res, next) {
         const newFullQuery = `WITH all_listings AS(${individualQueries.join(" UNION ALL ")}),
         ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
         SELECT * FROM ranked WHERE rn = 1
-        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : "createdAt DESC"} LIMIT ?, ?;`;
+        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : "createdAt DESC"}, externalId LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
         const response = await database.callQuery(newFullQuery, finalQueryParams);
         const listings = response.rows;
