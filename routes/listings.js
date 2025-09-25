@@ -251,10 +251,14 @@ router.get("/", async function (req, res, next) {
             queryParams.push(city.id, city.id, ...queryFilterParams, ...searchParams);
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
-        const fullQuery = `SELECT DISTINCT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
-        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
+        // const fullQuery = `SELECT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
+        // ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
+        const newFullQuery = `WITH all_listings AS(${individualQueries.join(" UNION ALL ")}),
+        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
+        SELECT * FROM ranked WHERE rn = 1
+        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : "createdAt DESC"}, externalId LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
-        const response = await database.callQuery(fullQuery, finalQueryParams);
+        const response = await database.callQuery(newFullQuery, finalQueryParams);
         const listings = response.rows;
         const noOfListings = listings.length;
 
@@ -374,6 +378,58 @@ router.get("/search", async function (req, res, next) {
         }
         filters.push(`L.statusId = ?`);
         queryParams.push(params.statusId);
+    }
+
+    // Validate categoryId and subcategoryId
+    if (params.categoryId) {
+        if (isNaN(Number(params.categoryId)) || Number(params.categoryId) <= 0) {
+            return next(new AppError(`Invalid category ${params.categoryId}`, 400));
+        }
+
+        try {
+            let response = await database.get(
+                tables.CATEGORIES_TABLE,
+                { id: params.categoryId, isEnabled: true }
+            );
+            const data = response.rows;
+            if (data && data.length === 0) {
+                return next(
+                    new AppError(`Invalid Category '${params.categoryId}' given`, 400)
+                );
+            } else {
+                filters.push(`L.categoryId = ?`);
+                queryParams.push(Number(params.categoryId));
+                if (params.subcategoryId) {
+                    if (isNaN(Number(params.subcategoryId)) || Number(params.subcategoryId) <= 0) {
+                        return next(
+                            new AppError(`Invalid Subcategory '${params.subcategoryId}' given`, 400)
+                        );
+                    }
+                    try {
+                        response = await database.get(tables.SUBCATEGORIES_TABLE, {
+                            id: params.subcategoryId,  // Corrected the query condition
+                            categoryId: params.categoryId
+                        });
+                        const subcategoryData = response.rows;
+                        if (subcategoryData && subcategoryData.length === 0) {
+                            return next(
+                                new AppError(
+                                    `Invalid subCategory '${params.subcategoryId}' given`,
+                                    400
+                                )
+                            );
+                        }
+                    } catch (err) {
+                        return next(new AppError(err));
+                    }
+                    filters.push(`L.subcategoryId = ?`);
+                    queryParams.push(Number(params.subcategoryId));
+                }
+            }
+        } catch (err) {
+            console.log(err)
+            return next(new AppError(err));
+        }
     }
 
     const individualQueries = cities.map(city => {
