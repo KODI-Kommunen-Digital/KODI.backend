@@ -95,6 +95,10 @@ router.get("/", async function (req, res, next) {
             } else {
                 queryFilters += ` AND L.categoryId = ? `;
                 queryFilterParams.push(Number(params.categoryId));
+                if (Number(params.categoryId) === 3) {
+                    const todayStr = new Date().toISOString().split("T")[0];
+                    queryFilters += ` AND L.endDate >= ${todayStr} `;   
+                }
                 if (params.subcategoryId) {
                     if (isNaN(Number(params.subcategoryId)) || Number(params.subcategoryId) <= 0) {
                         return next(
