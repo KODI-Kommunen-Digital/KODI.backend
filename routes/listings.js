@@ -236,7 +236,7 @@ router.get("/", async function (req, res, next) {
                 const today = new Date();
                 const todayDateStr = today.toISOString().split("T")[0];
                 const recentListingCondition = ` AND (L.startDate <= '${todayDateStr}' 
-                OR (L.categoryId = 1 AND L.createdAt IS NOT NULL)) `;
+                OR L.categoryId = 1) `;
                 queryFilters += recentListingCondition;
             }
         }
