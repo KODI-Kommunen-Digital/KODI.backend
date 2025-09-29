@@ -1,34 +1,44 @@
 const express = require("express");
 const router = express.Router();
 const sendMail = require("../services/sendMail");
-const database = require("../services/database");
 const AppError = require("../utils/appError");
-const tables = require("../constants/tableNames");
-const authentication = require("../middlewares/authentication");
 
-router.post("/",authentication, async function (req, res, next) {
-    const id = req.userId;
+
+router.post("/", async function (req, res, next) {
     const language = req.body.language || "de";
-    const body = req.body.email;
+    const body = req.body.enquiery;
+    const {firstname, lastname, email} = req.body;
+
+    // Validate mandatory fields
+    if (!firstname || firstname.trim() === "") {
+        return next(new AppError(`First name is required`, 400));
+    }
+    
+    // if (!lastname || lastname.trim() === "") {
+    //     return next(new AppError(`Last name is required`, 400));
+    // }
+    
+    if (!email || email.trim() === "") {
+        return next(new AppError(`Email is required`, 400));
+    }
+    
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return next(new AppError(`Please provide a valid email address`, 400));
+    }
 
     if (!body) {
         return next(new AppError(`Message not present`, 400));
     }
 
     try {
-        const response = await database.get(tables.USER_TABLE, { id });
-        const data = response.rows;
-        if (data && data.length === 0) {
-            return next(
-                new AppError(`UserID ${id} does not exist`, 404)
-            );
-        }
-        const user = data[0];
+       
         const contactUsEmail = require(`../emailTemplates/${language}/contactUsEmail`);
         const { subject } = contactUsEmail(
-            user.firstname,
-            user.lastname,
-            user.email
+            firstname ,
+            lastname ,
+            email
         );
         const contactEmail = process.env.CONTACT_EMAIL || 'info@heidi-app.de';
         await sendMail(contactEmail, subject, body, null);
@@ -38,7 +48,6 @@ router.post("/",authentication, async function (req, res, next) {
     } catch (err) {
         return next(new AppError(err));
     }
-}
+});
 
-)
 module.exports = router;
