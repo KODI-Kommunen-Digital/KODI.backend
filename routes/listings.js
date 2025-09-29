@@ -344,6 +344,7 @@ router.get("/search", async function (req, res, next) {
     const filters = [];
     let cities = [];
     let sortByStartDate = false;
+    let showRecentListings = false;
     const searchQuery = params.searchQuery;
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
@@ -456,6 +457,25 @@ router.get("/search", async function (req, res, next) {
         }
     }
 
+    // Validate recent listings check
+    if (params.showRecentListings) {
+        const showRecentListingsString = params.showRecentListings.toString();
+        if (showRecentListingsString !== 'true' && showRecentListingsString !== 'false') {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            showRecentListings = showRecentListingsString === 'true';
+            if(showRecentListings) {
+                const today = new Date();
+                const todayDateStr = today.toISOString().split("T")[0];
+                const recentListingCondition = `(L.startDate <= '${todayDateStr}' 
+                OR L.categoryId = 1)`;
+                filters.push(recentListingCondition);
+            }
+        }
+    }
+
     const individualQueries = cities.map(city => {
         let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`]; 
         let query = `SELECT L.*, 
@@ -492,10 +512,11 @@ router.get("/search", async function (req, res, next) {
     const paginationParams = [(pageNo - 1) * pageSize, pageSize];
     combinedParams = combinedParams.concat(paginationParams);
 
-    const orderByClause = sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC";
-    const combinedQuery = `SELECT * FROM (${combinedQueryParts.join(" UNION ALL ")}) AS combined 
-                            ${orderByClause} 
-                            LIMIT ?, ?`;
+    const orderByClause = sortByStartDate ? "startDate, createdAt DESC" : showRecentListings ? "COALESCE(startDate, createdAt) DESC" : "createdAt DESC";
+    const combinedQuery = `WITH all_listings AS(${combinedQueryParts.join(" UNION ALL ")}),
+        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
+        SELECT * FROM ranked WHERE rn = 1
+        ORDER BY ${orderByClause}, externalId LIMIT ?, ?;`;
 
     try {
         const response = await database.callQuery(combinedQuery, combinedParams);
