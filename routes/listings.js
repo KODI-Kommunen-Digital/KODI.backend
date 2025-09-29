@@ -16,7 +16,8 @@ router.get("/", async function (req, res, next) {
     let cities = [];
     const queryFilterParams = [];
     let queryFilters = '';
-    
+    const randomOrder=params.randomOrder==='true'?true:false;
+
     // Validate pageNo
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
         return next(
@@ -247,8 +248,9 @@ router.get("/", async function (req, res, next) {
             queryParams.push(city.id, city.id, ...queryFilterParams);
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
+        const orderByClause = randomOrder ? "ORDER BY RAND()" : (sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC");
         const fullQuery = `SELECT DISTINCT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
-        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
+        ${orderByClause} LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
         const response = await database.callQuery(fullQuery, finalQueryParams);
         const listings = response.rows;
@@ -288,7 +290,7 @@ router.get("/", async function (req, res, next) {
                 }
             }
         }
-
+        console.log(listings,'listings')
         // Send response
         return res.status(200).json({
             status: "success",
