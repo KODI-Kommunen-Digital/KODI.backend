@@ -76,9 +76,10 @@ router.get("/", async function (req, res, next) {
     }
 
     if(params.excludeCategoryId){
-        queryFilters +=queryFilters?.length===0 ? ` L.categoryId != ? `:` AND L.categoryId != ? `;
+        queryFilters +=` AND L.categoryId != ? `;
         queryFilterParams.push(Number(params.excludeCategoryId));
     }
+    
 
     // Validate categoryId and subcategoryId
     if (params.categoryId ) {
@@ -131,6 +132,7 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         }
     } 
+ 
 
     // Validate cityId
     try {
@@ -242,12 +244,13 @@ router.get("/", async function (req, res, next) {
             ) sub ON L.id = sub.listingId 
             INNER JOIN user_cityuser_mapping UM on UM.cityUserId = L.userId AND UM.cityId = ?
             INNER JOIN users U on U.id = UM.userId
-            WHERE 1=1 ${queryFilters}
+            WHERE 1=1 ${randomOrder ? "AND logo IS NOT NULL AND logo!='' ":''} ${queryFilters}
             GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`;
             individualQueries.push(cityQuery);
             queryParams.push(city.id, city.id, ...queryFilterParams);
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
+
         const orderByClause = randomOrder ? "ORDER BY RAND()" : (sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC");
         const fullQuery = `SELECT DISTINCT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
         ${orderByClause} LIMIT ?, ?;`;
@@ -255,7 +258,7 @@ router.get("/", async function (req, res, next) {
         const response = await database.callQuery(fullQuery, finalQueryParams);
         const listings = response.rows;
         const noOfListings = listings.length;
-
+         
         // Handle translations if needed
         if (
             noOfListings > 0 &&
@@ -290,7 +293,6 @@ router.get("/", async function (req, res, next) {
                 }
             }
         }
-        console.log(listings,'listings')
         // Send response
         return res.status(200).json({
             status: "success",
