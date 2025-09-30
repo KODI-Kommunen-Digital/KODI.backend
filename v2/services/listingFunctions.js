@@ -439,23 +439,24 @@ async function createListing(cityIds, payload, userId, roleId) {
             insertionData.statusId === status.Active &&
             roleId === roles.Admin
         ) {
-            await sendPushNotification.sendPushNotificationToAll(
-                "warnings",
+            await sendPushNotification.sendPushNotificationsToUsers(
+                cityIds,
+                null,
                 "Eilmeldung",
                 mainCity.name + " - " + insertionData.title,
-                { cityId: mainCity.id.toString(), id: listingId.toString() },
+                { cityId: mainCity.id.toString(), id: listingId.toString() }
             );
         }
 
-        if (roleId === roles.Admin && insertionData.statusId === status.Active) {
-            await sendPushNotification.sendPushNotificationsToUsers(
-                cityIds,
-                insertionData.categoryId,
-                "Neue Meldung",
-                insertionData.title,
-                { cities: JSON.stringify(cities), id: listingId.toString() },
-            );
-        }
+        // if (roleId === roles.Admin && insertionData.statusId === status.Active) {
+        //     await sendPushNotification.sendPushNotificationsToUsers(
+        //         cityIds,
+        //         insertionData.categoryId,
+        //         "Neue Meldung",
+        //         insertionData.title,
+        //         { cities: JSON.stringify(cities), id: listingId.toString() },
+        //     );
+        // }
 
         if ((roleId === roles["Content Creator"] || roleId === roles["Department Head"]) &&
             insertionData.statusId === status.Pending) {
