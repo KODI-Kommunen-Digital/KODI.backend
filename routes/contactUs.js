@@ -7,21 +7,31 @@ const AppError = require("../utils/appError");
 router.post("/", async function (req, res, next) {
     const language = req.body.language || "de";
     const body = req.body.enquiery;
-    const {firstname, lastname, email} = req.body;
+    const { firstname, lastname, email, phoneNumber } = req.body;
 
     // Validate mandatory fields
     if (!firstname || firstname.trim() === "") {
         return next(new AppError(`First name is required`, 400));
     }
-    
-    // if (!lastname || lastname.trim() === "") {
-    //     return next(new AppError(`Last name is required`, 400));
-    // }
-    
+
+    if (!lastname || lastname.trim() === "") {
+        return next(new AppError(`Last name is required`, 400));
+    }
+
+    if (!phoneNumber || phoneNumber.trim() === "") {
+        return next(new AppError(`Phone number is required`, 400));
+    } else {
+        const re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
+        if (!re.test(phoneNumber)) {
+            return next(new AppError("Phone number is not valid", 400));
+        }
+    }
+
     if (!email || email.trim() === "") {
         return next(new AppError(`Email is required`, 400));
     }
-    
+
+
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -33,13 +43,16 @@ router.post("/", async function (req, res, next) {
     }
 
     try {
-       
+
         const contactUsEmail = require(`../emailTemplates/${language}/contactUsEmail`);
         const { subject } = contactUsEmail(
-            firstname ,
-            lastname ,
-            email
+            firstname,
+            lastname,
+            email,
+            phoneNumber
+
         );
+
         const contactEmail = process.env.CONTACT_EMAIL || 'info@heidi-app.de';
         await sendMail(contactEmail, subject, body, null);
         return res.status(200).json({
