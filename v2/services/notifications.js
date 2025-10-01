@@ -118,7 +118,7 @@ const updateUserNotificationPreference = async function(userId, { type, ids = []
                 const cities = await cityRepository.getAll({
                     filters: [{ key: "id", sign: "IN", value: ids }]
                 });
-                const foundIds = cities.map(city => city.id);
+                const foundIds = cities.rows.map((city) => city.id);
                 const notFound = ids.filter(id => !foundIds.includes(id));
                 if (notFound.length > 0) {
                     throw new AppError(`Invalid city ids: ${notFound.join(', ')}`, 400);
@@ -139,7 +139,7 @@ const updateUserNotificationPreference = async function(userId, { type, ids = []
                 const categories = await categoryRepository.getAll({
                     filters: [{ key: "id", sign: "IN", value: ids }]
                 });
-                const foundIds = categories.map(category => category.id);
+                const foundIds = categories.rows.map((category) => category.id);
                 const notFound = ids.filter(id => !foundIds.includes(id));
                 if (notFound.length > 0) {
                     throw new AppError(`Invalid category ids: ${notFound.join(', ')}`, 400);
