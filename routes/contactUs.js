@@ -9,7 +9,7 @@ const database = require("../services/database");
 router.post("/", optionalAuthentication, async function (req, res, next) {
     const language = req.body.language || "de";
     const body = req.body.enquiery;
-    const id = 2;
+    const id = req.userId;
 
     const { firstname, lastname, email, phoneNumber, key = 'feedback' } = req.body;
 
