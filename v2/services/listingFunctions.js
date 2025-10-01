@@ -307,6 +307,9 @@ async function createListing(cityIds, payload, userId, roleId) {
     }
 
     insertionData.createdAt = getDateInFormate(new Date());
+    if (insertionData.scheduledAt) {
+        insertionData.createdAt = insertionData.scheduledAt;
+    }
 
     try {
         if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
@@ -670,6 +673,7 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
                     throw new AppError(`Scheduled time cannot be in the past`, 400);
                 } else {
                     updationData.scheduledAt = getDateInFormate(scheduledAt);
+                    updationData.createdAt = getDateInFormate(scheduledAt);
                 }
             }
         } else {
