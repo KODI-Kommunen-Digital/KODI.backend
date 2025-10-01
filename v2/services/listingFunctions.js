@@ -200,6 +200,21 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
     }
 
+    if (insertionData.statusId === status.Scheduled) {
+        if (!payload.scheduledAt) {
+            throw new AppError(`Scheduled time is not present`, 400);
+        } else {
+            const scheduledAt = new Date(payload.scheduledAt);
+            if (isNaN(scheduledAt.getTime())) {
+                throw new AppError('Invalid scheduledAt date format, example format: "2025-01-06T07:47:09.230Z" ', 400);
+            } else if (scheduledAt < new Date()) {
+                throw new AppError(`Scheduled time cannot be in the past`, 400);
+            } else {
+                insertionData.scheduledAt = getDateInFormate(scheduledAt);
+            }
+        }
+    };
+
     insertionData.sourceId = source.UserEntry;
 
     if (payload.address) {
@@ -641,6 +656,25 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         throw new AppError(`Title length cannot exceed 255 characters`, 400);
     } else if (listingData.title) {
         updationData.title = listingData.title;
+    }
+    // if listing is already scheduled, only admin can update the scheduledAt field and if status is not scheduled it cannot be updated to scheduled
+    if (listingData.scheduledAt) {
+        if (currentListingData.statusId === status.Scheduled) {
+            if (roleId !== roles.Admin) {
+                throw new AppError(`You are not allowed to update scheduledAt field`, 403);
+            } else {
+                const scheduledAt = new Date(listingData.scheduledAt);
+                if (isNaN(scheduledAt.getTime())) {
+                    throw new AppError('Invalid scheduledAt date format, example format: "2025-01-06T07:47:09.230Z" ', 400);
+                } else if (scheduledAt < new Date()) {
+                    throw new AppError(`Scheduled time cannot be in the past`, 400);
+                } else {
+                    updationData.scheduledAt = getDateInFormate(scheduledAt);
+                }
+            }
+        } else {
+            throw new AppError(`Only Admin can update scheduledAt field of a scheduled listing`, 403);
+        }
     }
 
     if (
