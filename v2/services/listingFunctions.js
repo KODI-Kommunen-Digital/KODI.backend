@@ -982,6 +982,10 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
                 )
             )
         );
+        // sending push notifications in context to main city selected only while creating listing with additional city selection.
+        const mainCity = cityDetailsMap.find(
+            (city) => city[0] === updatedCityIds[0]
+        );
 
         if (
             parseInt(updationData.categoryId) === categories.News &&
@@ -989,22 +993,13 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
             updationData.statusId === status.Active &&
             roleId === roles.Admin
         ) {
-            const notifications = updatedCityIds.map(cityId => ({
-                topic: "warnings",
-                title: "Eilmeldung",
-                message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${updationData.title}`,
-                payload: { cityId: cityId.toString(), id: listingId.toString() },
-            }));
-
-            // Send notifications in parallel
-            await Promise.all(notifications.map(notification =>
-                sendPushNotification.sendPushNotificationToAll(
-                    notification.topic,
-                    notification.title,
-                    notification.message,
-                    notification.payload
-                )
-            ));
+            await sendPushNotification.sendPushNotificationsToUsers(
+                updatedCityIds,
+                null,
+                "Eilmeldung",
+                mainCity.name + " - " + updationData.title,
+                { cityId: mainCity.id.toString(), id: listingId.toString() }
+            );
         }
     } catch (err) {
         if (err instanceof AppError) {
