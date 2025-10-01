@@ -62,7 +62,7 @@ class ListingSchedulerCron {
         for (const listing of rows || []) {
             try {
                 const listingId = listing.id;
-                const cityMappings = JSON.parse(listing.cities);
+                const cityMappings = listing.cities;
                 const cityIds = cityMappings.map((mapping) => mapping.cityId);
 
                 // Fetch main city from listing.cities with order 1
