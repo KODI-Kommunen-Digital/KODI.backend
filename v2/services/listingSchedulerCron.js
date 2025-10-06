@@ -32,13 +32,33 @@ class ListingSchedulerCron {
 
     async checkScheduledListings() {
         const now = new Date();
-        const formatDateForMySQL = (date) =>
-            date.toISOString().slice(0, 19).replace("T", " ");
+
+        // Helper to format any Date to MySQL datetime string in local time
+        const formatDateForMySQLLocal = (date) => {
+            const pad = (n) => (n < 10 ? "0" + n : n);
+            return (
+                date.getFullYear() +
+                "-" +
+                pad(date.getMonth() + 1) +
+                "-" +
+                pad(date.getDate()) +
+                " " +
+                pad(date.getHours()) +
+                ":" +
+                pad(date.getMinutes()) +
+                ":" +
+                pad(date.getSeconds())
+            );
+        };
+
+        // Get German local time
         const nowInGermany = new Date(
             now.toLocaleString("en-US", { timeZone: "Europe/Berlin" })
         );
+        // Format both correctly in German local time
+        const formattedNow = formatDateForMySQLLocal(nowInGermany);
 
-        const formattedNow = formatDateForMySQL(nowInGermany);
+        console.log("Now (Germany):", formattedNow);
 
         const query = `
         SELECT
