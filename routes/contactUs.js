@@ -8,13 +8,16 @@ const database = require("../services/database");
 
 router.post("/", optionalAuthentication, async function (req, res, next) {
     const language = req.body.language || "de";
-    const body = req.body.enquiery;
+    let body = req.body.enquiery;
     const id = req.userId;
 
     const { firstname, lastname, email, phoneNumber, key = 'feedback' } = req.body;
 
     // Validate mandatory fields for contactUS
     if (key === 'contactUs') {
+        if (!body?.trim()) {
+            return next(new AppError(`Message not present`, 400));
+        }
         if (!firstname || firstname.trim() === "") {
             return next(new AppError(`First name is required`, 400));
         }
@@ -43,12 +46,8 @@ router.post("/", optionalAuthentication, async function (req, res, next) {
         }
     }
 
-    if (!body) {
-        return next(new AppError(`Message not present`, 400));
-    }
-
     try {
-        let userFirstname, userLastname, userEmail, userPhoneNumber;
+        let userFirstname, userLastname, userEmail, userPhoneNumber, contactEmail;
 
         if (key === 'contactUs') {
             // Use data from payload
@@ -56,11 +55,18 @@ router.post("/", optionalAuthentication, async function (req, res, next) {
             userLastname = lastname;
             userEmail = email;
             userPhoneNumber = phoneNumber;
+            contactEmail = process.env.CONTACT_US_EMAIL || 'info@heidi-app.de';
         } else {
             // Get data from database
             if (!id) {
                 return next(new AppError(`User ID is required when key is not contactUs`, 400));
             }
+
+            if (!req.body.email?.trim()) {
+                return next(new AppError(`Message not present`, 400));
+            }
+            
+            body = req.body.email;
             
             const response = await database.get(tables.USER_TABLE, { id });
             const data = response.rows;
@@ -73,6 +79,7 @@ router.post("/", optionalAuthentication, async function (req, res, next) {
             userLastname = user.lastname;
             userEmail = user.email;
             userPhoneNumber = null; // Don't include phone number when not contactUS
+            contactEmail = process.env.CONTACT_EMAIL || 'info@heidi-app.de';
         }
 
         const contactUsEmail = require(`../emailTemplates/${language}/contactUsEmail`);
@@ -82,8 +89,6 @@ router.post("/", optionalAuthentication, async function (req, res, next) {
             userEmail,
             userPhoneNumber
         );
-
-        const contactEmail = process.env.CONTACT_EMAIL || 'info@heidi-app.de';
         await sendMail(contactEmail, subject, body, null);
         
         return res.status(200).json({

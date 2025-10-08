@@ -7,6 +7,7 @@ const AppError = require("../utils/appError");
 const deepl = require("deepl-node");
 const authentication = require("../middlewares/authentication");
 const { createListing } = require('../services/listingFunctions');
+const categories = require("../constants/categories");
 
 router.get("/", async function (req, res, next) {
     const params = req.query;
@@ -82,6 +83,7 @@ router.get("/", async function (req, res, next) {
     
 
     // Validate categoryId and subcategoryId
+    let isEventsCategory = false;
     if (params.categoryId ) {
         if (isNaN(Number(params.categoryId)) || Number(params.categoryId) <= 0) {
             return next(new AppError(`Invalid category ${params.categoryId}`, 400));
@@ -126,6 +128,12 @@ router.get("/", async function (req, res, next) {
                     }
                     queryFilters += ` AND L.subcategoryId = ? `;
                     queryFilterParams.push(Number(params.subcategoryId));
+                }
+                if (Number(params.categoryId) === categories.Events) {
+                    isEventsCategory = true;
+                    // const today = new Date();
+                    // const todayStr = today.toISOString().split("T")[0]; // Get YYYY-MM-DD format
+                    // queryFilters += ` AND L.endDate >='${todayStr} 00:00:00'`;
                 }
             }
         } catch (err) {
@@ -251,7 +259,20 @@ router.get("/", async function (req, res, next) {
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
 
-        const orderByClause = randomOrder ? "ORDER BY RAND()" : (sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC");
+        let orderByClause;
+        if (isEventsCategory) {
+            const todayStr = new Date().toISOString().split("T")[0];
+            orderByClause = `ORDER BY 
+            CASE 
+                WHEN U.endDate < '${todayStr}' THEN 1 
+                ELSE 0 
+            END,
+            CASE WHEN U.endDate < '${todayStr}' THEN U.startDate END DESC,
+            CASE WHEN U.endDate >= '${todayStr}' THEN U.startDate END ASC,
+            createdAt`;
+        } else {
+            orderByClause = randomOrder ? "ORDER BY RAND()" : (sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC");
+        }
         const fullQuery = `SELECT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
         ${orderByClause} LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
