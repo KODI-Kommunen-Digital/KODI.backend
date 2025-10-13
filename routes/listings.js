@@ -262,14 +262,15 @@ router.get("/", async function (req, res, next) {
         let orderByClause;
         if (isEventsCategory) {
             const todayStr = new Date().toISOString().split("T")[0];
-            orderByClause = `ORDER BY 
-            CASE 
-                WHEN U.endDate < '${todayStr}' THEN 1 
-                ELSE 0 
-            END,
-            CASE WHEN U.endDate < '${todayStr}' THEN U.startDate END DESC,
-            CASE WHEN U.endDate >= '${todayStr}' THEN U.startDate END ASC,
-            createdAt`;
+            orderByClause = `
+            ORDER BY 
+                CASE WHEN U.endDate < '${todayStr}' THEN 1 ELSE 0 END,
+                CASE WHEN U.endDate >= '${todayStr}' THEN U.startDate ELSE NULL END ASC,
+                CASE WHEN U.endDate >= '${todayStr}' THEN U.endDate ELSE NULL END ASC,
+                CASE WHEN U.endDate < '${todayStr}' THEN U.startDate ELSE NULL END DESC,
+                CASE WHEN U.endDate < '${todayStr}' THEN U.endDate ELSE NULL END DESC,
+                U.title ASC,
+                createdAt`;
         } else {
             orderByClause = randomOrder ? "ORDER BY RAND()" : (sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC");
         }
