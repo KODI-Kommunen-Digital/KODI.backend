@@ -256,7 +256,8 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(insertionData.createdAt).getTime() +
-                        1000 * 60 * 60 * 24 * 14
+                        // 1000 * 60 * 60 * 24 * 14
+                        1000*60*60*24*365
                     )
                 );
             }

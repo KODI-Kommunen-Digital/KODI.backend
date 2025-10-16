@@ -492,7 +492,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
                     updationData.expiryDate = getDateInFormate(
                         new Date(
                             new Date(updationData.updatedAt).getTime() +
-                            1000 * 60 * 60 * 24 * 14
+                            // 1000 * 60 * 60 * 24 * 14
+                            1000*60*60*24*365
+
                         )
                     );
                 }
