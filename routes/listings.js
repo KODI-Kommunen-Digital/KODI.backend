@@ -278,7 +278,7 @@ router.get("/", async function (req, res, next) {
         // const fullQuery = `SELECT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
         // ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
         const newFullQuery = `WITH all_listings AS(${individualQueries.join(" UNION ALL ")}),
-        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
+        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY COALESCE(externalId, CONCAT(title,'-',COALESCE(startDate, createdAt))) ORDER BY createdAt DESC) AS rn FROM all_listings a)
         SELECT * FROM ranked WHERE rn = 1
         ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : showRecentListings ? "COALESCE(startDate, createdAt) DESC" : "createdAt DESC"}, externalId LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
@@ -514,7 +514,7 @@ router.get("/search", async function (req, res, next) {
 
     const orderByClause = sortByStartDate ? "startDate, createdAt DESC" : showRecentListings ? "COALESCE(startDate, createdAt) DESC" : "createdAt DESC";
     const combinedQuery = `WITH all_listings AS(${combinedQueryParts.join(" UNION ALL ")}),
-        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
+        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY COALESCE(externalId, CONCAT(title,'-',COALESCE(startDate, createdAt))) ORDER BY createdAt DESC) AS rn FROM all_listings a)
         SELECT * FROM ranked WHERE rn = 1
         ORDER BY ${orderByClause}, externalId LIMIT ?, ?;`;
 
