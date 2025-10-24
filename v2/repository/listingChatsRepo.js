@@ -14,7 +14,7 @@ class ListingChatsRepo extends BaseRepo {
             let query;
             const values = [listingId];
             query = `
-            SELECT 
+            SELECT
                 lc.*,
                 u.username AS senderName,
                 u.firstname as firstname,
@@ -27,16 +27,16 @@ class ListingChatsRepo extends BaseRepo {
                 LEFT JOIN listing_chats parent ON lc.parentId = parent.id
                 LEFT JOIN users parentUser ON parent.senderId = parentUser.id
                 LEFT JOIN (
-                    SELECT 
+                    SELECT
                         chatId,
                         JSON_ARRAYAGG(
                             JSON_OBJECT(
                                 'userId', userId,
                                 'username', ur.username,
-                                'reaction', CASE lcr.reaction 
-                                            WHEN 'like' THEN 1 
-                                            WHEN 'dislike' THEN 2 
-                                            ELSE NULL 
+                                'reaction', CASE lcr.reaction
+                                            WHEN 'like' THEN 1
+                                            WHEN 'dislike' THEN 2
+                                            ELSE NULL
                                         END
                             )
                         ) AS reactions
@@ -63,6 +63,27 @@ class ListingChatsRepo extends BaseRepo {
                 values.push((pageNo - 1) * pageSize);
             }
             console.log({ query })
+            const response = await database.callQuery(query, values);
+            return response.rows;
+        } catch (err) {
+            if (err instanceof AppError) {
+                throw err;
+            }
+            throw new AppError(err);
+        }
+    }
+
+    async getAdminParticipants(listingId) {
+        try {
+            const query = `
+                SELECT DISTINCT u.id, u.username, u.firstname, u.lastname
+                FROM listing_chats lc
+                INNER JOIN users u ON lc.senderId = u.id
+                WHERE lc.listingId = ?
+                AND lc.senderType = 'admin'
+                ORDER BY u.id
+            `;
+            const values = [listingId];
             const response = await database.callQuery(query, values);
             return response.rows;
         } catch (err) {

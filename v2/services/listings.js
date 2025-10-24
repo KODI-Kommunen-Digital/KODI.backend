@@ -1045,18 +1045,10 @@ const handleUnifiedChat = async ({
             );
         } else {
             // If user sent message, notify admins
-            console.log("i am user and sending push notification to admin");
-            const AdminUsers = await usersRepository.getAll({
-                filters: [
-                    {
-                        key: "roleId",
-                        sign: "=",
-                        value: 1,
-                    },
-                ],
-            });
-            if (AdminUsers && AdminUsers.rows.length > 0) {
-                const adminUserIds = AdminUsers.rows.map((user) => user.id);
+            console.log("i am user and sending push notification to admin participants");
+            const adminParticipants = await listingChatsRepository.getAdminParticipants(listingId);
+            if (adminParticipants && adminParticipants.length > 0) {
+                const adminUserIds = adminParticipants.map((admin) => admin.id);
                 await sendPushNotifications(
                     adminUserIds,
                     "New Message from User",
