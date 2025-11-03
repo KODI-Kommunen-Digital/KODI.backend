@@ -21,6 +21,9 @@ const compressImage = async (imageBuffer) => {
     try {
         let pipeline = sharp(imageBuffer);
         const metadata = await pipeline.metadata();
+        const originalFormat = metadata.format;
+        
+        console.log(`Detected format: ${originalFormat}`);
         
         if (metadata.width > IMAGE_CONFIG.maxWidth || metadata.height > IMAGE_CONFIG.maxHeight) {
             pipeline = pipeline.resize(IMAGE_CONFIG.maxWidth, IMAGE_CONFIG.maxHeight, {
@@ -30,19 +33,18 @@ const compressImage = async (imageBuffer) => {
         } 
 
         let mimeType = 'image/jpeg';
+        let format = 'jpeg';
 
-        switch (metadata.format) {
-        case 'png':
+        if (metadata.hasAlpha) {
+            // Image has transparency - must use PNG
             pipeline = pipeline.png(IMAGE_CONFIG.png);
             mimeType = 'image/png';
-            break;
-        case 'webp':
-            pipeline = pipeline.webp(IMAGE_CONFIG.webp);
-            mimeType = 'image/webp';
-            break;
-        default:
+            format = 'png';
+        } else {
+            // No transparency - use JPEG (better compression)
             pipeline = pipeline.jpeg(IMAGE_CONFIG.jpeg);
-            break;
+            mimeType = 'image/jpeg';
+            format = 'jpeg';
         }
 
         const compressedBuffer = await pipeline.toBuffer();
@@ -56,13 +58,15 @@ const compressImage = async (imageBuffer) => {
         
         return {
             buffer: compressedBuffer,
-            mimeType: mimeType
+            mimeType: mimeType,
+            format: format
         };
     } catch (err) {
         console.error(`Error in compressing the image: ${err}`);
         return {
             buffer: imageBuffer,
-            mimeType: 'image/jpeg'
+            mimeType: 'image/jpeg',
+            format: 'jpeg'
         };
     }
 }

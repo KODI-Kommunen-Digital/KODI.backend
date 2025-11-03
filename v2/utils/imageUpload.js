@@ -6,8 +6,8 @@ const imageUpload = async (image, filePath) => {
     const server = process.env.BUCKET_HOST;
 
     // Compress Image and detect format 
-    const { buffer: compressedImageData, mimeType } = await compressImage(image.data);
-    
+    const { buffer: compressedImageData, mimeType, format } = await compressImage(image.data);
+
     /*
    * Initialize a obs client instance with your account for accessing OBS
    */
@@ -18,7 +18,7 @@ const imageUpload = async (image, filePath) => {
     });
 
     const bucketName = process.env.BUCKET_NAME;
-    const objectKey = filePath;
+    const objectKey = `${filePath}.${format}`;
     const formParams = {
         acl: obs.enums.AclPublicRead,
         "content-type": mimeType,
