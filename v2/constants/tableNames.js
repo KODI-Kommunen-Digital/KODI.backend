@@ -1,6 +1,9 @@
 module.exports = {
     USER_TABLE: "users",
     ROLES_TABLE: "roles",
+    PERMISSIONS_TABLE: "permissions",
+    MODERATORS_TABLE: "moderators",
+    MODERATOR_PERMISSIONS_TABLE: "moderator_permissions",
     LISTINGS_TABLE: "listings",
     LISTINGS_IMAGES_TABLE: "listing_images",
     LISTINGS_CHATS_TABLE: "listing_chats",

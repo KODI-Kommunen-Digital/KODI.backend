@@ -3,4 +3,5 @@ module.exports = {
     "Department Head": 2,
     "Content Creator": 3,
     "City Admin": 4,
+    Moderator: 5,
 };
