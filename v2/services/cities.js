@@ -1,7 +1,7 @@
 const AppError = require("../utils/appError");
 const cityServiceRepository = require("../repository/citiesRepo");
 const roles = require("../constants/roles");
-const imageUpload = require("../utils/imageUpload");
+const { imageUpload, appendExtention } = require("../utils/imageUpload");
 // const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const cityUserRolesRepo = require("../repository/cityUserRolesRepo");
 const userRepository = require("../repository/userRepo");
@@ -476,9 +476,10 @@ const uploadImage = async (cityId, roleId, imageFiles) => {
             throw new AppError(`Invalid Image type`, 403);
         }
         const filePath = `cities/${cityId}_${Date.now()}`;
+        const filePathWithExt = appendExtention(filePath, imageArr[0].mimetype);
         const { uploadStatus, objectKey } = await imageUpload(
             imageArr[0],
-            filePath
+            filePathWithExt
         );
 
         if (uploadStatus !== "Success" || !objectKey) {
