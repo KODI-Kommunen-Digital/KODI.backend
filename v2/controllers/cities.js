@@ -19,7 +19,7 @@ const getCities = async function (req, res, next) {
 };
 
 const citiesListingsByUserId = async function (req, res, next) {
-    const UserId = req.params.UserId;
+    const UserId = parseInt(req.params.UserId);
     const pageNo = req.query.pageNo;
     const pageSize = req.query.pageSize;
     const searchQuery = req.query.searchQuery;
