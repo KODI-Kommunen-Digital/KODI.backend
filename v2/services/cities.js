@@ -5,23 +5,23 @@ const imageUpload = require("../utils/imageUpload");
 // const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const cityUserRolesRepo = require("../repository/cityUserRolesRepo");
 const userRepository = require("../repository/userRepo");
+const moderatorsRepo = require("../repository/moderatorsRepo");
 
 const getCities = async function (hasForum) {
     try {
-        const filters = []
+        const filters = [];
         if (hasForum) {
-            filters.push(
-                {
-                    key: 'hasForum',
-                    sign: '=',
-                    value: hasForum
-                })
+            filters.push({
+                key: "hasForum",
+                sign: "=",
+                value: hasForum,
+            });
         }
         // return await cityService.getCities(filter);
         const cities = await cityServiceRepository.getAll({
             filters,
-            columns: 'id, name, image, hasForum',
-            orderBy: ["sort_order"]
+            columns: "id, name, image, hasForum",
+            orderBy: ["sort_order"],
         });
         return cities.rows;
     } catch (err) {
@@ -37,26 +37,48 @@ const citiesListingsByUserId = async function (
     pageSize,
     searchQuery,
     orderBy,
-    isDescending
+    isDescending,
+    moderatorId
 ) {
     try {
         const filters = [];
         if (!isSuperAdmin && userId) {
+            let cityIds = [];
+
+            // Get cities where user is admin
             const cityUserRoles = await cityUserRolesRepo.getAll({
                 filters: [
                     { key: "userId", sign: "=", value: userId },
-                    { key: "isAdmin", sign: "=", value: 1 }
+                    { key: "isAdmin", sign: "=", value: 1 },
                 ],
-                columns: ["cityId"]
+                columns: ["cityId"],
             });
-            const cityIds = cityUserRoles.rows.map(row => row.cityId);
+            cityIds = cityUserRoles.rows.map((row) => row.cityId);
+
+            // If request is from a moderator, also get their moderated cities
+            if (moderatorId) {
+                const moderatorCities = await moderatorsRepo.getAll({
+                    filters: [{ key: "userId", sign: "=", value: moderatorId }],
+                    columns: ["cityId"],
+                });
+
+                // Add moderator's cities to the list
+                cityIds = [
+                    ...new Set([
+                        ...cityIds,
+                        ...moderatorCities.rows.map((row) => row.cityId),
+                    ]),
+                ];
+            }
+
             if (cityIds.length === 0) {
                 return [];
             }
+
             filters.push({
                 key: "id",
                 sign: "IN",
-                value: cityIds
+                value: cityIds,
             });
         }
         if (searchQuery) {
@@ -71,7 +93,7 @@ const citiesListingsByUserId = async function (
             effectiveOrderBy = "name";
         }
         const cities = await cityServiceRepository.getAll({
-            columns: 'id, name, image, hasForum',
+            columns: "id, name, image, hasForum",
             filters,
             pageNo,
             pageSize,
@@ -87,18 +109,17 @@ const citiesListingsByUserId = async function (
 
 const getCityById = async function (id) {
     try {
-        const filters = []
+        const filters = [];
         if (id) {
-            filters.push(
-                {
-                    key: 'id',
-                    sign: '=',
-                    value: id
-                })
+            filters.push({
+                key: "id",
+                sign: "=",
+                value: id,
+            });
         }
         const cities = await cityServiceRepository.getOne({
             filters,
-            columns: 'id, name, image, hasForum',
+            columns: "id, name, image, hasForum",
         });
         return cities;
     } catch (err) {
@@ -107,10 +128,18 @@ const getCityById = async function (id) {
     }
 };
 
-const getCityAdmins = async function (pageNo, pageSize, roleId, cityId, searchQuery) {
-
+const getCityAdmins = async function (
+    pageNo,
+    pageSize,
+    roleId,
+    cityId,
+    searchQuery
+) {
     if (roleId !== roles.Admin) {
-        throw new AppError(`You are not authorized to perform this action`, 403);
+        throw new AppError(
+            `You are not authorized to perform this action`,
+            403
+        );
     }
     if (isNaN(cityId)) {
         throw new AppError(`City Id must be a number`, 400);
@@ -128,23 +157,30 @@ const getCityAdmins = async function (pageNo, pageSize, roleId, cityId, searchQu
                 {
                     key: "id",
                     sign: "=",
-                    value: cityId
-                }
+                    value: cityId,
+                },
             ],
-            columns: "id"
+            columns: "id",
         });
         if (!city) {
             throw new AppError(`City not found`, 404);
         }
     }
 
-    return cityUserRolesRepo.getCityAdmins(pageNo, pageSize, cityId, searchQuery);
+    return cityUserRolesRepo.getCityAdmins(
+        pageNo,
+        pageSize,
+        cityId,
+        searchQuery
+    );
 };
 
 const createCityAdmin = async function (roleId, cityId, userId) {
-
     if (roleId !== roles.Admin) {
-        throw new AppError(`You are not authorized to perform this action`, 403);
+        throw new AppError(
+            `You are not authorized to perform this action`,
+            403
+        );
     }
     if (!userId || !cityId || isNaN(Number(userId)) || isNaN(Number(cityId))) {
         throw new AppError("Invalid payload", 400);
@@ -154,10 +190,10 @@ const createCityAdmin = async function (roleId, cityId, userId) {
             {
                 key: "id",
                 sign: "=",
-                value: userId
-            }
+                value: userId,
+            },
         ],
-        columns: "id, roleId"
+        columns: "id, roleId",
     });
     if (!user) {
         throw new AppError(`User not found`, 404);
@@ -171,10 +207,10 @@ const createCityAdmin = async function (roleId, cityId, userId) {
             {
                 key: "id",
                 sign: "=",
-                value: cityId
-            }
+                value: cityId,
+            },
         ],
-        columns: "id"
+        columns: "id",
     });
     if (!city) {
         throw new AppError(`City not found`, 404);
@@ -185,19 +221,19 @@ const createCityAdmin = async function (roleId, cityId, userId) {
             {
                 key: "userId",
                 sign: "=",
-                value: userId
+                value: userId,
             },
             {
                 key: "cityId",
                 sign: "=",
-                value: cityId
+                value: cityId,
             },
             {
                 key: "isAdmin",
                 sign: "=",
-                value: 1
-            }
-        ]
+                value: 1,
+            },
+        ],
     });
     if (cityAdmin) {
         throw new AppError(`User is already a city admin`, 400);
@@ -207,21 +243,23 @@ const createCityAdmin = async function (roleId, cityId, userId) {
         data: {
             userId,
             cityId,
-            isAdmin: 1
-        }
+            isAdmin: 1,
+        },
     });
 
     // Update user role to city admin
     await userRepository.update({
         data: { roleId: roles["City Admin"] },
-        filters: [{ key: "id", sign: "=", value: userId }]
+        filters: [{ key: "id", sign: "=", value: userId }],
     });
 };
 
 const deleteCityAdmin = async function (roleId, cityId, userId) {
-
     if (roleId !== roles.Admin) {
-        throw new AppError(`You are not authorized to perform this action`, 403);
+        throw new AppError(
+            `You are not authorized to perform this action`,
+            403
+        );
     }
     if (!userId || !cityId || isNaN(Number(userId)) || isNaN(Number(cityId))) {
         throw new AppError("Invalid payload", 400);
@@ -232,19 +270,19 @@ const deleteCityAdmin = async function (roleId, cityId, userId) {
             {
                 key: "userId",
                 sign: "=",
-                value: userId
+                value: userId,
             },
             {
                 key: "cityId",
                 sign: "=",
-                value: cityId
+                value: cityId,
             },
             {
                 key: "isAdmin",
                 sign: "=",
-                value: 1
-            }
-        ]
+                value: 1,
+            },
+        ],
     });
     if (!cityAdmin) {
         throw new AppError(`User is not a city admin`, 400);
@@ -255,19 +293,19 @@ const deleteCityAdmin = async function (roleId, cityId, userId) {
             {
                 key: "userId",
                 sign: "=",
-                value: userId
+                value: userId,
             },
             {
                 key: "cityId",
                 sign: "=",
-                value: cityId
+                value: cityId,
             },
             {
                 key: "isAdmin",
                 sign: "=",
-                value: 1
-            }
-        ]
+                value: 1,
+            },
+        ],
     });
 
     // Check if user is admin for any other city
@@ -276,37 +314,43 @@ const deleteCityAdmin = async function (roleId, cityId, userId) {
             {
                 key: "userId",
                 sign: "=",
-                value: userId
+                value: userId,
             },
             {
                 key: "isAdmin",
                 sign: "=",
-                value: 1
-            }
-        ]
+                value: 1,
+            },
+        ],
     });
 
     if (!otherCityAdmin) {
         // Update user role to Content Creator
         await userRepository.update({
-            data: { roleId: roles["Content Creator"]},
-            filters: [{ key: "id", sign: "=", value: userId }]
+            data: { roleId: roles["Content Creator"] },
+            filters: [{ key: "id", sign: "=", value: userId }],
         });
     }
 };
 
-const createCity = async (roleId ,city) => {
+const createCity = async (roleId, city) => {
     try {
-        if(roleId !== roles.Admin){
+        if (roleId !== roles.Admin) {
             throw new AppError("Unauthorized", 401);
         }
         const insertionData = {};
-        if (!city.name || typeof city.name !== "string" || city.name.trim() === "") {
-            throw new AppError("City name is required and must be a non-empty string.");
+        if (
+            !city.name ||
+            typeof city.name !== "string" ||
+            city.name.trim() === ""
+        ) {
+            throw new AppError(
+                "City name is required and must be a non-empty string."
+            );
         }
         const duplicateCheck = await cityServiceRepository.getAll({
             filters: [{ key: "name", sign: "=", value: city.name.trim() }],
-            columns: "id"
+            columns: "id",
         });
         if (duplicateCheck.rows.length > 0) {
             throw new AppError("City name already exists.");
@@ -317,7 +361,7 @@ const createCity = async (roleId ,city) => {
         insertionData.hasForum = 1;
 
         const result = await cityServiceRepository.getAll({
-            columns: "MAX(sort_order) as max_sort_order"
+            columns: "MAX(sort_order) as max_sort_order",
         });
         const maxSortOrder = result.rows[0]?.max_sort_order || 0;
         insertionData.sort_order = maxSortOrder + 1; // eslint-disable-line camelcase
@@ -331,26 +375,35 @@ const createCity = async (roleId ,city) => {
 
 const updateCity = async (roleId, id, city) => {
     try {
-        if(roleId !== roles.Admin && roleId !== roles["City Admin"]){
+        if (roleId !== roles.Admin && roleId !== roles["City Admin"]) {
             throw new AppError("Unauthorized", 401);
         }
-        if (!city.name || typeof city.name !== "string" || city.name.trim() === "") {
-            throw new AppError("City name is required and must be a non-empty string.");
+        if (
+            !city.name ||
+            typeof city.name !== "string" ||
+            city.name.trim() === ""
+        ) {
+            throw new AppError(
+                "City name is required and must be a non-empty string."
+            );
         }
 
         // Check for duplicate name (excluding current city)
         const duplicateCheck = await cityServiceRepository.getAll({
             filters: [
                 { key: "name", sign: "=", value: city.name.trim() },
-                { key: "id", sign: "!=", value: id }
+                { key: "id", sign: "!=", value: id },
             ],
-            columns: "id"
+            columns: "id",
         });
 
         if (duplicateCheck.rows.length > 0) {
             throw new AppError("City name already exists.");
         }
-        return await cityServiceRepository.update({ data: city, filters: [{ key: "id", sign: "=", value: id }] });
+        return await cityServiceRepository.update({
+            data: city,
+            filters: [{ key: "id", sign: "=", value: id }],
+        });
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -364,7 +417,7 @@ const deleteCity = async (roleId, id) => {
         }
         const city = await cityServiceRepository.getAll({
             filters: [{ key: "id", sign: "=", value: id }],
-            columns: "id, image"
+            columns: "id, image",
         });
         if (!city.rows.length) {
             throw new AppError("City not found.", 404);
@@ -377,7 +430,9 @@ const deleteCity = async (roleId, id) => {
         //         console.error("Failed to delete city image:", deleteErr);
         //     }
         // }
-        return await cityServiceRepository.delete({ filters: [{ key: "id", sign: "=", value: id }] });
+        return await cityServiceRepository.delete({
+            filters: [{ key: "id", sign: "=", value: id }],
+        });
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -386,7 +441,7 @@ const deleteCity = async (roleId, id) => {
 
 const uploadImage = async (cityId, roleId, imageFiles) => {
     try {
-        if(roleId !== roles.Admin && roleId !== roles["City Admin"]){
+        if (roleId !== roles.Admin && roleId !== roles["City Admin"]) {
             throw new AppError("Unauthorized", 401);
         }
 
@@ -395,22 +450,28 @@ const uploadImage = async (cityId, roleId, imageFiles) => {
         }
 
         const city = await cityServiceRepository.getOne({
-            filters: [{ key: "id",sign: "=", value: cityId }],
-            columns: "id, image, name"
+            filters: [{ key: "id", sign: "=", value: cityId }],
+            columns: "id, image, name",
         });
 
         if (!city) {
             throw new AppError("City not found", 404);
         }
-        const imageArr = imageFiles ? (imageFiles.length > 1 ? imageFiles : [imageFiles]) : [];
+        const imageArr = imageFiles
+            ? imageFiles.length > 1
+                ? imageFiles
+                : [imageFiles]
+            : [];
 
-        if(imageArr.length === 0){
+        if (imageArr.length === 0) {
             throw new AppError("No image file provided", 400);
         }
-        if(imageArr.length > 1){
+        if (imageArr.length > 1) {
             throw new AppError("Multiple image files provided", 400);
         }
-        const hasIncorrectMime = imageArr.some((i) => !i.mimetype.includes("image/"));
+        const hasIncorrectMime = imageArr.some(
+            (i) => !i.mimetype.includes("image/")
+        );
         if (hasIncorrectMime) {
             throw new AppError(`Invalid Image type`, 403);
         }
@@ -426,7 +487,7 @@ const uploadImage = async (cityId, roleId, imageFiles) => {
 
         await cityServiceRepository.update({
             data: { image: objectKey },
-            filters: [{ key: "id", sign: "=", value: cityId }]
+            filters: [{ key: "id", sign: "=", value: cityId }],
         });
 
         // if (city.image) {
@@ -452,7 +513,7 @@ const deleteImage = async (cityId, roleId) => {
 
         const city = await cityServiceRepository.getOne({
             filters: [{ key: "id", sign: "=", value: cityId }],
-            columns: "id, image"
+            columns: "id, image",
         });
 
         if (!city) {
@@ -472,7 +533,7 @@ const deleteImage = async (cityId, roleId) => {
 
         await cityServiceRepository.update({
             data: { image: null },
-            filters: [{ key: "id", sign: "=", value: cityId }]
+            filters: [{ key: "id", sign: "=", value: cityId }],
         });
 
         return { success: true };
@@ -493,5 +554,5 @@ module.exports = {
     getCityAdmins,
     createCityAdmin,
     deleteCityAdmin,
-    citiesListingsByUserId
+    citiesListingsByUserId,
 };
