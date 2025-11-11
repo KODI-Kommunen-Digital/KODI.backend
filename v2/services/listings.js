@@ -12,7 +12,7 @@ const cityListingMappingRepo = require("../repository/cityListingMappingRepo");
 const listingFunctions = require("../services/listingFunctions");
 const status = require("../constants/status");
 const source = require("../constants/source");
-const imageUpload = require("../utils/imageUpload");
+const { imageUpload, appendExtention } = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
@@ -1088,9 +1088,10 @@ const uploadImage = async function (
         for (const individualImage of imageArr) {
             imageOrder++;
             const filePath = `user_${userId}/listing_${listingId}_${imageOrder}_${Date.now()}`;
+            const filePathWithExt = appendExtention(filePath, individualImage.mimetype);
             const { uploadStatus, objectKey } = await imageUpload(
                 individualImage,
-                filePath,
+                filePathWithExt,
             );
             if (uploadStatus === "Success") {
                 // await cityListingRepo.createListingImage(

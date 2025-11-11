@@ -140,4 +140,35 @@ function makeHttpRequest(options, buffers, image) {
     });
 }
 
-module.exports = imageUpload;
+function appendExtention(filename, mimeType) {
+    let filenameWithExt;
+    switch (mimeType) {
+        case `image/jpeg`:
+        case `image/jpg`:
+            filenameWithExt = `${filename}.jpg`;
+            break;
+        case `image/png`:
+            filenameWithExt = `${filename}.png`;
+            break;
+        case `image/webp`:
+            filenameWithExt = `${filename}.webp`;
+            break;
+        case `image/tiff`:
+            filenameWithExt = `${filename}.tiff`;
+            break;
+        case `image/svg`:
+        case `image/svg+xml`:
+            filenameWithExt = `${filename}.svg`;
+            break;
+        default:
+            console.log(`Cannot find extension for mimetype: ${mimeType}, assigning .jpg`);
+            filenameWithExt = `${filename}.jpg`;
+            break;
+    }
+    return filenameWithExt;
+}
+
+module.exports = {
+    imageUpload,
+    appendExtention
+};
