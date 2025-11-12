@@ -24,8 +24,17 @@ const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
 const adminRepository = require("../repository/adminRepo");
 const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
+const moderatorsRepository = require("../repository/moderatorsRepo");
+const moderatorPermissionsRepository = require("../repository/moderatorPermissionsRepo");
+const permissionsRepository = require("../repository/permissionsRepo");
 
-const login = async function (payload, sourceAddress, browsername, devicetype, req) {
+const login = async function (
+    payload,
+    sourceAddress,
+    browsername,
+    devicetype,
+    req
+) {
     try {
         const userData = await usersRepository.getOne({
             filters: [
@@ -41,44 +50,60 @@ const login = async function (payload, sourceAddress, browsername, devicetype, r
                 },
             ],
             joinFiltersBy: "OR",
-            columns: ["id", "username", "email", "password", "emailVerified", "roleId"],
+            columns: [
+                "id",
+                "username",
+                "email",
+                "password",
+                "emailVerified",
+                "roleId",
+            ],
         });
         if (!userData) {
             throw new AppError(
                 "invalid_creds",
                 401,
-                errorCodes.INVALID_CREDENTIALS,
+                errorCodes.INVALID_CREDENTIALS
             );
         }
 
         if (!userData.emailVerified) {
             throw new AppError(
-                "verify_email", 401,
-                errorCodes.EMAIL_NOT_VERIFIED,
+                "verify_email",
+                401,
+                errorCodes.EMAIL_NOT_VERIFIED
             );
         }
 
         const correctPassword = await bcrypt.compare(
             payload.password,
-            userData.password,
+            userData.password
         );
         if (!correctPassword) {
-            throw new AppError("invalid_password", 401, errorCodes.INVALID_PASSWORD);
+            throw new AppError(
+                "invalid_password",
+                401,
+                errorCodes.INVALID_PASSWORD
+            );
         }
 
         // const userMappings = await userRepo.getuserCityMappings(userData.id);
-        let userMappings = []
+        let userMappings = [];
         const userMappingsResp = await userCityUserMappingRepository.getAll({
             filters: [
                 {
                     key: "userId",
                     sign: "=",
                     value: userData.id,
-                }
+                },
             ],
             columns: ["cityId", "cityUserId"],
         });
-        if (!userMappingsResp || !userMappingsResp.rows || userMappingsResp.rows.length === 0) {
+        if (
+            !userMappingsResp ||
+            !userMappingsResp.rows ||
+            userMappingsResp.rows.length === 0
+        ) {
             userMappings = [];
         } else {
             userMappings = userMappings.rows;
@@ -95,23 +120,27 @@ const login = async function (payload, sourceAddress, browsername, devicetype, r
                 {
                     key: "userId",
                     sign: "=",
-                    value: userData.id
-                }
-            ]
+                    value: userData.id,
+                },
+            ],
         });
-        if (refreshToken &&
+        if (
+            refreshToken &&
             refreshToken.sourceAddress === sourceAddress &&
-            (refreshToken.browser === browsername || (!refreshToken.browser && !browsername)) &&
-            (refreshToken.device === devicetype || (!refreshToken.device && !devicetype))) {
+            (refreshToken.browser === browsername ||
+                (!refreshToken.browser && !browsername)) &&
+            (refreshToken.device === devicetype ||
+                (!refreshToken.device && !devicetype))
+        ) {
             tokenRepository.delete({
                 filters: [
                     {
                         key: "id",
                         sign: "=",
-                        value: refreshToken.id
-                    }
-                ]
-            })
+                        value: refreshToken.id,
+                    },
+                ],
+            });
         }
         const insertionData = {
             userId: userData.id,
@@ -122,7 +151,7 @@ const login = async function (payload, sourceAddress, browsername, devicetype, r
         };
 
         await tokenRepository.create({
-            data: insertionData
+            data: insertionData,
         });
         return {
             cityUsers: userMappings ?? [],
@@ -146,7 +175,7 @@ const register = async function (payload, req) {
         throw new AppError(
             `Incorrect language given`,
             400,
-            errorCodes.INVALID_LANGUAGE,
+            errorCodes.INVALID_LANGUAGE
         );
     }
 
@@ -154,14 +183,14 @@ const register = async function (payload, req) {
         throw new AppError(
             "username_not_present",
             400,
-            errorCodes.MISSING_USERNAME,
+            errorCodes.MISSING_USERNAME
         );
     } else {
         if (payload.username.length > 40) {
             throw new AppError(
-                'username_too_long',
+                "username_too_long",
                 400,
-                errorCodes.INVALID_USERNAME,
+                errorCodes.INVALID_USERNAME
             );
         }
         try {
@@ -171,13 +200,13 @@ const register = async function (payload, req) {
                     {
                         key: "username",
                         sign: "=",
-                        value: payload.username
-                    }
-                ]
+                        value: payload.username,
+                    },
+                ],
             });
             if (user) {
                 throw new AppError(
-                    'username_already_exits',
+                    "username_already_exits",
                     400,
                     errorCodes.USER_ALREADY_EXISTS,
                     { username: payload.username }
@@ -190,7 +219,7 @@ const register = async function (payload, req) {
                 /^[^a-z_]/.test(payload.username)
             ) {
                 throw new AppError(
-                    'invalid_username',
+                    "invalid_username",
                     400,
                     errorCodes.INVALID_USERNAME,
                     { username: payload.username }
@@ -213,9 +242,9 @@ const register = async function (payload, req) {
                     {
                         key: "email",
                         sign: "=",
-                        value: payload.email
-                    }
-                ]
+                        value: payload.email,
+                    },
+                ],
             });
             if (user) {
                 throw new AppError(
@@ -238,14 +267,14 @@ const register = async function (payload, req) {
         throw new AppError(
             "first_name_missing",
             400,
-            errorCodes.MISSING_FIRSTNAME,
+            errorCodes.MISSING_FIRSTNAME
         );
     } else {
         if (payload.firstname.length > 40) {
             throw new AppError(
                 "first_name_too_long",
                 400,
-                errorCodes.INVALID_CREDENTIALS,
+                errorCodes.INVALID_CREDENTIALS
             );
         }
         insertionData.firstname = payload.firstname;
@@ -255,14 +284,14 @@ const register = async function (payload, req) {
         throw new AppError(
             "last_name_missing",
             400,
-            errorCodes.MISSING_LASTNAME,
+            errorCodes.MISSING_LASTNAME
         );
     } else {
         if (payload.lastname.length > 40) {
             throw new AppError(
-                'last_name_too_long',
+                "last_name_too_long",
                 400,
-                errorCodes.INVALID_CREDENTIALS,
+                errorCodes.INVALID_CREDENTIALS
             );
         }
         insertionData.lastname = payload.lastname;
@@ -272,14 +301,14 @@ const register = async function (payload, req) {
         throw new AppError(
             "missing_password",
             400,
-            errorCodes.MISSING_PASSWORD,
+            errorCodes.MISSING_PASSWORD
         );
     } else {
         if (payload.password.length > 64) {
             throw new AppError(
                 "password_too_long",
                 400,
-                errorCodes.INVALID_PASSWORD,
+                errorCodes.INVALID_PASSWORD
             );
         }
         const re = /^\S{8,}$/;
@@ -287,12 +316,12 @@ const register = async function (payload, req) {
             throw new AppError(
                 "invalid_password",
                 400,
-                errorCodes.INVALID_PASSWORD,
+                errorCodes.INVALID_PASSWORD
             );
         } else {
             insertionData.password = await bcrypt.hash(
                 payload.password,
-                Number(process.env.SALT),
+                Number(process.env.SALT)
             );
         }
     }
@@ -303,17 +332,13 @@ const register = async function (payload, req) {
 
     if (payload.phoneNumber) {
         const re = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/;
-        if (!re.test(payload.phoneNumber))
-            throw new AppError("invalid_phone");
+        if (!re.test(payload.phoneNumber)) throw new AppError("invalid_phone");
         insertionData.website = payload.website;
     }
 
     if (payload.description) {
         if (payload.description.length > 255) {
-            throw new AppError(
-                "description_too_long",
-                400,
-            );
+            throw new AppError("description_too_long", 400);
         }
         insertionData.description = payload.description;
     }
@@ -327,26 +352,31 @@ const register = async function (payload, req) {
             const socialMediaList = payload.socialMedia;
             Object.keys(socialMediaList).forEach((socialMedia) => {
                 if (!supportedSocialMedia.includes(socialMedia)) {
-                    throw new AppError("unsupported_social_media", 400, undefined, { socialMedia });
-                }
-
-                if (
-                    typeof socialMediaList[socialMedia] !== "string" ||
-                    !socialMediaList[socialMedia].includes(socialMedia.toLowerCase())
-                ) {
                     throw new AppError(
-                        "invalid_social_input",
+                        "unsupported_social_media",
                         400,
                         undefined,
                         { socialMedia }
                     );
                 }
+
+                if (
+                    typeof socialMediaList[socialMedia] !== "string" ||
+                    !socialMediaList[socialMedia].includes(
+                        socialMedia.toLowerCase()
+                    )
+                ) {
+                    throw new AppError("invalid_social_input", 400, undefined, {
+                        socialMedia,
+                    });
+                }
             });
             insertionData.socialMedia = JSON.stringify(socialMediaList);
         } catch (err) {
             if (err instanceof AppError) throw err;
-            throw new AppError("invalid_social_input"
-                , 400, undefined, { socialMedia: payload.socialMedia });
+            throw new AppError("invalid_social_input", 400, undefined, {
+                socialMedia: payload.socialMedia,
+            });
         }
     }
     let cities;
@@ -359,43 +389,53 @@ const register = async function (payload, req) {
                     {
                         key: "email",
                         sign: "=",
-                        value: insertionData.email
-                    }
-                ]
+                        value: insertionData.email,
+                    },
+                ],
             });
             if (AdminUser) {
                 cities = AdminUser.cities;
-                await adminRepository.updateWithTransaction({
-                    data: {
-                        onBoarded: 1
+                await adminRepository.updateWithTransaction(
+                    {
+                        data: {
+                            onBoarded: 1,
+                        },
+                        filters: [
+                            {
+                                key: "email",
+                                sign: "=",
+                                value: insertionData.email,
+                            },
+                        ],
                     },
-                    filters: [
-                        {
-                            key: "email",
-                            sign: "=",
-                            value: insertionData.email
-                        }
-                    ]
-                },connection);
+                    connection
+                );
                 insertionData.roleId = AdminUser.roleId;
             }
-        } catch (err) {
-        }
+        } catch (err) {}
         // const response = await userRepo.createUser(insertionData, connection);
-        const response = await usersRepository.createWithTransaction({
-            data: insertionData
-        }, connection);
+        const response = await usersRepository.createWithTransaction(
+            {
+                data: insertionData,
+            },
+            connection
+        );
         const userId = response.id;
         if (cities && cities.length !== 0) {
-            await Promise.all(cities.map(async cityId => {
-                await cityUserRolesRepository.createWithTransaction({
-                    data: {
-                        userId,
-                        cityId,
-                        isAdmin: true
-                    }
-                }, connection);
-            }));
+            await Promise.all(
+                cities.map(async (cityId) => {
+                    await cityUserRolesRepository.createWithTransaction(
+                        {
+                            data: {
+                                userId,
+                                cityId,
+                                isAdmin: true,
+                            },
+                        },
+                        connection
+                    );
+                })
+            );
         }
 
         const now = new Date();
@@ -406,9 +446,12 @@ const register = async function (payload, req) {
             token,
             expiresAt: getDateInFormate(now),
         };
-        await verificationTokenRepository.createWithTransaction({
-            data: tokenData,
-        }, connection);
+        await verificationTokenRepository.createWithTransaction(
+            {
+                data: tokenData,
+            },
+            connection
+        );
 
         // const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
         const verifyEmail = require(`../../emailTemplates/${language}/verifyEmail`);
@@ -417,7 +460,7 @@ const register = async function (payload, req) {
             insertionData.lastname,
             token,
             userId,
-            language,
+            language
         );
         await sendMail(insertionData.email, subject, null, body);
 
@@ -434,7 +477,6 @@ const register = async function (payload, req) {
 };
 
 const getUserById = async function (userId, cityUser, cityId, reqUserId) {
-
     try {
         // const userData = await userRepo.getUserWithId(userId);
         const userData = await usersRepository.getOne({
@@ -442,13 +484,16 @@ const getUserById = async function (userId, cityUser, cityId, reqUserId) {
                 {
                     key: "id",
                     sign: "=",
-                    value: userId
-                }
+                    value: userId,
+                },
             ],
-            columns: "id, username, socialMedia, email, website, description, image, phoneNumber, firstname, lastname, roleId"
+            columns:
+                "id, username, socialMedia, email, website, description, image, phoneNumber, firstname, lastname, roleId",
         });
         if (!userData) {
-            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, {
+                id: userId,
+            });
         }
 
         if (reqUserId !== userId) {
@@ -477,9 +522,9 @@ const updateUser = async function (id, payload, req) {
             {
                 key: "id",
                 sign: "=",
-                value: id
-            }
-        ]
+                value: id,
+            },
+        ],
     });
     if (!currentUserData) {
         throw new AppError("user_id_does_not_exist", 404, undefined, { id });
@@ -508,29 +553,29 @@ const updateUser = async function (id, payload, req) {
         }
         const currentPasswordCorrect = await bcrypt.compare(
             payload.currentPassword,
-            currentUserData.password,
+            currentUserData.password
         );
         if (!currentPasswordCorrect) {
             throw new AppError(
                 "current_password_incorrect",
                 401,
-                errorCodes.INVALID_PASSWORD,
+                errorCodes.INVALID_PASSWORD
             );
         }
         const passwordCheck = await bcrypt.compare(
             payload.newPassword,
-            currentUserData.password,
+            currentUserData.password
         );
         if (passwordCheck) {
             throw new AppError(
                 "current_same_not_as_present",
                 400,
-                errorCodes.SAME_PASSWORD_GIVEN,
+                errorCodes.SAME_PASSWORD_GIVEN
             );
         }
         updationData.password = await bcrypt.hash(
             payload.newPassword,
-            Number(process.env.SALT),
+            Number(process.env.SALT)
         );
     }
 
@@ -550,10 +595,7 @@ const updateUser = async function (id, payload, req) {
 
     if (payload.description) {
         if (payload.description.length > 255) {
-            throw new AppError(
-                "description_too_long",
-                400,
-            );
+            throw new AppError("description_too_long", 400);
         }
 
         updationData.description = payload.description;
@@ -578,13 +620,18 @@ const updateUser = async function (id, payload, req) {
         const socialMediaList = JSON.parse(payload.socialMedia);
         socialMediaList.forEach((socialMedia) => {
             if (!supportedSocialMedia.includes(Object.keys(socialMedia)[0])) {
-                throw new AppError("nicht_unterstütztes_soziales_medium", 400, undefined, { socialMedia });
+                throw new AppError(
+                    "nicht_unterstütztes_soziales_medium",
+                    400,
+                    undefined,
+                    { socialMedia }
+                );
             }
 
             if (
                 typeof socialMedia[Object.keys(socialMedia)[0]] !== "string" ||
                 !socialMedia[Object.keys(socialMedia)[0]].includes(
-                    Object.values(socialMedia)[0].toLowerCase(),
+                    Object.values(socialMedia)[0].toLowerCase()
                 )
             ) {
                 throw new AppError(
@@ -602,16 +649,18 @@ const updateUser = async function (id, payload, req) {
         // TODO add transaction
         try {
             // const cityUserResponse = await userRepo.getuserCityMappings(id);
-            const cityUserResponse = await userCityUserMappingRepository.getAll({
-                filters: [
-                    {
-                        key: "userId",
-                        sign: "=",
-                        value: id
-                    }
-                ],
-                columns: ["cityId", "cityUserId"]
-            });
+            const cityUserResponse = await userCityUserMappingRepository.getAll(
+                {
+                    filters: [
+                        {
+                            key: "userId",
+                            sign: "=",
+                            value: id,
+                        },
+                    ],
+                    columns: ["cityId", "cityUserId"],
+                }
+            );
             // await userRepo.updateUserById(id, updationData);
             await usersRepository.update({
                 data: updationData,
@@ -619,9 +668,9 @@ const updateUser = async function (id, payload, req) {
                     {
                         key: "id",
                         sign: "=",
-                        value: id
-                    }
-                ]
+                        value: id,
+                    },
+                ],
             });
 
             const cityUserUpdationData = { ...updationData, coreuserId: id };
@@ -641,9 +690,9 @@ const updateUser = async function (id, payload, req) {
                         {
                             key: "id",
                             sign: "=",
-                            value: element.cityUserId
-                        }
-                    ]
+                            value: element.cityUserId,
+                        },
+                    ],
                 });
             }
         } catch (err) {
@@ -665,7 +714,7 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
 
         const decodedToken = tokenUtil.verify(
             refreshToken,
-            process.env.REFRESH_PUBLIC,
+            process.env.REFRESH_PUBLIC
         );
         if (decodedToken.userId !== parseInt(userId)) {
             throw new AppError(`invalid_refresh_token`, 403);
@@ -678,9 +727,9 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
                 {
                     key: "refreshToken",
                     sign: "=",
-                    value: refreshToken
-                }
-            ]
+                    value: refreshToken,
+                },
+            ],
         });
         if (!refreshTokenData) {
             throw new AppError(`invalid_refresh_token`, 400);
@@ -705,14 +754,14 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
                 {
                     key: "id",
                     sign: "=",
-                    value: refreshTokenData.id
-                }
-            ]
+                    value: refreshTokenData.id,
+                },
+            ],
         });
 
         // await tokenRepo.insertRefreshTokenData(insertionData);
         await tokenRepository.create({
-            data: insertionData
+            data: insertionData,
         });
 
         return {
@@ -727,9 +776,9 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
                     {
                         key: "refreshToken",
                         sign: "=",
-                        value: refreshToken
-                    }
-                ]
+                        value: refreshToken,
+                    },
+                ],
             });
             throw new AppError(`expired_refresh_token`, 401);
         }
@@ -748,30 +797,35 @@ const forgotPassword = async function (username, language = "de", req) {
                 {
                     key: "username",
                     sign: "=",
-                    value: username
+                    value: username,
                 },
                 {
                     key: "email",
                     sign: "=",
-                    value: username
-                }
+                    value: username,
+                },
             ],
-            joinFiltersBy: "OR"
-        })
+            joinFiltersBy: "OR",
+        });
         if (!user) {
-            throw new AppError('user_does_not_exist', 404, undefined, { username });
+            throw new AppError("user_does_not_exist", 404, undefined, {
+                username,
+            });
         }
 
         // await userRepo.deleteForgotTokenForUserWithConnection(user.id, transaction);
-        await forgotPasswordTokenRepository.deleteWithTransaction({
-            filters: [
-                {
-                    key: "userId",
-                    sign: "=",
-                    value: user.id
-                }
-            ]
-        }, transaction);
+        await forgotPasswordTokenRepository.deleteWithTransaction(
+            {
+                filters: [
+                    {
+                        key: "userId",
+                        sign: "=",
+                        value: user.id,
+                    },
+                ],
+            },
+            transaction
+        );
 
         const now = new Date();
         now.setMinutes(now.getMinutes() + 30);
@@ -783,22 +837,23 @@ const forgotPassword = async function (username, language = "de", req) {
         };
 
         // await userRepo.addForgotPasswordTokenWithConnection(tokenData, transaction);
-        await forgotPasswordTokenRepository.createWithTransaction({
-            data: tokenData
-        }, transaction);
-
-        const resetPasswordEmail = require(
-            `../emailTemplates/${language}/resetPasswordEmail`,
+        await forgotPasswordTokenRepository.createWithTransaction(
+            {
+                data: tokenData,
+            },
+            transaction
         );
+
+        const resetPasswordEmail = require(`../emailTemplates/${language}/resetPasswordEmail`);
         const { subject, body } = resetPasswordEmail(
             user.firstname,
             user.lastname,
             token,
-            user.id,
+            user.id
         );
-        console.log({ subject, body })
+        console.log({ subject, body });
         const result = await sendMail(user.email, subject, null, body);
-        console.log({ result })
+        console.log({ result });
         await usersRepository.commitTransaction(transaction);
     } catch (err) {
         await usersRepository.rollbackTransaction(transaction);
@@ -816,9 +871,9 @@ const resetPassword = async function (userId, language, token, password, req) {
                 {
                     key: "id",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
         if (!user) {
             throw new AppError("user_id_does_not_exist", 400);
@@ -829,7 +884,7 @@ const resetPassword = async function (userId, language, token, password, req) {
             throw new AppError(
                 "current_same_not_as_present",
                 400,
-                errorCodes.NEW_OLD_PASSWORD_DIFFERENT,
+                errorCodes.NEW_OLD_PASSWORD_DIFFERENT
             );
         }
         // const tokenData = await tokenRepo.getForgotPasswordToken(userId, token);
@@ -838,15 +893,15 @@ const resetPassword = async function (userId, language, token, password, req) {
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
+                    value: userId,
                 },
                 {
                     key: "token",
                     sign: "=",
-                    value: token
-                }
-            ]
-        })
+                    value: token,
+                },
+            ],
+        });
         if (!tokenData) {
             throw new AppError("invalid_token", 400);
         }
@@ -856,14 +911,14 @@ const resetPassword = async function (userId, language, token, password, req) {
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
+                    value: userId,
                 },
                 {
                     key: "token",
                     sign: "=",
-                    value: token
-                }
-            ]
+                    value: token,
+                },
+            ],
         });
         if (new Date(tokenData.expiresAt).getTime() < Date.now()) {
             throw new AppError("token_expired", 400);
@@ -871,27 +926,28 @@ const resetPassword = async function (userId, language, token, password, req) {
 
         const hashedPassword = await bcrypt.hash(
             password,
-            Number(process.env.SALT),
+            Number(process.env.SALT)
         );
 
         // await userRepo.updateUserById(userId, { password: hashedPassword });
         await usersRepository.update({
             data: {
-                password: hashedPassword
+                password: hashedPassword,
             },
             filters: [
                 {
                     key: "id",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
 
-        const passwordResetDone = require(
-            `../emailTemplates/${language}/passwordResetDone`,
+        const passwordResetDone = require(`../emailTemplates/${language}/passwordResetDone`);
+        const { subject, body } = passwordResetDone(
+            user.firstname,
+            user.lastname
         );
-        const { subject, body } = passwordResetDone(user.firstname, user.lastname);
         await sendMail(user.email, subject, null, body);
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -907,12 +963,14 @@ const sendVerificationEmail = async function (email, language = "de") {
                 {
                     key: "email",
                     sign: "=",
-                    value: email
-                }
-            ]
+                    value: email,
+                },
+            ],
         });
         if (!user) {
-            throw new AppError(`email_does_not_exist`, 400, undefined, { email });
+            throw new AppError(`email_does_not_exist`, 400, undefined, {
+                email,
+            });
         }
         if (user.emailVerified) {
             throw new AppError(`email_verified`, 400);
@@ -924,9 +982,9 @@ const sendVerificationEmail = async function (email, language = "de") {
                 {
                     key: "userId",
                     sign: "=",
-                    value: user.id
-                }
-            ]
+                    value: user.id,
+                },
+            ],
         });
 
         const now = new Date();
@@ -940,7 +998,7 @@ const sendVerificationEmail = async function (email, language = "de") {
         // TODO: implement transaction
         // await tokenRepo.insertVerificationTokenData(tokenData);
         await verificationTokenRepository.create({
-            data: tokenData
+            data: tokenData,
         });
 
         const verifyEmail = require(`../emailTemplates/${language}/verifyEmail`);
@@ -949,7 +1007,7 @@ const sendVerificationEmail = async function (email, language = "de") {
             user.lastname,
             token,
             user.id,
-            language,
+            language
         );
         await sendMail(user.email, subject, null, body);
     } catch (err) {
@@ -966,12 +1024,14 @@ const verifyEmail = async function (userId, token, language = "de") {
                 {
                     key: "id",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
         if (!user) {
-            throw new AppError(`user_id_does_not_exist`, 400, undefined, { id: userId });
+            throw new AppError(`user_id_does_not_exist`, 400, undefined, {
+                id: userId,
+            });
         }
         if (user.emailVerified) {
             return "Email has already been vefified!!";
@@ -983,14 +1043,14 @@ const verifyEmail = async function (userId, token, language = "de") {
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
+                    value: userId,
                 },
                 {
                     key: "token",
                     sign: "=",
-                    value: token
-                }
-            ]
+                    value: token,
+                },
+            ],
         });
         if (!tokenData) {
             throw new AppError(`invalid_data`, 400);
@@ -999,38 +1059,44 @@ const verifyEmail = async function (userId, token, language = "de") {
         const transaction = await usersRepository.createTransaction();
         try {
             // await tokenRepo.deleteVerificationToken({ userId, token });
-            await verificationTokenRepository.deleteWithTransaction({
-                filters: [
-                    {
-                        key: "userId",
-                        sign: "=",
-                        value: userId
-                    },
-                    {
-                        key: "token",
-                        sign: "=",
-                        value: token
-                    }
-                ]
-            }, transaction);
+            await verificationTokenRepository.deleteWithTransaction(
+                {
+                    filters: [
+                        {
+                            key: "userId",
+                            sign: "=",
+                            value: userId,
+                        },
+                        {
+                            key: "token",
+                            sign: "=",
+                            value: token,
+                        },
+                    ],
+                },
+                transaction
+            );
 
             if (tokenData.expiresAt < getDateInFormate(new Date())) {
                 throw new AppError(`send_mail_again`, 400);
             }
 
             // await userRepo.updateUserById(userId, { emailVerified: true });
-            await usersRepository.updateWithTransaction({
-                data: {
-                    emailVerified: true
+            await usersRepository.updateWithTransaction(
+                {
+                    data: {
+                        emailVerified: true,
+                    },
+                    filters: [
+                        {
+                            key: "id",
+                            sign: "=",
+                            value: userId,
+                        },
+                    ],
                 },
-                filters: [
-                    {
-                        key: "id",
-                        sign: "=",
-                        value: userId
-                    }
-                ]
-            }, transaction);
+                transaction
+            );
 
             await usersRepository.commitTransaction(transaction);
         } catch (err) {
@@ -1038,10 +1104,11 @@ const verifyEmail = async function (userId, token, language = "de") {
             if (err instanceof AppError) throw err;
             throw new AppError(err);
         }
-        const verificationDone = require(
-            `../emailTemplates/${language}/verificationDone`,
+        const verificationDone = require(`../emailTemplates/${language}/verificationDone`);
+        const { subject, body } = verificationDone(
+            user.firstname,
+            user.lastname
         );
-        const { subject, body } = verificationDone(user.firstname, user.lastname);
         await sendMail(user.email, subject, null, body);
         return "The Email Verification was successfull!";
     } catch (err) {
@@ -1058,12 +1125,14 @@ const logout = async function (userId, refreshToken, deviceToken) {
                 {
                     key: "refreshToken",
                     sign: "=",
-                    value: refreshToken
-                }
-            ]
+                    value: refreshToken,
+                },
+            ],
         });
         if (!token) {
-            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: refreshToken });
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, {
+                id: refreshToken,
+            });
         }
         if (!deviceToken) {
             throw new AppError(`device_token_missing`, 400);
@@ -1074,14 +1143,14 @@ const logout = async function (userId, refreshToken, deviceToken) {
                 {
                     key: "refreshToken",
                     sign: "=",
-                    value: refreshToken
+                    value: refreshToken,
                 },
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
         // also delete deviceAddress firebase token
         await firebaseTokenRepository.delete({
@@ -1089,14 +1158,14 @@ const logout = async function (userId, refreshToken, deviceToken) {
                 {
                     key: "deviceAddress",
                     sign: "=",
-                    value: deviceToken
+                    value: deviceToken,
                 },
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -1120,16 +1189,16 @@ const getUsers = async function (userIds, username, reqUserId) {
     const filter = [];
     if (userIds) {
         filter.push({
-            key: 'id',
-            sign: 'IN',
-            value: userIds
+            key: "id",
+            sign: "IN",
+            value: userIds,
         });
     }
     if (username) {
         filter.push({
-            key: 'username',
-            sign: '=',
-            value: username
+            key: "username",
+            sign: "=",
+            value: username,
         });
     }
     if (!filter) {
@@ -1139,7 +1208,7 @@ const getUsers = async function (userIds, username, reqUserId) {
         // const users = await userRepo.getAllUsers(filter, columsToQuery);
         const userrResp = await usersRepository.getAll({
             filters: filter,
-            columns: columsToQuery
+            columns: columsToQuery,
         });
         const users = userrResp.rows;
         users.forEach((user) => {
@@ -1174,14 +1243,14 @@ const listLoginDevices = async function (userId, refreshToken) {
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
+                    value: userId,
                 },
                 {
                     key: "refreshToken",
                     sign: "NOT IN",
-                    value: refreshToken
-                }
-            ]
+                    value: refreshToken,
+                },
+            ],
         });
         return tokens;
     } catch (err) {
@@ -1199,9 +1268,9 @@ const deleteLoginDevices = async function (paramId, queryId) {
                     {
                         key: "userId",
                         sign: "=",
-                        value: paramId
-                    }
-                ]
+                        value: paramId,
+                    },
+                ],
             });
         } else {
             // await tokenRepo.deleteRefreshTokenFor({ paramId, id: queryId });
@@ -1210,14 +1279,14 @@ const deleteLoginDevices = async function (paramId, queryId) {
                     {
                         key: "userId",
                         sign: "=",
-                        value: paramId
+                        value: paramId,
                     },
                     {
                         key: "id",
                         sign: "=",
-                        value: queryId
-                    }
-                ]
+                        value: queryId,
+                    },
+                ],
             });
         }
     } catch (err) {
@@ -1241,9 +1310,9 @@ const uploadUserProfileImage = async function (id, image) {
                     {
                         key: "id",
                         sign: "=",
-                        value: id
-                    }
-                ]
+                        value: id,
+                    },
+                ],
             });
             return updationData;
         }
@@ -1261,12 +1330,14 @@ const deleteUserProfileImage = async function (userId) {
                 {
                     key: "id",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
         if (!user) {
-            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, {
+                id: userId,
+            });
         }
 
         const onSuccess = async () => {
@@ -1280,9 +1351,9 @@ const deleteUserProfileImage = async function (userId) {
                     {
                         key: "id",
                         sign: "=",
-                        value: userId
-                    }
-                ]
+                        value: userId,
+                    },
+                ],
             });
         };
         const onFail = (err) => {
@@ -1302,6 +1373,8 @@ const getUserListings = async function (
     statusId,
     categoryId,
     subcategoryId,
+    requesterRoleId = null,
+    requesterId = null
 ) {
     const filters = [];
 
@@ -1317,10 +1390,7 @@ const getUserListings = async function (
         Number(pageSize) <= 0 ||
         Number(pageSize) > 20
     ) {
-        throw new AppError(
-            `positive_page_size`,
-            400,
-        );
+        throw new AppError(`positive_page_size`, 400);
     }
 
     // Validate and apply statusId filter
@@ -1331,10 +1401,12 @@ const getUserListings = async function (
 
         try {
             const status = await statusRepository.getOne({
-                filters: [{ key: "id", sign: "=", value: statusId }]
+                filters: [{ key: "id", sign: "=", value: statusId }],
             });
             if (!status) {
-                throw new AppError(`invalid_status`, 400, undefined, { statusId });
+                throw new AppError(`invalid_status`, 400, undefined, {
+                    statusId,
+                });
             }
         } catch (err) {
             if (err instanceof AppError) throw err;
@@ -1344,7 +1416,7 @@ const getUserListings = async function (
         filters.push({
             key: "statusId",
             sign: "=",
-            value: statusId
+            value: statusId,
         });
     }
 
@@ -1360,24 +1432,31 @@ const getUserListings = async function (
                     {
                         key: "id",
                         sign: "=",
-                        value: categoryId
-                    }
-                ]
+                        value: categoryId,
+                    },
+                ],
             });
             if (!category) {
-                throw new AppError(`invalid_category`, 400, undefined, { categoryId });
+                throw new AppError(`invalid_category`, 400, undefined, {
+                    categoryId,
+                });
             }
 
             // filters.categoryId = categoryId;
             filters.push({
                 key: "categoryId",
                 sign: "=",
-                value: categoryId
+                value: categoryId,
             });
 
             if (subcategoryId) {
-                if (isNaN(Number(subcategoryId)) || Number(subcategoryId) <= 0) {
-                    throw new AppError(`invalid_subcategory`, 400, undefined, { subcategoryId });
+                if (
+                    isNaN(Number(subcategoryId)) ||
+                    Number(subcategoryId) <= 0
+                ) {
+                    throw new AppError(`invalid_subcategory`, 400, undefined, {
+                        subcategoryId,
+                    });
                 }
 
                 try {
@@ -1386,17 +1465,22 @@ const getUserListings = async function (
                             {
                                 key: "id",
                                 sign: "=",
-                                value: subcategoryId
+                                value: subcategoryId,
                             },
                             {
                                 key: "categoryId",
                                 sign: "=",
-                                value: categoryId
-                            }
+                                value: categoryId,
+                            },
                         ],
                     });
                     if (!subcategory) {
-                        throw new AppError(`invalid_subcategory`, 400, undefined, { subcategoryId });
+                        throw new AppError(
+                            `invalid_subcategory`,
+                            400,
+                            undefined,
+                            { subcategoryId }
+                        );
                     }
                 } catch (err) {
                     if (err instanceof AppError) throw err;
@@ -1406,7 +1490,7 @@ const getUserListings = async function (
                 filters.push({
                     key: "subcategoryId",
                     sign: "=",
-                    value: subcategoryId
+                    value: subcategoryId,
                 });
             }
         } catch (err) {
@@ -1415,28 +1499,131 @@ const getUserListings = async function (
         }
     }
 
-    if (userId) {
-        // filters.userId = userId;
-        filters.push({
-            key: "userId",
-            sign: "=",
-            value: userId
-        });
-    }
+    // Determine listing scope based on requester role
     try {
+        // Admin: return all listings (do not filter by user)
+        if (requesterRoleId === roles.Admin) {
+            const data = await listingRepository.retrieveListings({
+                filters,
+                pageNo,
+                pageSize,
+                statusId: "*",
+            });
+            return data;
+        }
+
+        // City Admin: return listings for cities the requester administers
+        if (requesterRoleId === roles["City Admin"]) {
+            const adminCityRows = await cityUserRolesRepository.getAll({
+                columns: "cityId",
+                filters: [
+                    { key: "userId", sign: "=", value: requesterId },
+                    { key: "isAdmin", sign: "=", value: 1 },
+                ],
+            });
+            const cityIds = [
+                ...new Set((adminCityRows.rows || []).map((r) => r.cityId)),
+            ];
+            if (cityIds.length === 0) return [];
+            const data = await listingRepository.retrieveListings({
+                filters,
+                cities: cityIds,
+                pageNo,
+                pageSize,
+                statusId: "*",
+            });
+            return data;
+        }
+
+        // Moderator: return listings for cities the moderator is assigned to
+        if (requesterRoleId === roles.Moderator) {
+            const modRows = await moderatorsRepository.getAll({
+                filters: [{ key: "userId", sign: "=", value: requesterId }],
+                columns: ["id", "cityId"],
+            });
+
+            const modIds = (modRows.rows || []).map((r) => r.id);
+            const cityIds = [
+                ...new Set((modRows.rows || []).map((r) => r.cityId)),
+            ];
+            if (cityIds.length === 0) return [];
+
+            const categoryFilterIds = new Set();
+
+            if (modIds.length > 0) {
+                // Get all permissions assigned to these moderators
+                const modPerms = await moderatorPermissionsRepository.getAll({
+                    filters: [
+                        { key: "moderatorId", sign: "IN", value: modIds },
+                    ],
+                    columns: ["permissionId"],
+                });
+
+                const permIds = [
+                    ...new Set(
+                        (modPerms.rows || []).map((p) => p.permissionId)
+                    ),
+                ];
+                if (permIds.length > 0) {
+                    const perms = await permissionsRepository.getAll({
+                        filters: [{ key: "id", sign: "IN", value: permIds }],
+                        columns: ["id", "name"],
+                    });
+
+                    const permNames = (perms.rows || []).map((p) =>
+                        p.name.toLowerCase()
+                    );
+
+                    // Determine accessible categories
+                    if (permNames.includes("create_event")) {
+                        categoryFilterIds.add(3);
+                    }
+                    if (permNames.includes("create_news")) {
+                        categoryFilterIds.add(1);
+                    }
+                }
+            }
+
+            // If moderator has no recognized category permission, they see nothing
+            if (categoryFilterIds.size === 0) {
+                return [];
+            }
+
+            // Apply city + category filter
+            const data = await listingRepository.retrieveListings({
+                filters: [
+                    ...filters,
+                    {
+                        key: "categoryId",
+                        sign: "IN",
+                        value: Array.from(categoryFilterIds),
+                    },
+                ],
+                cities: cityIds,
+                pageNo,
+                pageSize,
+                statusId: "*",
+            });
+
+            return data;
+        }
+
+        // Default: return listings created by the target user
+        if (userId) {
+            filters.push({ key: "userId", sign: "=", value: userId });
+        }
         const data = await listingRepository.retrieveListings({
             filters,
             pageNo,
             pageSize,
-            statusId: '*'
-        })
+            statusId: "*",
+        });
         return data;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
-}
-
+};
 
 const deleteUser = async function (userId) {
     try {
@@ -1447,12 +1634,14 @@ const deleteUser = async function (userId) {
                 {
                     key: "id",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
         if (!userData) {
-            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, {
+                id: userId,
+            });
         }
 
         // const cityUsers = await userRepo.getuserCityMappings(userId);
@@ -1461,17 +1650,17 @@ const deleteUser = async function (userId) {
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
-                }
+                    value: userId,
+                },
             ],
-            columns: ["cityId, cityUserId"]
+            columns: ["cityId, cityUserId"],
         });
         const cityUsers = cityUsersData.rows;
 
         const userImageList = await getUserImages(userId);
 
         await imageDeleteAsync.deleteMultiple(
-            userImageList.map((image) => ({ Key: image.Key._text })),
+            userImageList.map((image) => ({ Key: image.Key._text }))
         );
         for (const cityUser of cityUsers) {
             // await database.callStoredProcedure(
@@ -1479,7 +1668,10 @@ const deleteUser = async function (userId) {
             //     [cityUser.cityUserId],
             //     cityUser.cityId,
             // );
-            await usersRepository.deleteCityUserProcedure(cityUser.cityUserId, cityUser.cityId);
+            await usersRepository.deleteCityUserProcedure(
+                cityUser.cityUserId,
+                cityUser.cityId
+            );
         }
         // await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [
         //     userId,
@@ -1492,19 +1684,25 @@ const deleteUser = async function (userId) {
     }
 };
 
-const storeFirebaseUserToken = async function (userId, newFirebaseToken, deviceToken) {
+const storeFirebaseUserToken = async function (
+    userId,
+    newFirebaseToken,
+    deviceToken
+) {
     try {
         const userData = await usersRepository.getOne({
             filters: [
                 {
                     key: "id",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
         if (!userData) {
-            throw new AppError(`user_id_does_not_exist`, 404, undefined, { id: userId });
+            throw new AppError(`user_id_does_not_exist`, 404, undefined, {
+                id: userId,
+            });
         }
 
         const response = await firebaseTokenRepository.getOne({
@@ -1512,25 +1710,24 @@ const storeFirebaseUserToken = async function (userId, newFirebaseToken, deviceT
                 {
                     key: "deviceAddress",
                     sign: "=",
-                    value: deviceToken
+                    value: deviceToken,
                 },
                 {
                     key: "userId",
                     sign: "=",
-                    value: userId
-                }
-            ]
+                    value: userId,
+                },
+            ],
         });
         if (!response) {
-            const insertionData = {}
+            const insertionData = {};
             insertionData.userId = userId;
             insertionData.firebaseToken = newFirebaseToken;
             insertionData.createdAt = getDateInFormate(new Date());
             insertionData.deviceAddress = deviceToken;
             await firebaseTokenRepository.create({
-                data: insertionData
+                data: insertionData,
             });
-
         } else {
             const firebaseTokenUpdationData = response;
             firebaseTokenUpdationData.firebaseToken = newFirebaseToken;
@@ -1541,22 +1738,21 @@ const storeFirebaseUserToken = async function (userId, newFirebaseToken, deviceT
                     {
                         key: "deviceAddress",
                         sign: "=",
-                        value: deviceToken
+                        value: deviceToken,
                     },
                     {
                         key: "userId",
                         sign: "=",
-                        value: userId
-                    }
-                ]
+                        value: userId,
+                    },
+                ],
             });
         }
-
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
     }
-}
+};
 
 module.exports = {
     register,
@@ -1576,5 +1772,5 @@ module.exports = {
     deleteUserProfileImage,
     getUserListings,
     deleteUser,
-    storeFirebaseUserToken
+    storeFirebaseUserToken,
 };

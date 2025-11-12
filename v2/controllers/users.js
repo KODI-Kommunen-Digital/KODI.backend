@@ -27,22 +27,26 @@ const login = async function (req, res, next) {
 
     try {
         if (!payload.username && !payload.password) {
-            throw new AppError(`empty_payload_sent`, 400, errorCodes.EMPTY_PAYLOAD);
+            throw new AppError(
+                `empty_payload_sent`,
+                400,
+                errorCodes.EMPTY_PAYLOAD
+            );
         }
 
         if (!payload.username) {
             throw new AppError(
-                'username_not_present',
+                "username_not_present",
                 400,
-                errorCodes.MISSING_USERNAME,
+                errorCodes.MISSING_USERNAME
             );
         }
 
         if (!payload.password) {
             throw new AppError(
-                'missing_password',
+                "missing_password",
                 400,
-                errorCodes.MISSING_PASSWORD,
+                errorCodes.MISSING_PASSWORD
             );
         }
         const loginRes = await userService.login(
@@ -64,7 +68,7 @@ const login = async function (req, res, next) {
 const getUserById = async function (req, res, next) {
     let userId = req.params.id;
     const reqUserId = parseInt(req.userId);
-    const cityUser = req.query.cityUser === 'true';
+    const cityUser = req.query.cityUser === "true";
     const cityId = req.query.cityId;
 
     try {
@@ -76,7 +80,7 @@ const getUserById = async function (req, res, next) {
             userId,
             cityUser,
             cityId,
-            reqUserId,
+            reqUserId
         );
         return res.status(200).json({
             status: "success",
@@ -120,7 +124,7 @@ const refreshAuthToken = async function (req, res, next) {
         const data = await userService.refreshAuthToken(
             userId,
             sourceAddress,
-            refreshToken,
+            refreshToken
         );
         return res.status(200).json({
             status: "success",
@@ -298,9 +302,7 @@ const deleteLoginDevices = async function (req, res, next) {
     const userId = parseInt(req.params.id);
     const id = req.query.id;
     if (userId !== req.userId) {
-        return next(
-            new AppError("access_denied", 401)
-        );
+        return next(new AppError("access_denied", 401));
     }
     try {
         await userService.deleteLoginDevices(userId, id);
@@ -327,7 +329,10 @@ const uploadUserProfileImage = async function (req, res, next) {
             throw new AppError(`image_not_uploaded`, 400);
         }
 
-        const updationData = await userService.uploadUserProfileImage(id, image);
+        const updationData = await userService.uploadUserProfileImage(
+            id,
+            image
+        );
         if (updationData) {
             return res.status(200).json({
                 status: "success",
@@ -370,7 +375,14 @@ const getUserListings = async function (req, res, next) {
         const categoryId = req.query.categoryId;
         const statusId = req.query.statusId;
         const subcategoryId = req.query.subcategoryId;
-        const listings = await userService.getUserListings(userId, pageNo, pageSize, statusId, categoryId, subcategoryId);
+        const listings = await userService.getUserListings(
+            userId,
+            pageNo,
+            pageSize,
+            statusId,
+            categoryId,
+            subcategoryId
+        );
         listings.forEach((listing) => delete listing.viewCount);
         return res.status(200).json({
             status: "success",
@@ -391,7 +403,9 @@ const getMyListings = async function (req, res, next) {
         const subcategoryId = req.query.subcategoryId;
 
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
-            throw new AppError(`invalid_user_id`, 400, undefined, { id: userId });
+            throw new AppError(`invalid_user_id`, 400, undefined, {
+                id: userId,
+            });
         }
 
         if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
@@ -403,10 +417,7 @@ const getMyListings = async function (req, res, next) {
             Number(pageSize) <= 0 ||
             Number(pageSize) > 20
         ) {
-            throw new AppError(
-                `positive_page_size`,
-                400,
-            );
+            throw new AppError(`positive_page_size`, 400);
         }
         const data = await userService.getUserListings(
             userId,
@@ -415,6 +426,8 @@ const getMyListings = async function (req, res, next) {
             statusId,
             categoryId,
             subcategoryId,
+            req.roleId,
+            req.userId
         );
         if (data) {
             if (
@@ -441,7 +454,9 @@ const deleteUser = async function (req, res, next) {
     const userId = parseInt(req.params.id);
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
-            throw new AppError(`invalid_user_id`, 404, undefined, { id: userId });
+            throw new AppError(`invalid_user_id`, 404, undefined, {
+                id: userId,
+            });
         }
         if (userId !== req.userId) {
             throw new AppError(`access_denied`, 403);
@@ -462,10 +477,12 @@ const storeFirebaseUserToken = async function (req, res, next) {
 
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
-            throw new AppError(`invalid_user_id`, 404, undefined, { id: userId });
+            throw new AppError(`invalid_user_id`, 404, undefined, {
+                id: userId,
+            });
         }
         if (userId !== req.userId) {
-            throw new AppError(`access_denied`, 403);;
+            throw new AppError(`access_denied`, 403);
         }
         if (!token) {
             throw new AppError(`missing_firebase_token`, 400);
@@ -480,39 +497,47 @@ const storeFirebaseUserToken = async function (req, res, next) {
     } catch (err) {
         return next(err);
     }
-}
+};
 
 const updateAllNotifications = async function (req, res, next) {
     const userId = parseInt(req.params.id);
     const notificationStatus = req.body.enabled;
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
-            throw new AppError(`invalid_user_id`, 404, undefined, { id: userId });
+            throw new AppError(`invalid_user_id`, 404, undefined, {
+                id: userId,
+            });
         }
         if (userId !== req.userId) {
-            throw new AppError(`access_denied`, 403);;
+            throw new AppError(`access_denied`, 403);
         }
-        const resp = await notificationService.updateAllNotifications(userId, notificationStatus);
+        const resp = await notificationService.updateAllNotifications(
+            userId,
+            notificationStatus
+        );
         res.status(200).json({
             status: "success",
-            data: resp.message
+            data: resp.message,
         });
     } catch (err) {
         return next(err);
     }
-}
+};
 
 const getUserNotificationPreference = async function (req, res, next) {
     const userId = parseInt(req.params.id);
 
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
-            throw new AppError(`invalid_user_id`, 404, undefined, { id: userId });
+            throw new AppError(`invalid_user_id`, 404, undefined, {
+                id: userId,
+            });
         }
         if (userId !== req.userId) {
-            throw new AppError(`access_denied`, 403);;
+            throw new AppError(`access_denied`, 403);
         }
-        const notificationPreference = await notificationService.getUserNotificationPreference(userId);
+        const notificationPreference =
+            await notificationService.getUserNotificationPreference(userId);
         res.status(200).json({
             status: "success",
             data: notificationPreference,
@@ -520,7 +545,7 @@ const getUserNotificationPreference = async function (req, res, next) {
     } catch (err) {
         return next(err);
     }
-}
+};
 
 const updateUserNotificationPreference = async function (req, res, next) {
     const userId = parseInt(req.params.id);
@@ -528,12 +553,18 @@ const updateUserNotificationPreference = async function (req, res, next) {
 
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
-            throw new AppError(`invalid_user_id`, 404, undefined, { id: userId });
+            throw new AppError(`invalid_user_id`, 404, undefined, {
+                id: userId,
+            });
         }
         if (userId !== req.userId) {
-            throw new AppError(`access_denied`, 403);;
+            throw new AppError(`access_denied`, 403);
         }
-        const response = await notificationService.updateUserNotificationPreference(userId, preferences);
+        const response =
+            await notificationService.updateUserNotificationPreference(
+                userId,
+                preferences
+            );
         res.status(200).json({
             status: "success",
             data: response.message,
@@ -541,7 +572,7 @@ const updateUserNotificationPreference = async function (req, res, next) {
     } catch (err) {
         return next(err);
     }
-}
+};
 module.exports = {
     register,
     login,
@@ -564,5 +595,5 @@ module.exports = {
     storeFirebaseUserToken,
     updateAllNotifications,
     getUserNotificationPreference,
-    updateUserNotificationPreference
+    updateUserNotificationPreference,
 };
