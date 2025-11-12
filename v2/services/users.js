@@ -1669,20 +1669,11 @@ const deleteUser = async function (userId) {
             userImageList.map((image) => ({ Key: image.Key._text }))
         );
         for (const cityUser of cityUsers) {
-            // await database.callStoredProcedure(
-            //     storedProcedures.DELETE_CITY_USER,
-            //     [cityUser.cityUserId],
-            //     cityUser.cityId,
-            // );
             await usersRepository.deleteCityUserProcedure(
                 cityUser.cityUserId,
                 cityUser.cityId
             );
         }
-        // await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [
-        //     userId,
-        // ]);
-
         await usersRepository.deleteCoreUserProcedure(userId);
     } catch (err) {
         if (err instanceof AppError) throw err;
