@@ -48,11 +48,6 @@ const login = async function (
                     sign: "=",
                     value: payload.username,
                 },
-                {
-                    key: "blocked",
-                    sign: "=",
-                    value: 0,
-                },
             ],
             joinFiltersBy: "OR",
             columns: [
@@ -62,6 +57,7 @@ const login = async function (
                 "password",
                 "emailVerified",
                 "roleId",
+                "blocked",
             ],
         });
         if (!userData) {
@@ -70,6 +66,9 @@ const login = async function (
                 401,
                 errorCodes.INVALID_CREDENTIALS
             );
+        }
+        if (userData.blocked) {
+            throw new AppError("user_blocked", 403, errorCodes.USER_BLOCKED);
         }
 
         if (!userData.emailVerified) {
