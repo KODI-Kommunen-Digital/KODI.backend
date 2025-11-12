@@ -2,6 +2,7 @@ const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
 const userService = require("../services/users");
 const notificationService = require("../services/notifications");
+const roles = require("../constants/roles");
 
 const register = async function (req, res, next) {
     const payload = req.body;
@@ -452,15 +453,28 @@ const getMyListings = async function (req, res, next) {
 
 const deleteUser = async function (req, res, next) {
     const userId = parseInt(req.params.id);
+    const requesterUserId = parseInt(req.userId);
+    const requesterRoleId = req.roleId;
+
     try {
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
             throw new AppError(`invalid_user_id`, 404, undefined, {
                 id: userId,
             });
         }
-        if (userId !== req.userId) {
+
+        // Allow user to delete themselves OR admin to delete other users (but not themselves)
+        const isOwnAccount = userId === requesterUserId;
+        const isAdmin = requesterRoleId === roles.Admin;
+
+        if (isAdmin && isOwnAccount) {
+            throw new AppError(`admin_cannot_delete_self`, 403);
+        }
+
+        if (!isOwnAccount && !isAdmin) {
             throw new AppError(`access_denied`, 403);
         }
+
         await userService.deleteUser(userId);
         res.status(200).json({
             status: "success",
@@ -573,6 +587,47 @@ const updateUserNotificationPreference = async function (req, res, next) {
         return next(err);
     }
 };
+
+const blockUser = async function (req, res, next) {
+    try {
+        const userId = req.userId;
+        const roleId = req.roleId;
+        const targetUserId = req.params.id;
+
+        const result = await userService.blockUser(
+            userId,
+            roleId,
+            targetUserId
+        );
+        res.status(200).json({
+            status: "success",
+            data: result,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const unblockUser = async function (req, res, next) {
+    try {
+        const userId = req.userId;
+        const roleId = req.roleId;
+        const targetUserId = req.params.id;
+
+        const result = await userService.unblockUser(
+            userId,
+            roleId,
+            targetUserId
+        );
+        res.status(200).json({
+            status: "success",
+            data: result,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -596,4 +651,6 @@ module.exports = {
     updateAllNotifications,
     getUserNotificationPreference,
     updateUserNotificationPreference,
+    blockUser,
+    unblockUser,
 };
