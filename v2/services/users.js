@@ -48,6 +48,11 @@ const login = async function (
                     sign: "=",
                     value: payload.username,
                 },
+                {
+                    key: "blocked",
+                    sign: "=",
+                    value: 0,
+                },
             ],
             joinFiltersBy: "OR",
             columns: [
@@ -1185,6 +1190,7 @@ const getUsers = async function (userIds, username, reqUserId) {
         "lastname",
         "description",
         "roleId",
+        "blocked",
     ];
     const filter = [];
     if (userIds) {
@@ -1754,6 +1760,100 @@ const storeFirebaseUserToken = async function (
     }
 };
 
+const blockUser = async function (userId, requesterRoleId, targetUserId) {
+    try {
+        // Only Admin can block users
+        if (requesterRoleId !== roles.Admin) {
+            throw new AppError(
+                "You are not authorized to perform this action",
+                403
+            );
+        }
+
+        if (isNaN(Number(targetUserId)) || Number(targetUserId) <= 0) {
+            throw new AppError("Invalid user ID", 400);
+        }
+
+        // Cannot block self
+        if (userId === Number(targetUserId)) {
+            throw new AppError("You cannot block yourself", 400);
+        }
+
+        const user = await usersRepository.getOne({
+            filters: [{ key: "id", sign: "=", value: targetUserId }],
+            columns: "id, username, blocked",
+        });
+
+        if (!user) {
+            throw new AppError("User not found", 404);
+        }
+
+        if (user.blocked) {
+            throw new AppError("User is already blocked", 400);
+        }
+
+        await usersRepository.update({
+            data: { blocked: true },
+            filters: [{ key: "id", sign: "=", value: targetUserId }],
+        });
+
+        return {
+            success: true,
+            message: `User ${user.username} has been blocked`,
+        };
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
+const unblockUser = async function (userId, requesterRoleId, targetUserId) {
+    try {
+        // Only Admin can unblock users
+        if (requesterRoleId !== roles.Admin) {
+            throw new AppError(
+                "You are not authorized to perform this action",
+                403
+            );
+        }
+
+        if (isNaN(Number(targetUserId)) || Number(targetUserId) <= 0) {
+            throw new AppError("Invalid user ID", 400);
+        }
+
+        // Cannot unblock self (though they wouldn't be able to call this if blocked)
+        if (userId === Number(targetUserId)) {
+            throw new AppError("You cannot unblock yourself", 400);
+        }
+
+        const user = await usersRepository.getOne({
+            filters: [{ key: "id", sign: "=", value: targetUserId }],
+            columns: "id, username, blocked",
+        });
+
+        if (!user) {
+            throw new AppError("User not found", 404);
+        }
+
+        if (!user.blocked) {
+            throw new AppError("User is not blocked", 400);
+        }
+
+        await usersRepository.update({
+            data: { blocked: false },
+            filters: [{ key: "id", sign: "=", value: targetUserId }],
+        });
+
+        return {
+            success: true,
+            message: `User ${user.username} has been unblocked`,
+        };
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -1773,4 +1873,6 @@ module.exports = {
     getUserListings,
     deleteUser,
     storeFirebaseUserToken,
+    blockUser,
+    unblockUser,
 };

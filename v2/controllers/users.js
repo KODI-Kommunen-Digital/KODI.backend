@@ -573,6 +573,47 @@ const updateUserNotificationPreference = async function (req, res, next) {
         return next(err);
     }
 };
+
+const blockUser = async function (req, res, next) {
+    try {
+        const userId = req.userId;
+        const roleId = req.roleId;
+        const targetUserId = req.params.id;
+
+        const result = await userService.blockUser(
+            userId,
+            roleId,
+            targetUserId
+        );
+        res.status(200).json({
+            status: "success",
+            data: result,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const unblockUser = async function (req, res, next) {
+    try {
+        const userId = req.userId;
+        const roleId = req.roleId;
+        const targetUserId = req.params.id;
+
+        const result = await userService.unblockUser(
+            userId,
+            roleId,
+            targetUserId
+        );
+        res.status(200).json({
+            status: "success",
+            data: result,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -596,4 +637,6 @@ module.exports = {
     updateAllNotifications,
     getUserNotificationPreference,
     updateUserNotificationPreference,
+    blockUser,
+    unblockUser,
 };

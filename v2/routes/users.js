@@ -25,6 +25,8 @@ const {
     updateAllNotifications,
     getUserNotificationPreference,
     updateUserNotificationPreference,
+    blockUser,
+    unblockUser,
 } = require("../controllers/users");
 
 const filterNonPostRequests = (req, res, next) => {
@@ -96,5 +98,9 @@ router.patch(
     authentication,
     updateUserNotificationPreference
 );
+
+router.post("/:id/block", authentication, blockUser);
+
+router.post("/:id/unblock", authentication, unblockUser);
 
 module.exports = router;
