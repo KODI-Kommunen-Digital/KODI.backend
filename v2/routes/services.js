@@ -7,20 +7,26 @@ const supportedLanguages = require("../constants/supportedLanguages");
 // Helper to build nested structure
 function buildTree(services, parentId = null) {
     return services
-        .filter(service => service.parentId === parentId)
-        .map(service => ({
+        .filter((service) => service.parentId === parentId)
+        .map((service) => ({
             id: service.id,
             service: service.service,
             link: service.link,
             image: service.image,
             description: service.description,
-            serviceType: service.serviceType === "Deep Link"
-                ? 1
-                : service.serviceType === "Link"
+            serviceType:
+                service.serviceType === "Deep Link"
+                    ? 1
+                    : service.serviceType === "Link"
                     ? 2
                     : service.serviceType === "Group Link"
-                        ? 3
-                        : service.serviceType === "Form" ? 4 : null, children: buildTree(services, service.id)
+                    ? 3
+                    : service.serviceType === "Form"
+                    ? 4
+                    : service.serviceType === "tabs"
+                    ? 5
+                    : null,
+            children: buildTree(services, service.id),
         }));
 }
 
@@ -33,17 +39,26 @@ router.get("/", async (req, res, next) => {
         const acceptLanguage = req.headers["accept-language"] || "";
         const requested = acceptLanguage.split(",")[0].trim().toLowerCase();
         const fallback = "de";
-        const supportedLower = new Set(supportedLanguages.map(l => l.toLowerCase()));
-        const targetLang = supportedLower.has(requested) ? (requested === 'en' ? 'en-US' : requested) : fallback;
+        const supportedLower = new Set(
+            supportedLanguages.map((l) => l.toLowerCase())
+        );
+        const targetLang = supportedLower.has(requested)
+            ? requested === "en"
+                ? "en-US"
+                : requested
+            : fallback;
 
         // Translate only description fields
-        if (targetLang !== 'de') {
-            const translated = await translateObjectValues({ services: tree }, targetLang, ["service", "text"]);
+        if (targetLang !== "de") {
+            const translated = await translateObjectValues(
+                { services: tree },
+                targetLang,
+                ["service", "text"]
+            );
             res.json({ success: true, data: translated });
         } else {
             res.json({ success: true, data: { services: tree } });
         }
-
     } catch (err) {
         next(err);
     }
