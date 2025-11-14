@@ -22,6 +22,7 @@ const pollOptionsRepository = require("../repository/pollOptionsRepo");
 const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
 const moderatorsRepository = require("../repository/moderatorsRepo");
 const moderatorPermissionsRepository = require("../repository/moderatorPermissionsRepo");
+const userRepo = require("../repository/userRepo");
 
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
@@ -251,7 +252,7 @@ async function createListing(cityIds, payload, userId, roleId) {
 
     if (
         payload.statusId &&
-        (roleId === roles.Admin || isAnAdmin || roles.Moderator)
+        (roleId === roles.Admin || isAnAdmin || roleId === roles.Moderator)
     ) {
         try {
             const statusData = await statusRepository.getOne({
@@ -458,7 +459,9 @@ async function createListing(cityIds, payload, userId, roleId) {
         transaction = await listingsRepository.createTransaction();
         insertionData.userId = userId;
         insertionData.statusId =
-            roleId === roles.Admin || cityAdminMap?.[cityIds?.[0]]
+            roleId === roles.Admin ||
+            cityAdminMap?.[cityIds?.[0]] ||
+            roles.Moderator
                 ? payload.statusId || status.Active
                 : status.Pending;
         const response = await listingsRepository.createWithTransaction(
@@ -532,7 +535,9 @@ async function createListing(cityIds, payload, userId, roleId) {
         for (const city of cities) {
             const cityId = city.id;
             const mappingStatus =
-                roleId === roles.Admin || cityAdminMap[city.id]
+                roleId === roles.Admin ||
+                cityAdminMap[city.id] ||
+                roleId === roles.Moderator
                     ? payload.statusId || status.Active
                     : status.Pending;
 
@@ -575,42 +580,51 @@ async function createListing(cityIds, payload, userId, roleId) {
             }
         }
         const activeListingsCities = allResponses
-            ?.filter((response) => response.status === status.Active)
+            ?.filter((response) => response.status === 1)
             .map((response) => response.cityId);
-        const pendingListingsCities = allResponses
-            ?.filter((response) => response.status === status.Pending)
-            .map((response) => response.cityId);
-        if (roleId === roles.Admin && activeListingsCities?.length > 0) {
-            await sendPushNotification.sendPushNotificationsToUsers(
-                cityIds,
-                insertionData.categoryId,
+        // const pendingListingsCities = allResponses
+        //     ?.filter((response) => response.status === status.Pending)
+        //     .map((response) => response.cityId);
+
+        // if (
+        //     (roleId === roles["Content Creator"] ||
+        //         roleId === roles["Department Head"]) &&
+        //     pendingListingsCities?.length > 0
+        // ) {
+        //     await sendPushNotification.sendPushNotificationsToAdmin(
+        //         cityIds,
+        //         insertionData.categoryId,
+        //         "Neue Meldung von einem Benutzer, bitte überprüfen Sie die Meldung",
+        //         insertionData.title,
+        //         {
+        //             cities: JSON.stringify(pendingListingsCities),
+        //             id: listingId.toString(),
+        //         }
+        //     );
+        // }
+        await listingsRepository.commitTransaction(transaction);
+        if (
+            (roleId === roles.Admin ||
+                roleId === roles["City Admin"] ||
+                roleId === roles.Moderator) &&
+            activeListingsCities?.length > 0
+        ) {
+            // get all the normal users (role ID 3 - Content Creator) and return array of ids
+            const normalUserIds = await userRepo.getNormalUserIds();
+
+            // Build the complete listing data with all related information
+            const listingData = await buildCompleteListingData(listingId);
+
+            await sendPushNotification.sendPushNotifications(
+                normalUserIds,
                 "Neue Meldung",
                 insertionData.title,
                 {
-                    cities: JSON.stringify(activeListingsCities),
-                    id: listingId.toString(),
+                    type: "new_listing",
+                    data: JSON.stringify(listingData),
                 }
             );
         }
-
-        if (
-            (roleId === roles["Content Creator"] ||
-                roleId === roles["Department Head"]) &&
-            pendingListingsCities?.length > 0
-        ) {
-            await sendPushNotification.sendPushNotificationsToAdmin(
-                cityIds,
-                insertionData.categoryId,
-                "Neue Meldung von einem Benutzer, bitte überprüfen Sie die Meldung",
-                insertionData.title,
-                {
-                    cities: JSON.stringify(pendingListingsCities),
-                    id: listingId.toString(),
-                }
-            );
-        }
-        await listingsRepository.commitTransaction(transaction);
-
         return allResponses;
     } catch (err) {
         await listingsRepository.rollbackTransaction(transaction);
@@ -1296,6 +1310,122 @@ async function updateCityMappings(
             throw err;
         }
         throw new AppError(err, 500);
+    }
+}
+
+async function buildCompleteListingData(listingId) {
+    try {
+        // Get basic listing data
+        const data = await listingsRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: listingId,
+                },
+            ],
+        });
+
+        if (!data) {
+            throw new AppError(
+                `Listing with id ${listingId} does not exist`,
+                404
+            );
+        }
+
+        // Get city mappings
+        const cityListingMappings = await cityListingMappingRepo.getAll({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: listingId,
+                },
+            ],
+            orderBy: ["cityOrder"],
+        });
+
+        const allCities = cityListingMappings.rows.map(
+            (mapping) => mapping.cityId
+        );
+        data.allCities = allCities;
+        data.cityId = allCities.length > 0 ? allCities[0] : null;
+
+        // Get images for the listing
+        const listingImageListResp = await listingsImageRepository.getAll({
+            filters: [
+                {
+                    key: "listingId",
+                    sign: "=",
+                    value: listingId,
+                },
+            ],
+        });
+
+        const listingImageList = listingImageListResp.rows;
+        const logo =
+            listingImageList && listingImageList.length > 0
+                ? listingImageList[0].logo
+                : null;
+
+        data.logo = logo;
+        data.logoCount = listingImageList ? listingImageList.length : 0;
+        data.otherLogos = listingImageList || [];
+
+        // Get city data for each city
+        const cityData = [];
+        for (const cityId of allCities) {
+            const cityInfo = await citiesRepository.getOne({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: cityId,
+                    },
+                ],
+            });
+
+            if (cityInfo) {
+                // Get listing status for this specific city
+                const cityMapping = cityListingMappings.rows.find(
+                    (m) => m.cityId === cityId
+                );
+                cityData.push({
+                    id: cityInfo.id,
+                    name: cityInfo.name,
+                    image: cityInfo.image,
+                    listingStatus: cityMapping ? cityMapping.status : null,
+                });
+            }
+        }
+
+        data.cityCount = allCities.length;
+        data.cityData = cityData;
+
+        // Get poll options if it's a poll
+        if (data.categoryId === categories.Polls) {
+            const pollOptionResp = await pollOptionsRepository.getAll({
+                filters: [
+                    {
+                        key: "listingId",
+                        sign: "=",
+                        value: listingId,
+                    },
+                ],
+            });
+            data.pollOptions = pollOptionResp?.rows ?? [];
+        }
+
+        // Add language detection defaults
+        data.isOngoing = 0;
+        data.titleLanguage = "auto";
+        data.descriptionLanguage = "auto";
+
+        delete data.viewCount;
+        return data;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
     }
 }
 
