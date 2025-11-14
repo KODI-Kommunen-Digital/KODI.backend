@@ -707,6 +707,7 @@ const updateUser = async function (id, payload, req) {
 };
 
 const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
+    console.log({ userId, sourceAddress, refreshToken });
     if (isNaN(Number(userId)) || Number(userId) <= 0) {
         throw new AppError(`invalid_user_id`, 404, undefined, { id: userId });
     }
@@ -740,6 +741,7 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
                 },
             ],
         });
+        console.log({ refreshTokenData });
         if (!refreshTokenData) {
             throw new AppError(`invalid_refresh_token`, 400);
         }
