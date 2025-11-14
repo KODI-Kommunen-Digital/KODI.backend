@@ -120,6 +120,7 @@ const refreshAuthToken = async function (req, res, next) {
         ? req.headers["x-forwarded-for"].split(",").shift()
         : req.socket.remoteAddress;
     sourceAddress = sourceAddress.toString().replace("::ffff:", "");
+    console.log("sourceAddress:", sourceAddress);
     const refreshToken = req.body.refreshToken;
 
     try {
