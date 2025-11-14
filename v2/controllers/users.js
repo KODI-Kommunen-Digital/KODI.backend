@@ -116,9 +116,10 @@ const updateUser = async function (req, res, next) {
 
 const refreshAuthToken = async function (req, res, next) {
     const userId = req.params.id;
-    const sourceAddress = req.headers["x-forwarded-for"]
+    let sourceAddress = req.headers["x-forwarded-for"]
         ? req.headers["x-forwarded-for"].split(",").shift()
         : req.socket.remoteAddress;
+    sourceAddress = sourceAddress.toString().replace("::ffff:", "");
     const refreshToken = req.body.refreshToken;
 
     try {
