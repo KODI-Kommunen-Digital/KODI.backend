@@ -602,6 +602,9 @@ async function createListing(cityIds, payload, userId, roleId) {
         //         }
         //     );
         // }
+        console.log(
+            `committing transaction for listing ${listingId} and active listingcities lenght is ${activeListingsCities?.length}`
+        );
         await listingsRepository.commitTransaction(transaction);
         if (
             (roleId === roles.Admin ||
@@ -623,6 +626,9 @@ async function createListing(cityIds, payload, userId, roleId) {
                     type: "new_listing",
                     data: JSON.stringify(listingData),
                 }
+            );
+            console.log(
+                `sending push notification to user for listing ${listingId} and users ${normalUserIds}`
             );
         }
         return allResponses;
