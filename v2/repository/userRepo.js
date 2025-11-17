@@ -43,6 +43,20 @@ class UserRepo extends BaseRepo {
         return response.rows;
     }
 
+    getNormalUserIds = async () => {
+        const response = await this.getAll({
+            filters: [
+                {
+                    key: "roleId",
+                    sign: "=",
+                    value: 3, // Content Creator role
+                },
+            ],
+            columns: ["id"],
+        });
+        return response.rows.map((user) => user.id);
+    }
+
 }
 
 module.exports = new UserRepo();

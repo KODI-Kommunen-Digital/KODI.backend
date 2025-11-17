@@ -16,14 +16,20 @@ const getAllListings = async (req, res, next) => {
         showExternalListings,
         startAfterDate,
         endBeforeDate,
-        dateFilter
+        dateFilter,
     } = params;
     const isAdmin = req.roleId === roles.Admin;
     const acceptLanguage = req.headers["accept-language"] || "";
     const requested = acceptLanguage.split(",")[0].trim().toLowerCase();
     const fallback = "de";
-    const supportedLower = new Set(supportedLanguages.map(l => l.toLowerCase()));
-    const targetLang = supportedLower.has(requested) ? (requested === 'en' ? 'en-US' : requested) : fallback;
+    const supportedLower = new Set(
+        supportedLanguages.map((l) => l.toLowerCase())
+    );
+    const targetLang = supportedLower.has(requested)
+        ? requested === "en"
+            ? "en-US"
+            : requested
+        : fallback;
 
     try {
         const listings = await listingService.getAllListings({
@@ -34,14 +40,14 @@ const getAllListings = async (req, res, next) => {
             subcategoryId,
             searchQuery,
             categoryId,
-            cityId: categoryId === '1' ? undefined : cityId,
+            cityId: categoryId === "1" ? undefined : cityId,
             reqTranslate: targetLang,
             showExternalListings,
             isAdmin,
             startAfterDate,
             endBeforeDate,
             dateFilter,
-            userId: req.userId
+            userId: req.userId,
         });
         res.status(200).json({
             status: "success",
@@ -61,7 +67,7 @@ const searchListings = async (req, res, next) => {
         statusId,
         cityId,
         searchQuery,
-        translate
+        translate,
     } = params;
 
     try {
@@ -72,7 +78,7 @@ const searchListings = async (req, res, next) => {
             statusId,
             cityId,
             searchQuery,
-            translate
+            translate,
         });
 
         res.status(200).json({
@@ -87,6 +93,7 @@ const searchListings = async (req, res, next) => {
 const createListing = async (req, res, next) => {
     const { cityIds, ...listingData } = req.body;
     const { userId, roleId } = req;
+    // listingData will contain notify boolean to notify followers or not
 
     try {
         const newListing = await listingService.createListing({
@@ -122,13 +129,16 @@ const updateListing = async (req, res, next) => {
             cityIds,
             listingData,
             userId,
-            roleId
+            roleId,
         });
 
         res.status(200).json({
             status: "success",
-            data: req.version && req.version === "v0" ? listingId : updatedListing,
-            id: Number(listingId)
+            data:
+                req.version && req.version === "v0"
+                    ? listingId
+                    : updatedListing,
+            id: Number(listingId),
         });
     } catch (err) {
         next(err);
@@ -140,10 +150,7 @@ const getListingWithId = async function (req, res, next) {
     const repeatedRequest = req.repeatedRequest;
 
     try {
-        const data = await listingService.getListingWithId(
-            id,
-            repeatedRequest
-        );
+        const data = await listingService.getListingWithId(id, repeatedRequest);
         if (req.version === "v0") {
             if (data && data.otherlogos) {
                 data.otherLogos = data.otherlogos;
@@ -153,13 +160,12 @@ const getListingWithId = async function (req, res, next) {
         }
         return res.status(200).json({
             status: "success",
-            data
+            data,
         });
     } catch (err) {
         return next(err);
     }
 };
-
 
 const deleteListing = async function (req, res, next) {
     const id = req.params.id;
@@ -176,8 +182,8 @@ const deleteListing = async function (req, res, next) {
 };
 
 const updateListingStatus = async (req, res, next) => {
-    const listingId = req.params.listingId
-    const { data } = req.body
+    const listingId = req.params.listingId;
+    const { data } = req.body;
 
     try {
         await listingService.updateCityListingStatus({
@@ -188,86 +194,106 @@ const updateListingStatus = async (req, res, next) => {
         });
         return res.status(200).json({
             status: "success",
-            id: Number(listingId)
+            id: Number(listingId),
         });
     } catch (err) {
-        return next(err)
+        return next(err);
     }
-
-}
+};
 const getListingChat = async (req, res, next) => {
-    const listingId = req.params.listingId
-    const userId = req.userId // interanal
-    const roleId = req.roleId // internal
+    const listingId = req.params.listingId;
+    const userId = req.userId; // interanal
+    const roleId = req.roleId; // internal
     const params = req.query;
     const lastMessageId = params.lastMessageId; // optional
     const pageNo = params.pageNo || 1;
     const pageSize = params.pageSize || 10;
     const isReversed =
         params.isReversed && params.isReversed === "false" ? false : true;
-    // check if the listing has a feeback status and then return chat 
+    // check if the listing has a feeback status and then return chat
     try {
-        const response = await listingService.getListingChat({ userId, roleId, listingId, isReversed, lastMessageId, pageNo, pageSize })
+        const response = await listingService.getListingChat({
+            userId,
+            roleId,
+            listingId,
+            isReversed,
+            lastMessageId,
+            pageNo,
+            pageSize,
+        });
         return res.status(200).json({
             status: "success",
-            data: response
+            data: response,
         });
     } catch (err) {
-        return next(err)
+        return next(err);
     }
-
-}
+};
 const postChatReaction = async (req, res, next) => {
-    const listingId = req.params.listingId
-    const userId = req.userId
-    const roleId = req.roleId
-    const chatId = req.params.chatId
-    const { reaction } = req.body
+    const listingId = req.params.listingId;
+    const userId = req.userId;
+    const roleId = req.roleId;
+    const chatId = req.params.chatId;
+    const { reaction } = req.body;
     try {
-        const result = await listingService.postChatReaction({ userId, chatId, roleId, reaction, listingId })
+        const result = await listingService.postChatReaction({
+            userId,
+            chatId,
+            roleId,
+            reaction,
+            listingId,
+        });
         return res.status(200).json({
             status: "success",
-            data: result
+            data: result,
         });
     } catch (err) {
-        return next(err)
+        return next(err);
     }
-}
+};
 
 const deleteChatReaction = async (req, res, next) => {
-    const listingId = req.params.listingId
-    const userId = req.userId
-    const roleId = req.roleId
-    const chatId = req.params.chatId
+    const listingId = req.params.listingId;
+    const userId = req.userId;
+    const roleId = req.roleId;
+    const chatId = req.params.chatId;
     try {
-        const result = await listingService.deleteChatReaction({ userId, chatId, roleId, listingId })
+        const result = await listingService.deleteChatReaction({
+            userId,
+            chatId,
+            roleId,
+            listingId,
+        });
         return res.status(200).json({
             status: "success",
-            data: result
+            data: result,
         });
     } catch (err) {
-        return next(err)
+        return next(err);
     }
-}
+};
 const createListingChat = async (req, res, next) => {
-    const listingId = req.params.listingId
-    const userId = req.userId
-    const roleId = req.roleId
-    const { message, parentId } = req.body
-
+    const listingId = req.params.listingId;
+    const userId = req.userId;
+    const roleId = req.roleId;
+    const { message, parentId } = req.body;
 
     try {
-        const result = await listingService.createListingChat({ userId, roleId, message, parentId, listingId })
+        const result = await listingService.createListingChat({
+            userId,
+            roleId,
+            message,
+            parentId,
+            listingId,
+        });
         return res.status(200).json({
             status: "success",
-            data: result
+            data: result,
         });
     } catch (err) {
-        return next(err)
+        return next(err);
     }
-
-}
-
+};
 
 const uploadImage = async function (req, res, next) {
     const listingId = req.params.id;
@@ -298,12 +324,7 @@ const uploadPDF = async function (req, res, next) {
     const { pdf } = req.files;
 
     try {
-        await listingService.uploadPDF(
-            listingId,
-            userId,
-            roleId,
-            pdf,
-        );
+        await listingService.uploadPDF(listingId, userId, roleId, pdf);
         return res.status(200).json({
             status: "success",
         });
@@ -318,11 +339,7 @@ const deleteImage = async function (req, res, next) {
     const roleId = req.roleId;
 
     try {
-        await listingService.deleteImage(
-            id,
-            userId,
-            roleId,
-        );
+        await listingService.deleteImage(id, userId, roleId);
         return res.status(200).json({
             status: "success",
         });
@@ -337,11 +354,7 @@ const deletePDF = async function (req, res, next) {
     const roleId = req.roleId;
 
     try {
-        await listingService.deletePDF(
-            id,
-            userId,
-            roleId,
-        );
+        await listingService.deletePDF(id, userId, roleId);
         return res.status(200).json({
             status: "success",
         });
@@ -356,11 +369,7 @@ const vote = async function (req, res, next) {
     const vote = req.body.vote;
 
     try {
-        const voteCount = await listingService.vote(
-            listingId,
-            optionId,
-            vote,
-        );
+        const voteCount = await listingService.vote(listingId, optionId, vote);
         return res.status(200).json({
             status: "success",
             votes: voteCount,
@@ -386,5 +395,5 @@ module.exports = {
     uploadPDF,
     deleteImage,
     deletePDF,
-    vote
+    vote,
 };
