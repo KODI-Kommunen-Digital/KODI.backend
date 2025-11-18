@@ -6,7 +6,7 @@ const roles = require("../constants/roles");
 const sendMail = require("../utils/sendMail");
 const getDateInFormate = require("../utils/getDateInFormate");
 const supportedSocialMedia = require("../constants/supportedSocialMedia");
-const imageUpload = require("../utils/imageUpload");
+const { imageUpload, appendExtention } = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const tokenUtil = require("../utils/token");
 const { getUserImages } = require("../repository/image");
@@ -1310,11 +1310,12 @@ const deleteLoginDevices = async function (paramId, queryId) {
 const uploadUserProfileImage = async function (id, image) {
     try {
         const imagePath = `user_${id}/profilePic_${Date.now()}`;
+        const filePathWithExt = appendExtention(imagePath, image.mimetype);
 
-        const { uploadStatus } = await imageUpload(image, imagePath);
+        const { uploadStatus } = await imageUpload(image, filePathWithExt);
         if (uploadStatus === "Success") {
             const updationData = {};
-            updationData.image = imagePath;
+            updationData.image = filePathWithExt;
             // await userRepo.updateUserById(id, updationData);
             await usersRepository.update({
                 data: updationData,
