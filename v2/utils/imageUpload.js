@@ -5,8 +5,8 @@ const imageUpload = async (image, filePath) => {
     const server = process.env.BUCKET_HOST;
 
     /*
-   * Initialize a obs client instance with your account for accessing OBS
-   */
+     * Initialize a obs client instance with your account for accessing OBS
+     */
     const obs = new ObsClient({
         accessKeyId: process.env.BUCKET_ACCESS_KEY,
         secretAccessKey: process.env.BUCKET_SECRET_KEY,
@@ -29,8 +29,8 @@ const imageUpload = async (image, filePath) => {
     });
 
     /*
-   * Start to post object
-   */
+     * Start to post object
+     */
     formParams.key = objectKey;
     formParams.policy = res.Policy;
     formParams["x-amz-algorithm"] = res.Algorithm;
@@ -41,8 +41,8 @@ const imageUpload = async (image, filePath) => {
     const boundary = "9431149156168";
 
     /*
-   * Construct form data
-   */
+     * Construct form data
+     */
     const buffers = [];
     let first = true;
 
@@ -67,8 +67,8 @@ const imageUpload = async (image, filePath) => {
     buffers.push(buffer);
 
     /*
-   * Construct file description
-   */
+     * Construct file description
+     */
     buffer = [];
     buffer.push("\r\n");
     buffer.push("--");
@@ -161,7 +161,9 @@ function appendExtention(filename, mimeType) {
             filenameWithExt = `${filename}.svg`;
             break;
         default:
-            console.log(`Cannot find extension for mimetype: ${mimeType}, assigning .jpg`);
+            console.log(
+                `Cannot find extension for mimetype: ${mimeType}, assigning .jpg`
+            );
             filenameWithExt = `${filename}.jpg`;
             break;
     }
@@ -170,5 +172,5 @@ function appendExtention(filename, mimeType) {
 
 module.exports = {
     imageUpload,
-    appendExtention
+    appendExtention,
 };
