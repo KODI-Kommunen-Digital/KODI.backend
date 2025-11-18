@@ -24,9 +24,6 @@ const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
 const adminRepository = require("../repository/adminRepo");
 const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
-const moderatorsRepository = require("../repository/moderatorsRepo");
-const moderatorPermissionsRepository = require("../repository/moderatorPermissionsRepo");
-const permissionsRepository = require("../repository/permissionsRepo");
 
 const login = async function (
     payload,
@@ -1385,9 +1382,7 @@ const getUserListings = async function (
     pageSize,
     statusId,
     categoryId,
-    subcategoryId,
-    requesterRoleId = null,
-    requesterId = null
+    subcategoryId
 ) {
     const filters = [];
 
@@ -1512,119 +1507,15 @@ const getUserListings = async function (
         }
     }
 
-    // Determine listing scope based on requester role
+    if (userId) {
+        // filters.userId = userId;
+        filters.push({
+            key: "userId",
+            sign: "=",
+            value: userId,
+        });
+    }
     try {
-        // Admin: return all listings (do not filter by user)
-        if (requesterRoleId === roles.Admin) {
-            const data = await listingRepository.retrieveListings({
-                filters,
-                pageNo,
-                pageSize,
-                statusId: "*",
-            });
-            return data;
-        }
-
-        // City Admin: return listings for cities the requester administers
-        if (requesterRoleId === roles["City Admin"]) {
-            const adminCityRows = await cityUserRolesRepository.getAll({
-                columns: "cityId",
-                filters: [
-                    { key: "userId", sign: "=", value: requesterId },
-                    { key: "isAdmin", sign: "=", value: 1 },
-                ],
-            });
-            const cityIds = [
-                ...new Set((adminCityRows.rows || []).map((r) => r.cityId)),
-            ];
-            if (cityIds.length === 0) return [];
-            const data = await listingRepository.retrieveListings({
-                filters,
-                cities: cityIds,
-                pageNo,
-                pageSize,
-                statusId: "*",
-            });
-            return data;
-        }
-
-        // Moderator: return listings for cities the moderator is assigned to
-        if (requesterRoleId === roles.Moderator) {
-            const modRows = await moderatorsRepository.getAll({
-                filters: [{ key: "userId", sign: "=", value: requesterId }],
-                columns: ["id", "cityId"],
-            });
-
-            const modIds = (modRows.rows || []).map((r) => r.id);
-            const cityIds = [
-                ...new Set((modRows.rows || []).map((r) => r.cityId)),
-            ];
-            if (cityIds.length === 0) return [];
-
-            const categoryFilterIds = new Set();
-
-            if (modIds.length > 0) {
-                // Get all permissions assigned to these moderators
-                const modPerms = await moderatorPermissionsRepository.getAll({
-                    filters: [
-                        { key: "moderatorId", sign: "IN", value: modIds },
-                    ],
-                    columns: ["permissionId"],
-                });
-
-                const permIds = [
-                    ...new Set(
-                        (modPerms.rows || []).map((p) => p.permissionId)
-                    ),
-                ];
-                if (permIds.length > 0) {
-                    const perms = await permissionsRepository.getAll({
-                        filters: [{ key: "id", sign: "IN", value: permIds }],
-                        columns: ["id", "name"],
-                    });
-
-                    const permNames = (perms.rows || []).map((p) =>
-                        p.name.toLowerCase()
-                    );
-
-                    // Determine accessible categories
-                    if (permNames.includes("create_event")) {
-                        categoryFilterIds.add(3);
-                    }
-                    if (permNames.includes("create_news")) {
-                        categoryFilterIds.add(1);
-                    }
-                }
-            }
-
-            // If moderator has no recognized category permission, they see nothing
-            if (categoryFilterIds.size === 0) {
-                return [];
-            }
-
-            // Apply city + category filter
-            const data = await listingRepository.retrieveListings({
-                filters: [
-                    ...filters,
-                    {
-                        key: "categoryId",
-                        sign: "IN",
-                        value: Array.from(categoryFilterIds),
-                    },
-                ],
-                cities: cityIds,
-                pageNo,
-                pageSize,
-                statusId: "*",
-            });
-
-            return data;
-        }
-
-        // Default: return listings created by the target user
-        if (userId) {
-            filters.push({ key: "userId", sign: "=", value: userId });
-        }
         const data = await listingRepository.retrieveListings({
             filters,
             pageNo,
