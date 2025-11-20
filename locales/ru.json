@@ -49,5 +49,6 @@
     "missing_device_id": "ID устройства не указан",
     "invalid_status": "Недопустимый статус {{statusId}}",
     "invalid_category": "Недопустимая категория {{categoryId}}",
-    "invalid_subcategory": "Недопустимая подкатегория ${subcategoryId}"
+    "invalid_subcategory": "Недопустимая подкатегория ${subcategoryId}",
+    "user_blocked": "Пользователь был заблокирован"
 }

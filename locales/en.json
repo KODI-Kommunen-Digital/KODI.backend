@@ -49,5 +49,6 @@
     "missing_device_id": "Device Id not present",
     "invalid_status": "Invalid status {{statusId}}",
     "invalid_category": "Invalid Category {{categoryId}} given",
-    "invalid_subcategory": "Invalid subcategory ${subcategoryId}"
+    "invalid_subcategory": "Invalid subcategory ${subcategoryId}",
+    "user_blocked": "User has been blocked"
 }
