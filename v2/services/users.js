@@ -1221,15 +1221,14 @@ const getUsers = async function (userIds, username, reqUserId) {
         });
         const users = userrResp.rows;
         // users.forEach((user) => {
-        //     user
-        //     // if (user.id !== reqUserId) {
-        //     //     user.email = "***@***.**";
-        //     //     user.socialMedia = "Hidden";
-        //     //     user.website = "Hidden";
-        //     //     user.description = "Hidden";
-        //     //     user.firstname = "Hidden";
-        //     //     user.lastname;
-        //     // }
+        //     if (user.id !== reqUserId) {
+        //         user.email = "***@***.**";
+        //         user.socialMedia = "Hidden";
+        //         user.website = "Hidden";
+        //         user.description = "Hidden";
+        //         user.firstname = "Hidden";
+        //         user.lastname = "Hidden";
+        //     }
         // });
         return users;
     } catch (err) {
