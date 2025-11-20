@@ -12,15 +12,15 @@ class UserRepo extends BaseRepo {
         await database.callStoredProcedure(
             storedProcedures.DELETE_CITY_USER,
             [userId],
-            cityId,
+            cityId
         );
-    }
+    };
 
     deleteCoreUserProcedure = async (userId) => {
         await database.callStoredProcedure(storedProcedures.DELETE_CORE_USER, [
             userId,
         ]);
-    }
+    };
 
     getUsersForNotification = async (cityId, categoryId) => {
         const query = `SELECT DISTINCT u.id AS userId FROM users u
@@ -30,33 +30,40 @@ class UserRepo extends BaseRepo {
         `;
         const response = await database.callQuery(query, [cityId, categoryId]);
         return response.rows;
-    }
+    };
 
-    getUsersForNotificationWithUserFilter = async (cityId, categoryId, userIds) => {
+    getUsersForNotificationWithUserFilter = async (
+        cityId,
+        categoryId,
+        userIds
+    ) => {
         const query = `SELECT DISTINCT u.id AS userId FROM users u
             JOIN user_preference_cities upc ON u.id = upc.userId
             JOIN user_preference_categories upcat ON u.id = upcat.userId
             WHERE upc.cityId IN (?) 
             AND upcat.categoryId = ? 
             AND u.id IN (?);`;
-        const response = await database.callQuery(query, [cityId, categoryId, userIds]);
+        const response = await database.callQuery(query, [
+            cityId,
+            categoryId,
+            userIds,
+        ]);
         return response.rows;
-    }
+    };
 
     getNormalUserIds = async () => {
         const response = await this.getAll({
-            filters: [
-                {
-                    key: "roleId",
-                    sign: "=",
-                    value: 3, // Content Creator role
-                },
-            ],
+            // filters: [
+            //     {
+            //         key: "roleId",
+            //         sign: "=",
+            //         value: 3, // Content Creator role
+            //     },
+            // ],
             columns: ["id"],
         });
         return response.rows.map((user) => user.id);
-    }
-
+    };
 }
 
 module.exports = new UserRepo();
