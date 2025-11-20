@@ -1220,16 +1220,17 @@ const getUsers = async function (userIds, username, reqUserId) {
             columns: columsToQuery,
         });
         const users = userrResp.rows;
-        users.forEach((user) => {
-            if (user.id !== reqUserId) {
-                user.email = "***@***.**";
-                user.socialMedia = "Hidden";
-                user.website = "Hidden";
-                user.description = "Hidden";
-                user.firstname = "Hidden";
-                user.lastname = "Hidden";
-            }
-        });
+        // users.forEach((user) => {
+        //     user
+        //     // if (user.id !== reqUserId) {
+        //     //     user.email = "***@***.**";
+        //     //     user.socialMedia = "Hidden";
+        //     //     user.website = "Hidden";
+        //     //     user.description = "Hidden";
+        //     //     user.firstname = "Hidden";
+        //     //     user.lastname;
+        //     // }
+        // });
         return users;
     } catch (err) {
         if (err instanceof AppError) throw err;
