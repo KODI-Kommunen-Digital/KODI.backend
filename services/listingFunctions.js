@@ -7,8 +7,8 @@ const subcategories = require("../constants/subcategories");
 const source = require("../constants/source");
 const roles = require("../constants/roles");
 const getDateInFormate = require("../utils/getDateInFormate");
-const TurndownService = require('turndown')
-const showdown = require('showdown')
+// const TurndownService = require('turndown')
+// const showdown = require('showdown')
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const sendPushNotification = require("../services/sendPushNotification");
@@ -109,7 +109,8 @@ async function createListing(cityIds, payload, userId, roleId) {
         throw new AppError(`Length of Description cannot exceed 65535 characters`, 400);
     } else {
 
-        insertionData.description = checkDesc(payload.description);
+        // insertionData.description = checkDesc(payload.description);
+        insertionData.description = payload.description;
     }
     if (payload.media) {
         insertionData.media = payload.media;
@@ -398,13 +399,13 @@ async function createListing(cityIds, payload, userId, roleId) {
     }
 }
 
-const checkDesc = (desc) => {
-    const turndownService = new TurndownService()
-    const markdown = turndownService.turndown(desc)
-    const converter = new showdown.Converter()
-    const html = converter.makeHtml(markdown)
-    return html
-}
+// const checkDesc = (desc) => {
+//     const turndownService = new TurndownService()
+//     const markdown = turndownService.turndown(desc)
+//     const converter = new showdown.Converter()
+//     const html = converter.makeHtml(markdown)
+//     return html
+// }
 
 async function addDefaultImage(cityId, listingId, categoryId) {
     const imageOrder = 1;
