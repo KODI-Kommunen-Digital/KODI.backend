@@ -49,5 +49,6 @@
     "missing_device_id": "Cihaz kimliği mevcut değil",
     "invalid_status": "Geçersiz durum {{statusId}}",
     "invalid_category": "Geçersiz kategori {{categoryId}}",
-    "invalid_subcategory": "Geçersiz alt kategori ${subcategoryId}"
+    "invalid_subcategory": "Geçersiz alt kategori ${subcategoryId}",
+    "user_blocked": "Kullanıcı engellendi"
 }

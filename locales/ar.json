@@ -49,5 +49,6 @@
     "missing_device_id": "معرّف الجهاز غير موجود",
     "invalid_status": "الحالة {{statusId}} غير صالحة",
     "invalid_category": "الفئة {{categoryId}} غير صالحة",
-    "invalid_subcategory": "الفئة الفرعية ${subcategoryId} غير صالحة"
+    "invalid_subcategory": "الفئة الفرعية ${subcategoryId} غير صالحة",
+    "user_blocked": "تم حظر المستخدم"
 }

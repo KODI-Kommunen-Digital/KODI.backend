@@ -49,5 +49,6 @@
     "missing_device_id": "Geräte-ID fehlt",
     "invalid_status": "Ungültiger Status {{statusId}}",
     "invalid_category": "Ungültige Kategorie {{categoryId}}",
-    "invalid_subcategory": "Ungültige Unterkategorie ${subcategoryId}"
+    "invalid_subcategory": "Ungültige Unterkategorie ${subcategoryId}",
+    "user_blocked": "Benutzer wurde gesperrt"
 }
