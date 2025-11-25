@@ -777,6 +777,7 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
             refreshToken: newTokens.refreshToken,
         };
     } catch (err) {
+        console.log(err);
         if (err.name === "TokenExpiredError") {
             // await tokenRepo.deleteRefreshTokenByRefreshToken(refreshToken);
             await tokenRepository.delete({
