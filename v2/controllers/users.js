@@ -134,6 +134,7 @@ const refreshAuthToken = async function (req, res, next) {
             data,
         });
     } catch (err) {
+        console.error(err);
         return next(err);
     }
 };
