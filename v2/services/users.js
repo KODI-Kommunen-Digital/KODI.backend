@@ -731,11 +731,6 @@ const refreshAuthToken = async function (userId, sourceAddress, refreshToken) {
                     sign: "=",
                     value: refreshToken,
                 },
-                {
-                    key: "sourceAddress",
-                    sign: "=",
-                    value: sourceAddress,
-                },
             ],
         });
         console.log({ refreshTokenData });
