@@ -43,4 +43,6 @@ module.exports = {
     USER_CHATBOT_SESSIONS_TABLE: "user_chatbot_sessions",
     USER_CHATBOT_CHATS_TABLE: "user_chatbot_chats",
     ONBOARD_USER_TABLE: "users_onboarded",
+    TERMS_TABLE: "terms",
+    USER_TERMS_TABLE: "user_terms",
 };

@@ -18,8 +18,8 @@ class BaseRepo {
     }
 
     async getOne(params) {
-        const { columns, filters, joinFiltersBy, orderBy, cityId } = params;
-        const response = await get(this.tableName, filters, columns, cityId, 1, 1, orderBy, null, joinFiltersBy);
+        const { columns, filters, joinFiltersBy, orderBy, cityId, isDescending } = params;
+        const response = await get(this.tableName, filters, columns, cityId, 1, 1, orderBy, isDescending, joinFiltersBy);
         if (!response || !response.rows || response.rows.length === 0) {
             return null;
         }

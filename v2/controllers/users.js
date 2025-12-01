@@ -631,6 +631,43 @@ const unblockUser = async function (req, res, next) {
     }
 };
 
+const checkTermsAndCondition = async function (req, res, next) {
+    const userId = parseInt(req.params.userId);
+
+    try {
+        const result = await userService.checkTermsAndCondition(userId);
+        console.log("result", result);
+        return res.status(200).json({
+            status: "success",
+            data: result,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const acceptTermsAndCondition = async function (req, res, next) {
+    const policyVersion = req.body.policyVersion;
+    const userId = parseInt(req.params.userId);
+
+    try {
+        if (!policyVersion) {
+            throw new AppError("Policy version is required", 400);
+        }
+        if (!userId) {
+            throw new AppError("User ID is required", 400);
+        }
+
+        const result = await userService.acceptTermsAndCondition(userId, policyVersion);
+        return res.status(200).json({
+            status: "success",
+            data: result,
+        });
+    } catch (err) {
+        return next(err);
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -656,4 +693,6 @@ module.exports = {
     updateUserNotificationPreference,
     blockUser,
     unblockUser,
+    checkTermsAndCondition,
+    acceptTermsAndCondition,
 };

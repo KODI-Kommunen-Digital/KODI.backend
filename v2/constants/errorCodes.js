@@ -15,6 +15,9 @@ module.exports = {
     EMAIL_ALREADY_EXISTS: 2007,
     SAME_PASSWORD_GIVEN: 2008,
     DATABASE_ERROR: 5000,
+    INVALID_POLICY_VERSION: 3001,
+    POLICY_VERSION_NOT_LATEST: 3002,
+    TERMS_ALREADY_ACCEPTED: 3003,
 
     // Add more custom error codes as needed
 };
