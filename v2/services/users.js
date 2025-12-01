@@ -415,7 +415,7 @@ const register = async function (payload, req) {
                 );
                 insertionData.roleId = AdminUser.roleId;
             }
-        } catch (err) { }
+        } catch (err) {}
         // const response = await userRepo.createUser(insertionData, connection);
         const response = await usersRepository.createWithTransaction(
             {
@@ -1745,7 +1745,7 @@ const checkTermsAndCondition = async function (userId) {
     try {
         // Validate userId
         console.log("userId", userId, typeof userId);
-        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        if (!userId) {
             throw new AppError(`invalid_user_id`, 400, undefined, { userId });
         }
 
@@ -1757,13 +1757,18 @@ const checkTermsAndCondition = async function (userId) {
         }
 
         // Get user's latest accepted version
-        const userAcceptedTerms = await userTermsRepository.getUserAcceptedVersion(userId);
+        const userAcceptedTerms =
+            await userTermsRepository.getUserAcceptedVersion(userId);
 
         return {
             currentPolicyVersion: latestTerms.version,
             link: latestTerms.content,
-            acceptedPolicyVersion: userAcceptedTerms ? userAcceptedTerms.version_accepted : null,
-            isCurrentVersionAccepted: userAcceptedTerms ? userAcceptedTerms.version_accepted === latestTerms.version : false,
+            acceptedPolicyVersion: userAcceptedTerms
+                ? userAcceptedTerms.version_accepted
+                : null,
+            isCurrentVersionAccepted: userAcceptedTerms
+                ? userAcceptedTerms.version_accepted === latestTerms.version
+                : false,
         };
     } catch (err) {
         if (err instanceof AppError) throw err;
@@ -1774,13 +1779,21 @@ const checkTermsAndCondition = async function (userId) {
 const acceptTermsAndCondition = async function (userId, policyVersion) {
     try {
         // Validate userId
-        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+        if (!userId) {
             throw new AppError(`invalid_user_id`, 400, undefined, { userId });
         }
 
         // Validate policyVersion
-        if (!policyVersion || isNaN(Number(policyVersion)) || Number(policyVersion) <= 0) {
-            throw new AppError("Invalid policy version", 400, errorCodes.INVALID_POLICY_VERSION);
+        if (
+            !policyVersion ||
+            isNaN(Number(policyVersion)) ||
+            Number(policyVersion) <= 0
+        ) {
+            throw new AppError(
+                "Invalid policy version",
+                400,
+                errorCodes.INVALID_POLICY_VERSION
+            );
         }
 
         // Get the latest active terms
@@ -1791,13 +1804,24 @@ const acceptTermsAndCondition = async function (userId, policyVersion) {
 
         // Check if the provided version matches the latest active version
         if (Number(policyVersion) !== latestTerms.version) {
-            throw new AppError("Policy version is not the latest", 400, errorCodes.POLICY_VERSION_NOT_LATEST);
+            throw new AppError(
+                "Policy version is not the latest",
+                400,
+                errorCodes.POLICY_VERSION_NOT_LATEST
+            );
         }
 
         // Check if user has already accepted this version
-        const hasAccepted = await userTermsRepository.hasUserAcceptedVersion(userId, policyVersion);
+        const hasAccepted = await userTermsRepository.hasUserAcceptedVersion(
+            userId,
+            policyVersion
+        );
         if (hasAccepted) {
-            throw new AppError("Terms already accepted for this version", 400, errorCodes.TERMS_ALREADY_ACCEPTED);
+            throw new AppError(
+                "Terms already accepted for this version",
+                400,
+                errorCodes.TERMS_ALREADY_ACCEPTED
+            );
         }
 
         // Create the acceptance record
