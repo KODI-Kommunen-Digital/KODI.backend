@@ -24,6 +24,8 @@ const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
 const adminRepository = require("../repository/adminRepo");
 const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
+const termsRepository = require("../repository/termsRepo");
+const userTermsRepository = require("../repository/userTermsRepo");
 
 const login = async function (
     payload,
@@ -413,7 +415,7 @@ const register = async function (payload, req) {
                 );
                 insertionData.roleId = AdminUser.roleId;
             }
-        } catch (err) {}
+        } catch (err) { }
         // const response = await userRepo.createUser(insertionData, connection);
         const response = await usersRepository.createWithTransaction(
             {
@@ -1739,6 +1741,78 @@ const unblockUser = async function (userId, requesterRoleId, targetUserId) {
     }
 };
 
+const checkTermsAndCondition = async function (userId) {
+    try {
+        // Validate userId
+        console.log("userId", userId, typeof userId);
+        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+            throw new AppError(`invalid_user_id`, 400, undefined, { userId });
+        }
+
+        // Get the latest active terms
+        const latestTerms = await termsRepository.getLatestActiveTerms();
+        console.log("latestTerms", latestTerms);
+        if (!latestTerms) {
+            throw new AppError("No active terms found", 404);
+        }
+
+        // Get user's latest accepted version
+        const userAcceptedTerms = await userTermsRepository.getUserAcceptedVersion(userId);
+
+        return {
+            currentPolicyVersion: latestTerms.version,
+            link: latestTerms.content,
+            acceptedPolicyVersion: userAcceptedTerms ? userAcceptedTerms.version_accepted : null,
+            isCurrentVersionAccepted: userAcceptedTerms ? userAcceptedTerms.version_accepted === latestTerms.version : false,
+        };
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
+const acceptTermsAndCondition = async function (userId, policyVersion) {
+    try {
+        // Validate userId
+        if (isNaN(Number(userId)) || Number(userId) <= 0) {
+            throw new AppError(`invalid_user_id`, 400, undefined, { userId });
+        }
+
+        // Validate policyVersion
+        if (!policyVersion || isNaN(Number(policyVersion)) || Number(policyVersion) <= 0) {
+            throw new AppError("Invalid policy version", 400, errorCodes.INVALID_POLICY_VERSION);
+        }
+
+        // Get the latest active terms
+        const latestTerms = await termsRepository.getLatestActiveTerms();
+        if (!latestTerms) {
+            throw new AppError("No active terms found", 404);
+        }
+
+        // Check if the provided version matches the latest active version
+        if (Number(policyVersion) !== latestTerms.version) {
+            throw new AppError("Policy version is not the latest", 400, errorCodes.POLICY_VERSION_NOT_LATEST);
+        }
+
+        // Check if user has already accepted this version
+        const hasAccepted = await userTermsRepository.hasUserAcceptedVersion(userId, policyVersion);
+        if (hasAccepted) {
+            throw new AppError("Terms already accepted for this version", 400, errorCodes.TERMS_ALREADY_ACCEPTED);
+        }
+
+        // Create the acceptance record
+        await userTermsRepository.createUserAcceptance(userId, policyVersion);
+
+        return {
+            success: true,
+            message: "Terms and conditions accepted successfully",
+        };
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -1760,4 +1834,6 @@ module.exports = {
     storeFirebaseUserToken,
     blockUser,
     unblockUser,
+    checkTermsAndCondition,
+    acceptTermsAndCondition,
 };

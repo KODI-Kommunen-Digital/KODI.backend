@@ -27,6 +27,8 @@ const {
     updateUserNotificationPreference,
     blockUser,
     unblockUser,
+    checkTermsAndCondition,
+    acceptTermsAndCondition,
 } = require("../controllers/users");
 
 const filterNonPostRequests = (req, res, next) => {
@@ -102,5 +104,9 @@ router.patch(
 router.post("/:id/block", authentication, blockUser);
 
 router.post("/:id/unblock", authentication, unblockUser);
+
+router.get("/checkTermAndCondition/:userId", checkTermsAndCondition);
+
+router.post("/acceptTermAndCondition/:userId", acceptTermsAndCondition);
 
 module.exports = router;
