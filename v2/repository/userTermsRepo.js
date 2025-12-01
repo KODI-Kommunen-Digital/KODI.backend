@@ -18,7 +18,8 @@ class UserTermsRepo extends BaseRepo {
                 },
             ],
             // eslint-disable-next-line camelcase
-            orderBy: ["version_accepted"]
+            isDescending: true,
+            orderBy: ["version_accepted"],
         };
         return await this.getOne(params);
     }
@@ -56,7 +57,6 @@ class UserTermsRepo extends BaseRepo {
         return await this.create(params);
     }
     /* eslint-disable camelcase */
-
 }
 
 module.exports = new UserTermsRepo();
