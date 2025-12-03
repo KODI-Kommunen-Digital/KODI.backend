@@ -1,7 +1,9 @@
 const supportedLanguages = require("../constants/supportedLanguages");
 const { translateWithCache } = require("../utils/translationCacheUtil");
-const { maskTexts, unmaskProtectedWords } = require("../utils/wordProtectionUtil");
-
+const {
+    maskTexts,
+    unmaskProtectedWords,
+} = require("../utils/wordProtectionUtil");
 
 /**
  * Translates text values in an object to the target language
@@ -10,7 +12,11 @@ const { maskTexts, unmaskProtectedWords } = require("../utils/wordProtectionUtil
  * @param {string[]} [translationFields] - Array of field names that should be translated. If not provided, all string fields will be translated.
  * @returns {Promise<Object>} - Translated data object
  */
-const translateObjectValues = async (data, targetLang = 'de', translationFields = []) => {
+const translateObjectValues = async (
+    data,
+    targetLang = "de",
+    translationFields = []
+) => {
     if (!targetLang || !supportedLanguages.includes(targetLang)) {
         return data;
     }
@@ -18,8 +24,8 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
         const textsToTranslate = [];
         const map = [];
 
-        const collectStrings = (obj, translationFields = [], path = '') => {
-            if (typeof obj === 'string') {
+        const collectStrings = (obj, translationFields = [], path = "") => {
+            if (typeof obj === "string") {
                 const trimmed = obj.trim();
                 if (trimmed) {
                     textsToTranslate.push(trimmed);
@@ -27,14 +33,18 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
                 }
             } else if (Array.isArray(obj)) {
                 obj.forEach((item, index) => {
-                    collectStrings(item, translationFields, path ? `${path}[${index}]` : `[${index}]`);
+                    collectStrings(
+                        item,
+                        translationFields,
+                        path ? `${path}[${index}]` : `[${index}]`
+                    );
                 });
-            } else if (typeof obj === 'object' && obj !== null) {
+            } else if (typeof obj === "object" && obj !== null) {
                 Object.entries(obj).forEach(([key, value]) => {
-                    const newPath = path ? `${path}.${key}` : key;
+                    const newPath = path ? `${path}@${key}` : key;
                     const isTranslationField = translationFields.includes(key);
 
-                    if (typeof value === 'string') {
+                    if (typeof value === "string") {
                         if (isTranslationField) {
                             const trimmed = value.trim();
                             if (trimmed) {
@@ -42,13 +52,17 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
                                 map.push({ path: newPath, isLeaf: true });
                             }
                         }
-                    } else if (Array.isArray(value) || (value && typeof value === 'object')) {
+                    } else if (
+                        Array.isArray(value) ||
+                        (value && typeof value === "object")
+                    ) {
                         collectStrings(value, translationFields, newPath);
                     }
                 });
             }
         };
         collectStrings(data, translationFields);
+        console.log(textsToTranslate);
         if (textsToTranslate.length === 0) {
             return data;
         }
@@ -62,7 +76,7 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
         // Unmask protected words after translation
         const unmaskedResults = results.map((result, index) => ({
             ...result,
-            text: unmaskProtectedWords(result.text, wordMap)
+            text: unmaskProtectedWords(result.text, wordMap),
         }));
         const setNestedValue = (obj, path, value) => {
             if (!path) return;
@@ -70,7 +84,10 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
                 obj[path] = value;
                 return;
             }
-            const keys = path.replace(/\[(\w+)\]/g, '.$1').replace(/^\./, '').split('.');
+            const keys = path
+                .replace(/\[(\w+)\]/g, "@$1")
+                .replace(/^\./, "")
+                .split("@");
             let current = obj;
 
             for (let i = 0; i < keys.length - 1; i++) {
@@ -96,11 +113,11 @@ const translateObjectValues = async (data, targetLang = 'de', translationFields 
         });
         return data;
     } catch (error) {
-        console.error('Translation error:', error);
+        console.error("Translation error:", error);
         return data;
     }
 };
 
 module.exports = {
-    translateObjectValues
+    translateObjectValues,
 };
