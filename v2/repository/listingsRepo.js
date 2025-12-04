@@ -15,13 +15,16 @@ class ListingsRepo extends BaseRepo {
         searchQuery = null,
         sortByStartDate = false,
         startAfterDate = null, // Start date for range
-        endBeforeDate = null,   // End date for range
+        endBeforeDate = null, // End date for range
         statusId,
     }) => {
         let words = [];
         if (searchQuery) {
             // normalize input (you can also replace hyphens with spaces optionally)
-            words = searchQuery.trim().split(/[\s\-]+/).filter(Boolean);
+            words = searchQuery
+                .trim()
+                .split(/[\s\-]+/)
+                .filter(Boolean);
         }
         const queryParams = [];
 
@@ -58,6 +61,7 @@ class ListingsRepo extends BaseRepo {
                 L.phone,
                 L.zipcode,
                 L.pdf,
+                L.metadata,
                 C.cityId,
                 C.cityCount,
                 C.allCities,
@@ -66,13 +70,21 @@ class ListingsRepo extends BaseRepo {
                 sub.logoCount,
                 sub.otherLogos,
                 ${ongoingSelect}
-                ${searchQuery ? `,
+                ${
+                    searchQuery
+                        ? `,
                     (CASE 
-                        WHEN ${words.map(() => `(L.title LIKE ?)`).join(' AND ')} THEN 1
-                        WHEN ${words.map(() => `(L.description LIKE ?)`).join(' AND ')} THEN 2
+                        WHEN ${words
+                            .map(() => `(L.title LIKE ?)`)
+                            .join(" AND ")} THEN 1
+                        WHEN ${words
+                            .map(() => `(L.description LIKE ?)`)
+                            .join(" AND ")} THEN 2
                         ELSE 3
                     END) AS searchRank
-                    ` : ''}
+                    `
+                        : ""
+                }
             FROM listings L
             INNER JOIN (
                 SELECT 
@@ -91,8 +103,20 @@ class ListingsRepo extends BaseRepo {
                 FROM city_listing_mappings clm
                 INNER JOIN cities c ON c.id = clm.cityId
                 WHERE 1 = 1
-                ${cities.length > 0 ? ` AND clm.cityId IN (${cities.map(() => '?').join(',')})` : ""}
-                ${statusId ? (statusId === '*' ? '' : ` AND clm.status = ${statusId}`) : ' AND clm.status = 1'} -- default status.Active = 1
+                ${
+                    cities.length > 0
+                        ? ` AND clm.cityId IN (${cities
+                              .map(() => "?")
+                              .join(",")})`
+                        : ""
+                }
+                ${
+                    statusId
+                        ? statusId === "*"
+                            ? ""
+                            : ` AND clm.status = ${statusId}`
+                        : " AND clm.status = 1"
+                } -- default status.Active = 1
                 GROUP BY clm.listingId
             ) C ON L.id = C.listingId
             LEFT JOIN (
@@ -108,12 +132,12 @@ class ListingsRepo extends BaseRepo {
         `;
 
         queryParams.push(today, today);
-        
+
         // For searchRank
         if (searchQuery) {
             // searchRank title AND description word match
-            words.forEach(word => queryParams.push(`%${word}%`)); // title
-            words.forEach(word => queryParams.push(`%${word}%`)); // description
+            words.forEach((word) => queryParams.push(`%${word}%`)); // title
+            words.forEach((word) => queryParams.push(`%${word}%`)); // description
         }
 
         // For cityId IN clause in the subquery
@@ -123,14 +147,18 @@ class ListingsRepo extends BaseRepo {
         }
         // WHERE clause
         if (searchQuery) {
-            query += ` AND (${words.map(() => `L.title LIKE ?`).join(' AND ')} OR ${words.map(() => `L.description LIKE ?`).join(' AND ')})`;
-            words.forEach(word => queryParams.push(`%${word}%`)); // title WHERE
-            words.forEach(word => queryParams.push(`%${word}%`)); // description WHERE
+            query += ` AND (${words
+                .map(() => `L.title LIKE ?`)
+                .join(" AND ")} OR ${words
+                .map(() => `L.description LIKE ?`)
+                .join(" AND ")})`;
+            words.forEach((word) => queryParams.push(`%${word}%`)); // title WHERE
+            words.forEach((word) => queryParams.push(`%${word}%`)); // description WHERE
         }
 
         query += ` AND (L.endDate IS NULL OR DATE(L.endDate) >= ?)`;
         queryParams.push(today);
-        
+
         // Date range overlap logic:
         // A listing is "active" in the window [startAfterDate, endBeforeDate] if:
         // (L.startDate <= endBeforeDate) AND (L.endDate >= startAfterDate)
@@ -148,9 +176,15 @@ class ListingsRepo extends BaseRepo {
 
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
-                if (filter.sign.toUpperCase() === "IN" && Array.isArray(filter.value) && filter.value.length > 0) {
+                if (
+                    filter.sign.toUpperCase() === "IN" &&
+                    Array.isArray(filter.value) &&
+                    filter.value.length > 0
+                ) {
                     // Expand the IN clause to the correct number of placeholders
-                    query += ` AND L.${filter.key} IN (${filter.value.map(() => '?').join(',')})`;
+                    query += ` AND L.${filter.key} IN (${filter.value
+                        .map(() => "?")
+                        .join(",")})`;
                     queryParams.push(...filter.value);
                 } else {
                     query += ` AND L.${filter.key} = ?`;
@@ -161,22 +195,24 @@ class ListingsRepo extends BaseRepo {
 
         let orderByClause;
         if (searchQuery) {
-           orderByClause = sortByStartDate
+            orderByClause = sortByStartDate
                 ? " ORDER BY searchRank, L.startDate, L.createdAt DESC"
                 : " ORDER BY searchRank, L.createdAt DESC";
         } else {
-           orderByClause = sortByStartDate
+            orderByClause = sortByStartDate
                 ? " ORDER BY L.startDate, L.createdAt DESC"
                 : " ORDER BY L.createdAt DESC,L.id";
         }
-
 
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
         const offset = (pageNo - 1) * pageSize;
         queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
 
         try {
-            const response = await database.callQuery(paginationQuery, queryParams);
+            const response = await database.callQuery(
+                paginationQuery,
+                queryParams
+            );
             return response.rows;
         } catch (error) {
             if (error instanceof Error) {
