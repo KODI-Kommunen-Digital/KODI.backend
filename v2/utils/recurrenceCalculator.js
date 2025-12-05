@@ -1,6 +1,12 @@
 const getDateInFormate = require("./getDateInFormate");
 
-function calculateRecurrence(startDateStr, endDateStr, metadata, startAfterDate, endBeforeDate) {
+function calculateRecurrence(
+    startDateStr,
+    endDateStr,
+    metadata,
+    startAfterDate,
+    endBeforeDate
+) {
     if (!metadata) return { isRecurring: false, upcomingDates: [] };
 
     // let meta;
@@ -40,11 +46,17 @@ function calculateRecurrence(startDateStr, endDateStr, metadata, startAfterDate,
     const maxEnd = new Date(calcStart.getTime() + 90 * 24 * 60 * 60 * 1000);
     if (maxEnd < calcEnd) calcEnd = maxEnd;
 
-    const startMs = startDate.getHours() * 3600000 + startDate.getMinutes() * 60000 + startDate.getSeconds() * 1000;
-    const endMs = endDate.getHours() * 3600000 + endDate.getMinutes() * 60000 + endDate.getSeconds() * 1000;
+    const startMs =
+        startDate.getHours() * 3600000 +
+        startDate.getMinutes() * 60000 +
+        startDate.getSeconds() * 1000;
+    const endMs =
+        endDate.getHours() * 3600000 +
+        endDate.getMinutes() * 60000 +
+        endDate.getSeconds() * 1000;
     const durationMs = endMs - startMs;
 
-    const upcomingDates = [];
+    let upcomingDates = [];
 
     switch (ruleNum) {
         case 1:
@@ -258,6 +270,15 @@ function calculateRecurrence(startDateStr, endDateStr, metadata, startAfterDate,
             break;
     }
 
+    if (metadata.exceptions && Array.isArray(metadata.exceptions)) {
+        const exceptionDates = new Set(
+            metadata.exceptions.map((ex) => ex.exceptionDate.split(" ")[0])
+        );
+        upcomingDates = upcomingDates.filter(
+            (date) => !exceptionDates.has(date.startDate.split(" ")[0])
+        );
+    }
+
     return { isRecurring: ruleNum !== 1, upcomingDates };
 }
 
@@ -266,8 +287,6 @@ function addDays(date, days) {
     d.setDate(d.getDate() + days);
     return d;
 }
-
-
 
 function getFirstWeekdayInMonth(year, month, weekday) {
     const date = new Date(year, month, 1);
