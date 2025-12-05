@@ -66,9 +66,15 @@ function calculateRecurrence(
                 const days = Math.ceil(
                     (endDate - startDate) / (1000 * 60 * 60 * 24)
                 );
-                for (let i = 1; i < days; i++) {
+                let startI = 1;
+                if (calcStart > startDate) {
+                    const diffDays = Math.floor((calcStart - startDate) / (1000 * 60 * 60 * 24));
+                    startI = Math.max(1, diffDays + 1);
+                }
+                for (let i = startI; i < days; i++) {
                     const s = addDays(startDate, i);
-                    const e = addDays(endDate, i);
+                    if (s > calcEnd) break;
+                    const e = new Date(s.getTime() + durationMs);
                     upcomingDates.push({
                         startDate: getDateInFormate(s),
                         endDate: getDateInFormate(e),

@@ -1217,7 +1217,9 @@ const getUsers = async function (userIds, username, reqUserId) {
             filters: filter,
             columns: columsToQuery,
         });
-        const users = userrResp.rows;
+        const users = userrResp.rows.filter(
+            (user) => user.roleId !== roles.Admin
+        );
         // users.forEach((user) => {
         //     if (user.id !== reqUserId) {
         //         user.email = "***@***.**";
