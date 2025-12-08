@@ -21,7 +21,7 @@ const generateGuestToken = function (payload) {
     const accessSecretKey = `-----BEGIN RSA PRIVATE KEY-----\n${process.env.ACCESS_PRIVATE}\n-----END RSA PRIVATE KEY-----`;
 
     const token = jwt.sign(payload, accessSecretKey, {
-        expiresIn: Number(process.env.GUEST_TOKEN_EXPIRATION),
+        expiresIn: Number(process.env.GUEST_TOKEN_EXPIRATION || process.env.AUTH_EXPIRATION),
         algorithm: "RS256",
     });
 

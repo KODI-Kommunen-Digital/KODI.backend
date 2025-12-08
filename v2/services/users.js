@@ -556,6 +556,28 @@ const updateUser = async function (id, payload) {
             }
             updationData.email = payload.email;
         }
+        // During guest -> user migration, allow setting password without requiring currentPassword
+        if (payload.password) {
+            if (payload.password.length > 64) {
+                throw new AppError(
+                    `Password too long. Maximum 64 characters allowed.`,
+                    400,
+                    errorCodes.INVALID_PASSWORD,
+                );
+            }
+            const re = /^\S{8,}$/;
+            if (!re.test(payload.password)) {
+                throw new AppError(
+                    `Invalid Password. `,
+                    400,
+                    errorCodes.INVALID_PASSWORD,
+                );
+            }
+            updationData.password = await bcrypt.hash(
+                payload.password,
+                Number(process.env.SALT),
+            );
+        }
     }
 
     // Block username change in normal path (no identity update)
