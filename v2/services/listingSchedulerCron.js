@@ -2,6 +2,8 @@ const cron = require("node-cron");
 const database = require("../utils/database");
 const sendPushNotification = require("./sendPushNotification");
 const status = require("../constants/status");
+const categories = require("../constants/categories");
+const subcategories = require("../constants/subcategories");
 require("dotenv").config();
 
 const cronSchedule = process.env.CRON_SCHEDULE || "*/5 * * * *";
@@ -109,14 +111,19 @@ class ListingSchedulerCron {
                     continue;
                 }
                 const mainCity = cityData.rows[0];
-
-                await sendPushNotification.sendPushNotificationsToUsers(
-                    cityIds,
-                    null,
-                    "Eilmeldung",
-                    mainCity.name + " - " + listing.title,
-                    { cityId: mainCity.id.toString(), id: listingId.toString() }
-                );
+                if (
+                    parseInt(listing.categoryId) === categories.News &&
+                            parseInt(listing.subcategoryId) === subcategories.newsflash
+                        
+                ){
+                    await sendPushNotification.sendPushNotificationsToUsers(
+                        cityIds,
+                        null,
+                        "Eilmeldung",
+                        mainCity.name + " - " + listing.title,
+                        { cityId: mainCity.id.toString(), id: listingId.toString() }
+                    );
+                }
 
                 // Update listing status to Active
                 await database.callQuery(
