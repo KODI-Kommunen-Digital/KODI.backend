@@ -66,6 +66,8 @@ class ListingSchedulerCron {
         SELECT
             l.id,
             l.title,
+            l.categoryId,
+            l.subcategoryId,
             IFNULL(
                 JSON_ARRAYAGG(JSON_OBJECT('cityId', lcm.cityId, 'order', lcm.cityOrder)),
                 JSON_ARRAY()
