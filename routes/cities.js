@@ -145,16 +145,16 @@ router.post("/:id/admins", authentication, async function (req, res, next) {
             throw new AppError(`City does not exist`, 400);
         }
 
-        // check if user exists in user table and is city admin
+        // check if user exists in user table
         const { rows: userRows } = await database.get(
             tables.USER_TABLE,
-            { id: userId, roleId: roles["City Admin"] },
+            { id: userId },
             "id, email"
         );
 
         if (userRows.length === 0) {
             throw new AppError(
-                `User does not exist or is not a city admin`,
+                `User does not exist`,
                 400
             );
         }
@@ -165,7 +165,7 @@ router.post("/:id/admins", authentication, async function (req, res, next) {
         const { rows: cityAdminCount } = await database.get(
             tables.CITY_USER_ROLES_TABLE,
             { cityId, userId },
-            "id"
+            "userId"
         );
         if (cityAdminCount.length > 0) {
             throw new AppError(`User is already an admin for the city`, 400);
@@ -180,8 +180,8 @@ router.post("/:id/admins", authentication, async function (req, res, next) {
 
         await database.update(
             tables.USER_TABLE,
-            { id: userId },
-            { roleId: roles["City Admin"] }
+            { roleId: roles["City Admin"] },
+            { id: userId }
         );
 
         res.status(200).json({
@@ -237,27 +237,27 @@ router.delete("/:id/admins", authentication, async function (req, res, next) {
         const { rows: cityAdminCount } = await database.get(
             tables.CITY_USER_ROLES_TABLE,
             { cityId, userId },
-            "id"
+            "userId"
         );
         if (cityAdminCount.length === 0) {
             throw new AppError(`User is not an admin for the city`, 400);
         }
 
         // remove user as city admin
-        await database.delete(tables.CITY_USER_ROLES_TABLE, { cityId, userId });
+        await database.deleteData(tables.CITY_USER_ROLES_TABLE, { cityId, userId });
 
         // if user nnot admin for any other city, change role to normal user
         const { rows: otherCitiesCount } = await database.get(
             tables.CITY_USER_ROLES_TABLE,
             { userId },
-            "id"
+            "cityId"
         );
-
+        console.log(otherCitiesCount);
         if (otherCitiesCount.length === 0) {
             await database.update(
                 tables.USER_TABLE,
-                { id: userId },
-                { roleId: roles["Content Creator"] }
+                { roleId: roles["Content Creator"] },
+                { id: userId }
             );
         }
 
@@ -330,12 +330,12 @@ router.delete("/:id/image", authentication, async function (req, res, next) {
 
         // delete city image logic here
 
-        console.log(cityCount);
+        // console.log(cityCount);
         cityCount[0]?.image && await imageDeleteAsync.deleteImage(cityCount[0]?.image);
         await database.update(
             tables.CITIES_TABLE,
+            { image: null },
             { id },
-            { image: null }
         );
 
         res.status(200).json({
