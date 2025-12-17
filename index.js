@@ -1,5 +1,6 @@
 const Sentry = require("./instrument.js");
 require("dotenv").config();
+require("./services/emailcron");
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
