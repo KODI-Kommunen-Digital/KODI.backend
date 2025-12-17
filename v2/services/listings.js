@@ -726,7 +726,8 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
             const result = await sendPushNotifications(
                 [listing.userId],
                 "Listing Status Updated",
-                `Your listing status has been updated to ${newStatus === 3 ? "Feedback" : "Approved"
+                `Your listing status has been updated to ${
+                    newStatus === 3 ? "Feedback" : "Approved"
                 } `,
                 {
                     type: "listing_status_update",
@@ -794,11 +795,9 @@ const postChatReaction = async function ({
         });
         const websocketChannelId = `listing_${listingId}`;
         const user = await usersRepository.getOne({
-            filters: [
-                { key: "id", sign: "=", value: userId },
-            ],
+            filters: [{ key: "id", sign: "=", value: userId }],
         });
-        const payload = { userId, chatId, reaction, username: user.username }
+        const payload = { userId, chatId, reaction, username: user.username };
 
         if (existingReaction) {
             if (existingReaction.reaction === reaction) {
@@ -884,7 +883,7 @@ const deleteChatReaction = async function ({
         });
         // Send live reaction deletion via websocket
         const websocketChannelId = `listing_${listingId}`;
-        const payload = { chatId, userId }
+        const payload = { chatId, userId };
         if (process.env.WEBSOCKET_ENABLED) {
             await axios.post(
                 `${process.env.WEBSOCKET_SERVER_ADDR}/publish/${websocketChannelId}?accessToken=${process.env.WEBSOCKET_ACCESS_TOKEN}`,
@@ -1029,7 +1028,7 @@ const handleUnifiedChat = async ({
                 parentId: `${chatData.parentId}`,
             }),
         };
-        console.dir({ payload }, { depth: null })
+        console.dir({ payload }, { depth: null });
         // Send push notifications
         if (roleId === roles.Admin) {
             // If admin sent message, notify listing creator
@@ -1045,18 +1044,13 @@ const handleUnifiedChat = async ({
             );
         } else {
             // If user sent message, notify admins
-            console.log("i am user and sending push notification to admin");
-            const AdminUsers = await usersRepository.getAll({
-                filters: [
-                    {
-                        key: "roleId",
-                        sign: "=",
-                        value: 1,
-                    },
-                ],
-            });
-            if (AdminUsers && AdminUsers.rows.length > 0) {
-                const adminUserIds = AdminUsers.rows.map((user) => user.id);
+            console.log(
+                "i am user and sending push notification to admin participants"
+            );
+            const adminParticipants =
+                await listingChatsRepository.getAdminParticipants(listingId);
+            if (adminParticipants && adminParticipants.length > 0) {
+                const adminUserIds = adminParticipants.map((admin) => admin.id);
                 await sendPushNotifications(
                     adminUserIds,
                     "New Message from User",
@@ -1188,12 +1182,12 @@ const getListingChat = async function ({
     if (!currentListingData) {
         throw new AppError(`Listing with id ${listingId} does not exist`, 404);
     }
-    if (currentListingData.statusId !== 3) {
-        throw new AppError(
-            `Listing with id ${listingId} does not have feedback status`,
-            400
-        );
-    }
+    // if (currentListingData.statusId !== 3) {
+    //     throw new AppError(
+    //         `Listing with id ${listingId} does not have feedback status`,
+    //         400
+    //     );
+    // }
     if (roleId !== roles.Admin && currentListingData.userId !== userId) {
         throw new AppError(`You are not allowed to access this resource`, 403);
     }
