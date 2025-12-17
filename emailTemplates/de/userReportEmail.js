@@ -5,9 +5,9 @@ module.exports = (usersCount) => {
         body: `<h1> Benutzerbericht</h1>
                 <p>Hallo,<br>
                 hier ist der aktuelle Bericht über die Benutzeranzahl in deinem System.<br>
-                <strong>Gesamtanzahl der Benutzer: ${usersCount}</strong><br>
+                <strong>registrierte Benutzer: ${usersCount}</strong><br>
                 <br>
                 Liebe Grüße!<br>
-                Das ${process.env.REGION}-Team</p>`,
+                </p>`,
     };
 };
