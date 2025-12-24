@@ -1,12 +1,8 @@
 const ObsClient = require("./eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
 const http = require("http");
-const { compressImage } = require("./imageCompress");
 
 const imageUpload = async (image, filePath) => {
     const server = process.env.BUCKET_HOST;
-
-    // Compress Image and detect format 
-    const { buffer: compressedImageData, mimeType, format } = await compressImage(image.data);
 
     /*
    * Initialize a obs client instance with your account for accessing OBS
@@ -18,10 +14,10 @@ const imageUpload = async (image, filePath) => {
     });
 
     const bucketName = process.env.BUCKET_NAME;
-    const objectKey = `${filePath}.${format}`;
+    const objectKey = filePath;
     const formParams = {
         acl: obs.enums.AclPublicRead,
-        "content-type": mimeType,
+        "content-type": "image/jpeg",
         "x-amz-meta-meta1": "value1",
         "x-amz-meta-meta2": "value2",
     };
@@ -81,7 +77,7 @@ const imageUpload = async (image, filePath) => {
     buffer.push('Content-Disposition: form-data; name="file"; filename="');
     buffer.push("myfile");
     buffer.push('"\r\n');
-    buffer.push(`Content-Type: ${mimeType}`);
+    buffer.push("Content-Type: image/jpeg");
     buffer.push("\r\n\r\n");
 
     buffer = buffer.join("");
@@ -106,14 +102,14 @@ const imageUpload = async (image, filePath) => {
         },
     };
     try {
-        const uploadStatus = await makeHttpRequest(options, buffers, compressedImageData);
+        const uploadStatus = await makeHttpRequest(options, buffers, image);
         return { uploadStatus, objectKey };
     } catch (e) {
         return { uploadStatus: e, objectKey: "" };
     }
 };
 
-function makeHttpRequest(options, buffers, imageData) {
+function makeHttpRequest(options, buffers, image) {
     return new Promise((resolve, reject) => {
         const req = http.request(options, (response) => {
             let uploadStatus;
@@ -138,7 +134,7 @@ function makeHttpRequest(options, buffers, imageData) {
         });
         req.write(buffers[0]);
         req.write(buffers[1]);
-        req.write(imageData);
+        req.write(image.data);
         req.write(buffers[2]);
         req.end();
     });
