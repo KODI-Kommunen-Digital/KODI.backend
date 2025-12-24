@@ -22,7 +22,6 @@ const listingRepository = require("../repository/listingsRepo");
 const categoryRepository = require("../repository/categoriesRepo");
 const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
-const userPreferenceCitiesRepository = require("../repository/userPreferenceCitiesRepo");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -133,70 +132,6 @@ const login = async function (payload, sourceAddress, browsername, devicetype) {
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err, 500);
-    }
-};
-
-// Guest helpers
-const createGuestUser = async (userData) => {
-    try {
-        const existingUser = await usersRepository.getOne({
-            filters: [
-                { key: "username", sign: "=", value: userData.username }
-            ]
-        });
-        if (existingUser) {
-            const { password, ...userWithoutPassword } = existingUser;
-            return userWithoutPassword;
-        }
-        const result = await usersRepository.create({ data: userData });
-        const { password, ...userWithoutPassword } = result;
-        return userWithoutPassword;
-    } catch (error) {
-        throw new AppError(error.message || "Error creating guest user", error.statusCode || 500);
-    }
-};
-
-const findGuestUserByDeviceId = async (deviceId) => {
-    try {
-        const user = await usersRepository.getOne({
-            filters: [
-                { key: "username", sign: "=", value: deviceId }
-            ]
-        });
-        if (!user) return null;
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-    } catch (error) {
-        throw new AppError(error.message || "Error finding guest user", error.statusCode || 500);
-    }
-};
-
-// Migrate ONLY user_preference_cities from guest to registered user
-const migrateGuestFavoriteCities = async (userId, guestUserId) => {
-    try {
-        const guestCitiesResp = await userPreferenceCitiesRepository.getAll({
-            filters: [
-                { key: "userId", sign: "=", value: guestUserId }
-            ]
-        });
-        const guestCities = guestCitiesResp.rows || [];
-
-        for (const row of guestCities) {
-            // Insert for target user, no-op if duplicate due to unique constraint
-            await userPreferenceCitiesRepository.insertCityPreferenceUnique(userId, row.cityId);
-        }
-
-        // Clean up guest rows
-        await userPreferenceCitiesRepository.delete({
-            filters: [
-                { key: "userId", sign: "=", value: guestUserId }
-            ]
-        });
-
-        // Finally, delete the guest user entirely (core + related via SP)
-        await usersRepository.deleteCoreUserProcedure(guestUserId);
-    } catch (error) {
-        throw new AppError(error.message || "Error migrating guest favorite cities", error.statusCode || 500);
     }
 };
 
@@ -504,84 +439,7 @@ const updateUser = async function (id, payload) {
         throw new AppError(`User with id ${id} does not exist`, 404);
     }
 
-    // Guest migration path: allow identity update with v2 validations
-    if (payload.allowIdentityUpdate) {
-        updationData.emailVerified = 0;
-        updationData.allNotificationsEnabled = 1;
-
-        if (payload.username && payload.username !== currentUserData.username) {
-            const normalizedUsername = (payload.username || "").trim().toLowerCase();
-            // v2 registration rules
-            if (normalizedUsername.length > 40) {
-                throw new AppError(
-                    `Username too long. Maximum 40 characters allowed.`,
-                    400,
-                    errorCodes.INVALID_USERNAME,
-                );
-            }
-            // uniqueness other than current user
-            const existingByUsername = await usersRepository.getOne({
-                filters: [
-                    { key: "username", sign: "=", value: normalizedUsername }
-                ]
-            });
-            if (existingByUsername && existingByUsername.id !== id) {
-                throw new AppError(
-                    `User with username '${normalizedUsername}' already exists`,
-                    400,
-                    errorCodes.USER_ALREADY_EXISTS,
-                );
-            }
-            updationData.username = normalizedUsername;
-        }
-
-        // Email validation and uniqueness for guest -> user conversion
-        if (payload.email && payload.email !== currentUserData.email) {
-            const emailRe =
-                /^(([^<>()\[\]\\.,;:\s@\"]+(\.[^<>()\[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-            if (!emailRe.test(payload.email)) {
-                throw new AppError(`Invalid email given`, 400);
-            }
-            const existingByEmail = await usersRepository.getOne({
-                filters: [
-                    { key: "email", sign: "=", value: payload.email }
-                ]
-            });
-            if (existingByEmail && existingByEmail.id !== id) {
-                throw new AppError(
-                    `User with email '${payload.email}' is already registered`,
-                    400,
-                    errorCodes.EMAIL_ALREADY_EXISTS,
-                );
-            }
-            updationData.email = payload.email;
-        }
-        // During guest -> user migration, allow setting password without requiring currentPassword
-        if (payload.password) {
-            if (payload.password.length > 64) {
-                throw new AppError(
-                    `Password too long. Maximum 64 characters allowed.`,
-                    400,
-                    errorCodes.INVALID_PASSWORD,
-                );
-            }
-            const re = /^\S{8,}$/;
-            if (!re.test(payload.password)) {
-                throw new AppError(
-                    `Invalid Password. `,
-                    400,
-                    errorCodes.INVALID_PASSWORD,
-                );
-            }
-            updationData.password = await bcrypt.hash(
-                payload.password,
-                Number(process.env.SALT),
-            );
-        }
-    }
-
-    // Block username change in normal path (no identity update)
-    if (payload.username && payload.username !== currentUserData.username && !payload.allowIdentityUpdate) {
+    if (payload.username && payload.username !== currentUserData.username) {
         throw new AppError(`Username cannot be edited`, 400);
     }
 
@@ -1651,9 +1509,5 @@ module.exports = {
     deleteUserProfileImage,
     getUserListings,
     deleteUser,
-    storeFirebaseUserToken,
-    // guest helpers
-    createGuestUser,
-    findGuestUserByDeviceId,
-    migrateGuestFavoriteCities
+    storeFirebaseUserToken
 };

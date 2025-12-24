@@ -17,17 +17,6 @@ const generator = function (payload) {
     return { accessToken, refreshToken };
 };
 
-const generateGuestToken = function (payload) {
-    const accessSecretKey = `-----BEGIN RSA PRIVATE KEY-----\n${process.env.ACCESS_PRIVATE}\n-----END RSA PRIVATE KEY-----`;
-
-    const token = jwt.sign(payload, accessSecretKey, {
-        expiresIn: Number(process.env.GUEST_TOKEN_EXPIRATION || process.env.AUTH_EXPIRATION),
-        algorithm: "RS256",
-    });
-
-    return token;
-};
-
 const verify = function (token, publicKey) {
     const rsaPublickKey = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
 
@@ -38,4 +27,4 @@ const verify = function (token, publicKey) {
     return decodedToken;
 };
 
-module.exports = { generator, verify, generateGuestToken };
+module.exports = { generator, verify };

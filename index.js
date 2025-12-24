@@ -27,7 +27,6 @@ const swaggerUi = require('swagger-ui-express');
 const apiDocumentation = require('./docs/docRoot');
 const apiVersions = require('./constants/apiVersions');
 const bridgeRoutes = require('./bridgeRoutes');
-const listingSchedulerCron = require("./v2/services/listingSchedulerCron.js");
 
 // defining the Express app
 const app = express();
@@ -223,7 +222,6 @@ app.use(errorHandler);
 // starting the server
 app.listen(process.env.PORT, () => {
     console.log(`listening on port ${process.env.PORT}`);
-    listingSchedulerCron.start();
 });
 
 process.on("uncaughtException", function (err) {

@@ -5,7 +5,6 @@ const optionalAuthentication = require("../middlewares/optionalAuthentication");
 const {
     register,
     login,
-    loginGuest,
     getUserById,
     updateUser,
     refreshAuthToken,
@@ -41,8 +40,6 @@ router.use("/register", filterNonPostRequests);
 router.post("/login", login);
 
 router.post("/register", register);
-
-router.post("/guest/login", loginGuest);
 
 router.get("/myListings", authentication, getMyListings);
 
