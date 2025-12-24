@@ -1,5 +1,6 @@
 const AppError = require("../utils/appError");
 const errorCodes = require("../constants/errorCodes");
+const roles = require("../constants/roles");
 const userService = require("../services/users");
 const notificationService = require("../services/notifications");
 
@@ -7,6 +8,27 @@ const register = async function (req, res, next) {
     const payload = req.body;
 
     try {
+        if (payload.deviceId) {
+            const existingGuestUser = await userService.findGuestUserByDeviceId(payload.deviceId);
+            if (existingGuestUser) {
+                await userService.updateUser(
+                    existingGuestUser.id,
+                    JSON.parse(
+                        JSON.stringify({
+                            ...payload,
+                            allowIdentityUpdate: true,
+                            emailVerified: 0,
+                            allNotificationsEnabled: 0,
+                        })
+                    )
+                );
+                return res.status(200).json({
+                    status: "success",
+                    id: existingGuestUser.id,
+                });
+            }
+        }
+
         const id = await userService.register(payload);
         return res.status(200).json({
             status: "success",
@@ -51,12 +73,68 @@ const login = async function (req, res, next) {
             head.browsername,
             head.devicetype,
         );
+
+        // If deviceId was provided, migrate guest favorite cities to this user
+        if (payload.deviceId) {
+            try {
+                const guest = await userService.findGuestUserByDeviceId(payload.deviceId);
+                if (guest && loginRes && loginRes.userId) {
+                    await userService.migrateGuestFavoriteCities(loginRes.userId, guest.id);
+                }
+            } catch (e) {
+                // proceed without blocking login on migration errors
+            }
+        }
         res.status(200).json({
             status: "success",
             data: loginRes,
         });
     } catch (err) {
         return next(err);
+    }
+};
+
+// Guest user login (issue short-lived access token)
+const loginGuest = async function (req, res, next) {
+    const { deviceId } = req.body;
+
+    if (!deviceId) {
+        return next(new AppError(`Device ID is required`, 400));
+    }
+
+    try {
+        let user = await userService.findGuestUserByDeviceId(deviceId);
+        if (!user) {
+            const guestUserData = {
+                username: deviceId,
+                email: `guest_${Date.now()}@example.com`,
+                password: null,
+                roleId: roles["Content Creator"],
+                firstname: "Guest",
+                lastname: "User",
+                phoneNumber: null,
+                image: null,
+                description: null,
+                website: null,
+                emailVerified: 1,
+                socialMedia: null,
+                allNotificationsEnabled: 1,
+            };
+            user = await userService.createGuestUser(guestUserData);
+        }
+
+        const accessToken = require("../utils/token").generateGuestToken({
+            userId: user.id,
+            roleId: user.roleId,
+        });
+
+        return res.status(200).json({
+            status: "success",
+            data: { userId: user.id, accessToken },
+        });
+    } catch (error) {
+        console.log('err:', error)
+        return next(error);
     }
 };
 
@@ -455,7 +533,7 @@ const deleteUser = async function (req, res, next) {
 
 const storeFirebaseUserToken = async function (req, res, next) {
     const userId = parseInt(req.params.id);
-    const token = req.body.token;
+    const token = req.body.token || req.body.firebaseToken;
     const deviceToken = req.body.deviceId;
 
     try {
@@ -543,6 +621,7 @@ const updateUserNotificationPreference = async function (req, res, next) {
 module.exports = {
     register,
     login,
+    loginGuest,
     getUserById,
     updateUser,
     refreshAuthToken,

@@ -16,12 +16,12 @@ class ListingsRepo extends BaseRepo {
         sortByStartDate = false,
         startAfterDate = null, // Start date for range
         endBeforeDate = null, // End date for range
-        sortByOrder = "DESC"   
+        sortByOrder = "DESC"
     }) => {
         const queryParams = [];
 
         let query = `
-            SELECT  
+            SELECT
                 L.id,
                 L.title,
                 L.description,
@@ -37,6 +37,7 @@ class ListingsRepo extends BaseRepo {
                 L.viewCount,
                 L.externalId,
                 L.expiryDate,
+                L.scheduledAt,
                 L.sourceId,
                 L.website,
                 L.address,
@@ -52,12 +53,12 @@ class ListingsRepo extends BaseRepo {
                 sub.otherLogos
             FROM listings L
             INNER JOIN (
-                SELECT 
+                SELECT
                     clm.listingId,
                     (SELECT cityId FROM city_listing_mappings WHERE listingId = clm.listingId ORDER BY cityOrder ASC LIMIT 1) AS cityId,
                     COUNT(*) AS cityCount,
                     (SELECT CAST(CONCAT('[', GROUP_CONCAT(cityId ORDER BY cityOrder ASC SEPARATOR ','), ']') AS JSON)
-                     FROM city_listing_mappings 
+                     FROM city_listing_mappings
                      WHERE listingId = clm.listingId) AS allCities
                 FROM city_listing_mappings clm
                 ${cities.length > 0 ? " WHERE cityId IN (?)" : ""}

@@ -63,7 +63,7 @@ const getUserNotificationPreference = async function(userId){
                         type: 'CATEGORY_PREFERENCE',
                         name: 'Category',
                         preferences: [],
-                    },        
+                    },
                 ],
             };
         }
@@ -100,78 +100,68 @@ const getUserNotificationPreference = async function(userId){
     }
 };
 
-const updateUserNotificationPreference = async function(userId, {type, id, enabled}){
+const updateUserNotificationPreference = async function(userId, { type, ids = [] }) {
     try {
-        if(type === 'CITY_PREFERENCE'){
-            if (id){
-                if (enabled){
-                    await userPreferenceCitiesRepo.insertCityPreferenceUnique(userId, id);
-                } else {
-                    await userPreferenceCitiesRepo.delete({
-                        filters: [
-                            {
-                                key: "userId",
-                                sign: "=",
-                                value: userId
-                            },
-                            {
-                                key: "cityId",
-                                sign: "=",
-                                value: id
-                            }
-                        ]
-                    });
-                }
-            } else { // if no id, then delete all city preference of that user
-                if (enabled) {
-                    const allCities = await cityRepository.getAll(); 
-                    const data = allCities.rows.map(city => ({userId, cityId: city.id}));
-                    await userPreferenceCitiesRepo.insertMultipleCityPreference(data); // Bulk insert all cities for the user
-                } else {
-                    await userPreferenceCitiesRepo.delete({
-                        filters: [{ key: "userId", sign: "=", value: userId }]
-                    });
+        if (!userId) {
+            throw new AppError('User ID is required', 400);
+        }
+        if (!type) {
+            throw new AppError('Preference type is required', 400);
+        }
+        if (!Array.isArray(ids)) {
+            throw new AppError('Preference ids must be an array', 400);
+        }
+
+        if (type === 'CITY_PREFERENCE') {
+            // Validate city ids
+            if (ids.length > 0) {
+                const cities = await cityRepository.getAll({
+                    filters: [{ key: "id", sign: "IN", value: ids }]
+                });
+                const foundIds = cities.rows.map((city) => city.id);
+                const notFound = ids.filter(id => !foundIds.includes(id));
+                if (notFound.length > 0) {
+                    throw new AppError(`Invalid city ids: ${notFound.join(', ')}`, 400);
                 }
             }
-        } else if (type === 'CATEGORY_PREFERENCE'){
-            if(id) {
-                if (enabled){
-                    await UserPreferenceCategoriesRepo.insertCategoryPreferenceUnique(userId, id);
-                } else {
-                    await UserPreferenceCategoriesRepo.delete({
-                        filters: [
-                            {
-                                key: "userId",
-                                sign: "=",
-                                value: userId
-                            },
-                            {
-                                key: "categoryId",
-                                sign: "=",
-                                value: id
-                            }
-                        ]
-                    });
+            // Remove all existing city preferences for the user
+            await userPreferenceCitiesRepo.delete({
+                filters: [{ key: "userId", sign: "=", value: userId }]
+            });
+            // Insert new preferences if ids are provided
+            if (ids.length > 0) {
+                const data = ids.map(cityId => ({ userId, cityId }));
+                await userPreferenceCitiesRepo.insertMultipleCityPreference(data);
+            }
+        } else if (type === 'CATEGORY_PREFERENCE') {
+            // Validate category ids
+            if (ids.length > 0) {
+                const categories = await categoryRepository.getAll({
+                    filters: [{ key: "id", sign: "IN", value: ids }]
+                });
+                const foundIds = categories.rows.map((category) => category.id);
+                const notFound = ids.filter(id => !foundIds.includes(id));
+                if (notFound.length > 0) {
+                    throw new AppError(`Invalid category ids: ${notFound.join(', ')}`, 400);
                 }
-            } else { // if no id, then delete all category preference of that user
-                if (enabled) {
-                    const allCategories = await categoryRepository.getAll(); 
-                    const insertData = allCategories.rows.map(category => ({userId, categoryId:category.id}));
-                    await UserPreferenceCategoriesRepo.insertMultipleCategoryPreference(insertData); // Bulk insert all categories for the user
-                } else {
-                    await UserPreferenceCategoriesRepo.delete({
-                        filters: [{ key: "userId", sign: "=", value: userId }]
-                    });
-                }
+            }
+            // Remove all existing category preferences for the user
+            await UserPreferenceCategoriesRepo.delete({
+                filters: [{ key: "userId", sign: "=", value: userId }]
+            });
+            // Insert new preferences if ids are provided
+            if (ids.length > 0) {
+                const data = ids.map(categoryId => ({ userId, categoryId }));
+                await UserPreferenceCategoriesRepo.insertMultipleCategoryPreference(data);
             }
         } else {
             throw new AppError('Invalid preference type', 400);
         }
-        return { message: 'Preferences updated successfully'};
+        return { message: 'Preferences updated successfully' };
     } catch (err) {
         if (err instanceof AppError) throw err;
-        throw new AppError(err);    
+        throw new AppError(err);
     }
-}
+};
 
 module.exports = { updateAllNotifications, getUserNotificationPreference , updateUserNotificationPreference };

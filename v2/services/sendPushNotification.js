@@ -101,11 +101,11 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
                 columns: "firebaseToken",
                 filters: [{ key: "userId", sign: "=", value: userId }],
             });
-            return rows.map(row => row.firebaseToken); 
+            return rows.map(row => row.firebaseToken);
         });
-        
+
         const tokensList = (await Promise.all(tokenPromises)).flat();
-        
+
         const tokens = tokensList.filter(token => token);
         if (!tokens || tokens.length === 0) {
             return false;
@@ -123,7 +123,7 @@ async function sendPushNotifications(userIds, title = "", body = "Check it out",
             try {
                 return await admin.messaging().send(message);
             } catch (error) {
-                console.error(`Error sending to token ${token.firebaseToken}:`, error);
+                console.error(`Error sending to token ${token}:`, error);
                 return null;
             }
         });

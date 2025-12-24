@@ -200,6 +200,21 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
     }
 
+    if (insertionData.statusId === status.Scheduled) {
+        if (!payload.scheduledAt) {
+            throw new AppError(`Scheduled time is not present`, 400);
+        } else {
+            const scheduledAt = new Date(payload.scheduledAt);
+            if (isNaN(scheduledAt.getTime())) {
+                throw new AppError('Invalid scheduledAt date format, example format: "2025-01-06T07:47:09.230Z" ', 400);
+            } else if (scheduledAt < new Date()) {
+                throw new AppError(`Scheduled time cannot be in the past`, 400);
+            } else {
+                insertionData.scheduledAt = getDateInFormate(scheduledAt);
+            }
+        }
+    };
+
     insertionData.sourceId = source.UserEntry;
 
     if (payload.address) {
@@ -292,6 +307,9 @@ async function createListing(cityIds, payload, userId, roleId) {
     }
 
     insertionData.createdAt = getDateInFormate(new Date());
+    if (insertionData.scheduledAt) {
+        insertionData.createdAt = insertionData.scheduledAt;
+    }
 
     try {
         if (parseInt(payload.categoryId) === categories.News && !payload.timeless) {
@@ -439,23 +457,24 @@ async function createListing(cityIds, payload, userId, roleId) {
             insertionData.statusId === status.Active &&
             roleId === roles.Admin
         ) {
-            await sendPushNotification.sendPushNotificationToAll(
-                "warnings",
+            await sendPushNotification.sendPushNotificationsToUsers(
+                cityIds,
+                null,
                 "Eilmeldung",
                 mainCity.name + " - " + insertionData.title,
-                { cityId: mainCity.id.toString(), id: listingId.toString() },
+                { cityId: mainCity.id.toString(), id: listingId.toString() }
             );
         }
 
-        if (roleId === roles.Admin && insertionData.statusId === status.Active) {
-            await sendPushNotification.sendPushNotificationsToUsers(
-                cityIds,
-                insertionData.categoryId,
-                "Neue Meldung",
-                insertionData.title,
-                { cities: JSON.stringify(cities), id: listingId.toString() },
-            );
-        }
+        // if (roleId === roles.Admin && insertionData.statusId === status.Active) {
+        //     await sendPushNotification.sendPushNotificationsToUsers(
+        //         cityIds,
+        //         insertionData.categoryId,
+        //         "Neue Meldung",
+        //         insertionData.title,
+        //         { cities: JSON.stringify(cities), id: listingId.toString() },
+        //     );
+        // }
 
         if ((roleId === roles["Content Creator"] || roleId === roles["Department Head"]) &&
             insertionData.statusId === status.Pending) {
@@ -640,6 +659,26 @@ const updateListing = async (listingId, cityIds, listingData, userId, roleId) =>
         throw new AppError(`Title length cannot exceed 255 characters`, 400);
     } else if (listingData.title) {
         updationData.title = listingData.title;
+    }
+    // if listing is already scheduled, only admin can update the scheduledAt field and if status is not scheduled it cannot be updated to scheduled
+    if (listingData.scheduledAt) {
+        if (currentListingData.statusId === status.Scheduled) {
+            if (roleId !== roles.Admin) {
+                throw new AppError(`You are not allowed to update scheduledAt field`, 403);
+            } else {
+                const scheduledAt = new Date(listingData.scheduledAt);
+                if (isNaN(scheduledAt.getTime())) {
+                    throw new AppError('Invalid scheduledAt date format, example format: "2025-01-06T07:47:09.230Z" ', 400);
+                } else if (scheduledAt < new Date()) {
+                    throw new AppError(`Scheduled time cannot be in the past`, 400);
+                } else {
+                    updationData.scheduledAt = getDateInFormate(scheduledAt);
+                    updationData.createdAt = getDateInFormate(scheduledAt);
+                }
+            }
+        } else {
+            throw new AppError(`Only Admin can update scheduledAt field of a scheduled listing`, 403);
+        }
     }
 
     if (
@@ -981,6 +1020,10 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
                 )
             )
         );
+        // sending push notifications in context to main city selected only while creating listing with additional city selection.
+        const mainCity = cityDetailsMap.find(
+            (city) => city[0] === updatedCityIds[0]
+        );
 
         if (
             parseInt(updationData.categoryId) === categories.News &&
@@ -988,22 +1031,13 @@ async function updateCityMappings(updationData, listingId, updatedCityIds, trans
             updationData.statusId === status.Active &&
             roleId === roles.Admin
         ) {
-            const notifications = updatedCityIds.map(cityId => ({
-                topic: "warnings",
-                title: "Eilmeldung",
-                message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${updationData.title}`,
-                payload: { cityId: cityId.toString(), id: listingId.toString() },
-            }));
-
-            // Send notifications in parallel
-            await Promise.all(notifications.map(notification =>
-                sendPushNotification.sendPushNotificationToAll(
-                    notification.topic,
-                    notification.title,
-                    notification.message,
-                    notification.payload
-                )
-            ));
+            await sendPushNotification.sendPushNotificationsToUsers(
+                updatedCityIds,
+                null,
+                "Eilmeldung",
+                mainCity.name + " - " + updationData.title,
+                { cityId: mainCity.id.toString(), id: listingId.toString() }
+            );
         }
     } catch (err) {
         if (err instanceof AppError) {
