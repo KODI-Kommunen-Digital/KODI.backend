@@ -25,6 +25,9 @@ const compressImage = async (imageBuffer) => {
         
         console.log(`Detected format: ${originalFormat}`);
         
+        // Apply EXIF orientation to ensure correct image orientation
+        pipeline = pipeline.rotate();
+        
         if (metadata.width > IMAGE_CONFIG.maxWidth || metadata.height > IMAGE_CONFIG.maxHeight) {
             pipeline = pipeline.resize(IMAGE_CONFIG.maxWidth, IMAGE_CONFIG.maxHeight, {
                 fit: 'inside',
