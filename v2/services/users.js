@@ -9,7 +9,6 @@ const supportedSocialMedia = require("../constants/supportedSocialMedia");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const tokenUtil = require("../utils/token");
-const { getUserImages } = require("../repository/image");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 
 const usersRepository = require("../repository/userRepo");
@@ -19,6 +18,7 @@ const verificationTokenRepository = require("../repository/verificationTokensRep
 const forgotPasswordTokenRepository = require("../repository/forgotPasswordTokensRepo");
 const statusRepository = require("../repository/statusRepo");
 const listingRepository = require("../repository/listingsRepo");
+const listingImagesRepository = require("../repository/listingsImagesRepo");
 const categoryRepository = require("../repository/categoriesRepo");
 const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
@@ -1543,11 +1543,48 @@ const deleteUser = async function (userId) {
         });
         const cityUsers = cityUsersData.rows;
 
-        const userImageList = await getUserImages(userId);
+        // Get all listing IDs for the user
+        const userListingsResp = await listingRepository.getAll({
+            filters: [
+                {
+                    key: "userId",
+                    sign: "=",
+                    value: userId
+                }
+            ],
+            columns: ["id"]
+        });
+        const userListings = userListingsResp.rows;
+        const listingIds = userListings.map((listing) => listing.id);
 
-        await imageDeleteAsync.deleteMultiple(
-            userImageList.map((image) => ({ Key: image.Key._text })),
-        );
+        // Get all listing images for those listing IDs
+        let imagesToDelete = [];
+        if (listingIds.length > 0) {
+            const listingImagesResp = await listingImagesRepository.getAll({
+                filters: [
+                    {
+                        key: "listingId",
+                        sign: "IN",
+                        value: listingIds
+                    }
+                ]
+            });
+            const listingImages = listingImagesResp.rows;
+
+            // Filter images that start with "user_", include user_{userId}, and don't start with "admin/"
+            imagesToDelete = listingImages
+                .map((image) => image.logo)
+                .filter((logo) => typeof logo === 'string' && logo && logo.startsWith("user_") && logo.includes(`user_${userId}`) && !logo.startsWith("admin/"));
+        }
+
+        // Also add user profile image if it exists
+        if (userData.image && typeof userData.image === 'string' && userData.image.startsWith("user_")) {
+            imagesToDelete.push(userData.image);
+        }
+
+        if (imagesToDelete.length > 0) {
+            await imageDeleteAsync.deleteMultiple(imagesToDelete);
+        }
         for (const cityUser of cityUsers) {
             // await database.callStoredProcedure(
             //     storedProcedures.DELETE_CITY_USER,
