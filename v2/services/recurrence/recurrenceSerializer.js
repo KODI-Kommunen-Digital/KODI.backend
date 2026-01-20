@@ -1,0 +1,118 @@
+/**
+ * Recurrence Serializer
+ * Handles conversion between API format and database format
+ * 
+ * This module is designed to be independent and reusable in other projects.
+ */
+
+const getDateInFormate = require("../../utils/getDateInFormate");
+
+class RecurrenceSerializer {
+    /**
+     * Convert API input to database format
+     * @param {Object} input - API recurrence rule input
+     * @returns {Object} - { ruleData, listingDates: { startDate, endDate } }
+     */
+    static toDatabase(input) {
+        const startDateTime = new Date(input.start);
+        const endDateTime = new Date(input.end);
+        const repeatUntilDateTime = new Date(input.repeatUntil);
+
+        // Extract time portions
+        const startTime = this.extractTimeString(startDateTime);
+        const endTime = this.extractTimeString(endDateTime);
+
+        // Prepare rule data for database
+        const ruleData = {
+            freq: input.freq,
+            intervalValue: input.interval || 1,
+            weekdays: input.weekdays && input.weekdays.length > 0
+                ? JSON.stringify(input.weekdays)
+                : null,
+            startTime,
+            endTime,
+        };
+
+        // Prepare listing dates
+        const listingDates = {
+            startDate: getDateInFormate(startDateTime),
+            endDate: getDateInFormate(repeatUntilDateTime)
+        };
+
+        return { ruleData, listingDates };
+    }
+
+    /**
+     * Convert database record to API response format
+     * @param {Object} dbRecord - Database recurrence rule record
+     * @param {Object} listing - Listing record (for startDate/endDate)
+     * @param {Array} exceptions - Associated exception records
+     * @returns {Object} - API response format matching input structure
+     */
+    static toApiResponse(dbRecord, listing, exceptions = []) {
+        // Parse weekdays from JSON if stored as string
+        let weekdays = [];
+        if (dbRecord.weekdays) {
+            try {
+                weekdays = typeof dbRecord.weekdays === 'string'
+                    ? JSON.parse(dbRecord.weekdays)
+                    : dbRecord.weekdays;
+            } catch (e) {
+                weekdays = [];
+            }
+        }
+
+        // Combine listing date with rule time
+        const startDate = listing.startDate ? new Date(listing.startDate) : new Date();
+        const endDate = listing.endDate ? new Date(listing.endDate) : new Date();
+
+        // Format start and end with times from the rule
+        const startDateStr = this.formatDateOnly(startDate);
+        const start = `${startDateStr} ${dbRecord.startTime || "00:00:00"}`;
+        const end = `${startDateStr} ${dbRecord.endTime || "00:00:00"}`;
+        const repeatUntil = `${this.formatDateOnly(endDate)} ${dbRecord.endTime || "00:00:00"}`;
+
+        // Format exceptions
+        const formattedExceptions = exceptions.map(exc => ({
+            id: exc.id,
+            date: this.formatDateOnly(new Date(exc.exceptionDate)),
+            reason: exc.reason || null
+        }));
+
+        return {
+            freq: dbRecord.freq,
+            interval: dbRecord.intervalValue || dbRecord.interval || 1,
+            weekdays,
+            start,
+            end,
+            repeatUntil,
+            exceptions: formattedExceptions
+        };
+    }
+
+    /**
+     * Extract time string in HH:MM:SS format from a Date object
+     * @param {Date} date 
+     * @returns {string}
+     */
+    static extractTimeString(date) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}`;
+    }
+
+    /**
+     * Format date to YYYY-MM-DD string
+     * @param {Date} date 
+     * @returns {string}
+     */
+    static formatDateOnly(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+}
+
+module.exports = RecurrenceSerializer;
