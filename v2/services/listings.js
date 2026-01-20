@@ -606,9 +606,8 @@ const getListingWithId = async function (id, repeatedRequest = false) {
                 for (const occ of occurrences) {
                     if (!occ.isException) {
                         allUpcomingDates.push({
-                            date: occ.date,
-                            startTime: occ.startTime,
-                            endTime: occ.endTime
+                            startDate: occ.startDate,
+                            endDate: occ.endDate
                         });
                     }
                 }
@@ -619,7 +618,7 @@ const getListingWithId = async function (id, repeatedRequest = false) {
         }
 
         // Sort upcoming dates: nearest (most recent) at top, future at bottom
-        allUpcomingDates.sort((a, b) => new Date(a.date) - new Date(b.date));
+        allUpcomingDates.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
         const isRecurrence = recurrenceRules.length > 0;
 

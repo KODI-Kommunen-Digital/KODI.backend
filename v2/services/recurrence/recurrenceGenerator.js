@@ -84,6 +84,7 @@ class RecurrenceGenerator {
         const interval = Math.max(1, Math.abs(rule.interval || rule.intervalValue || 1));
         const startTime = rule.startTime || this.extractTime(start);
         const endTime = rule.endTime || this.extractTime(until);
+        const dayOffset = rule.dayOffset || 0;
 
         const currentDate = new Date(start);
         let count = 0;
@@ -92,10 +93,13 @@ class RecurrenceGenerator {
         while (currentDate <= until && count < limit) {
             // Only add if on or after effectiveStart
             if (currentDate >= effectiveStart) {
+                // Calculate end date based on dayOffset
+                const endDateObj = new Date(currentDate);
+                endDateObj.setDate(endDateObj.getDate() + dayOffset);
+
                 occurrences.push({
-                    date: this.formatDateOnly(currentDate),
-                    startTime,
-                    endTime
+                    startDate: `${this.formatDateOnly(currentDate)} ${startTime}`,
+                    endDate: `${this.formatDateOnly(endDateObj)} ${endTime}`
                 });
                 count++;
             }
@@ -121,6 +125,7 @@ class RecurrenceGenerator {
         const weekdays = rule.weekdays || [];
         const startTime = rule.startTime || this.extractTime(start);
         const endTime = rule.endTime || this.extractTime(until);
+        const dayOffset = rule.dayOffset || 0;
 
         if (!weekdays.length) return occurrences;
 
@@ -144,10 +149,13 @@ class RecurrenceGenerator {
 
             // Only add occurrence if it's on the right interval week, right day, AND on/after effectiveStart
             if (weekCounter % interval === 0 && targetDays.includes(currentDate.getDay()) && currentDate >= effectiveStart) {
+                // Calculate end date based on dayOffset
+                const endDateObj = new Date(currentDate);
+                endDateObj.setDate(endDateObj.getDate() + dayOffset);
+
                 occurrences.push({
-                    date: this.formatDateOnly(currentDate),
-                    startTime,
-                    endTime
+                    startDate: `${this.formatDateOnly(currentDate)} ${startTime}`,
+                    endDate: `${this.formatDateOnly(endDateObj)} ${endTime}`
                 });
                 count++;
             }
@@ -177,6 +185,7 @@ class RecurrenceGenerator {
         const startTime = rule.startTime || this.extractTime(start);
         const endTime = rule.endTime || this.extractTime(until);
         const targetDayOfMonth = start.getDate();
+        const dayOffset = rule.dayOffset || 0;
 
         let count = 0;
         let iteration = 0;
@@ -214,10 +223,13 @@ class RecurrenceGenerator {
 
             // Only add if on or after effectiveStart
             if (occurrenceDate >= effectiveStart) {
+                // Calculate end date based on dayOffset
+                const endDateObj = new Date(occurrenceDate);
+                endDateObj.setDate(endDateObj.getDate() + dayOffset);
+
                 occurrences.push({
-                    date: this.formatDateOnly(occurrenceDate),
-                    startTime,
-                    endTime
+                    startDate: `${this.formatDateOnly(occurrenceDate)} ${startTime}`,
+                    endDate: `${this.formatDateOnly(endDateObj)} ${endTime}`
                 });
                 count++;
             }

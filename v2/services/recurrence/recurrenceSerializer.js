@@ -22,6 +22,12 @@ class RecurrenceSerializer {
         const startTime = this.extractTimeString(startDateTime);
         const endTime = this.extractTimeString(endDateTime);
 
+        // Calculate day offset (how many days the event spans)
+        // e.g., event starts 8PM and ends 1AM next day = 1 day offset
+        const startDateOnly = new Date(startDateTime.getFullYear(), startDateTime.getMonth(), startDateTime.getDate());
+        const endDateOnly = new Date(endDateTime.getFullYear(), endDateTime.getMonth(), endDateTime.getDate());
+        const dayOffset = Math.round((endDateOnly - startDateOnly) / (24 * 60 * 60 * 1000));
+
         // Prepare rule data for database
         const ruleData = {
             freq: input.freq,
@@ -31,6 +37,7 @@ class RecurrenceSerializer {
                 : null,
             startTime,
             endTime,
+            dayOffset: dayOffset || 0  // Store how many days the event spans
         };
 
         // Prepare listing dates
@@ -64,13 +71,20 @@ class RecurrenceSerializer {
 
         // Combine listing date with rule time
         const startDate = listing.startDate ? new Date(listing.startDate) : new Date();
-        const endDate = listing.endDate ? new Date(listing.endDate) : new Date();
+        const listingEndDate = listing.endDate ? new Date(listing.endDate) : new Date();
 
-        // Format start and end with times from the rule
+        // Format start with time from the rule
         const startDateStr = this.formatDateOnly(startDate);
         const start = `${startDateStr} ${dbRecord.startTime || "00:00:00"}`;
-        const end = `${startDateStr} ${dbRecord.endTime || "00:00:00"}`;
-        const repeatUntil = `${this.formatDateOnly(endDate)} ${dbRecord.endTime || "00:00:00"}`;
+
+        // Calculate end date considering dayOffset (for events that span midnight)
+        const dayOffset = dbRecord.dayOffset || 0;
+        const endDateObj = new Date(startDate);
+        endDateObj.setDate(endDateObj.getDate() + dayOffset);
+        const endDateStr = this.formatDateOnly(endDateObj);
+        const end = `${endDateStr} ${dbRecord.endTime || "00:00:00"}`;
+
+        const repeatUntil = `${this.formatDateOnly(listingEndDate)} ${dbRecord.endTime || "00:00:00"}`;
 
         // Format exceptions
         const formattedExceptions = exceptions.map(exc => ({
@@ -86,6 +100,7 @@ class RecurrenceSerializer {
             start,
             end,
             repeatUntil,
+            dayOffset,
             exceptions: formattedExceptions
         };
     }
