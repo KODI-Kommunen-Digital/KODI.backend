@@ -24,7 +24,7 @@ const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
 const recurrenceRulesRepo = require("../repository/recurrenceRulesRepo");
 const recurrenceExceptionsRepo = require("../repository/recurrenceExceptionsRepo");
-const { RecurrenceSerializer, RecurrenceGenerator } = require("./recurrence");
+const { RecurrenceSerializer } = require("./recurrence");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -1386,12 +1386,9 @@ const getUserListings = async function (
         });
 
         // Fetch recurrence rules for each listing (supports multiple rules)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Start of today
 
         const listingsWithRecurrence = await Promise.all(data.map(async (listing) => {
             const recurrenceRules = [];
-            const allUpcomingDates = [];
             const rules = await recurrenceRulesRepo.getAllByListingId(listing.id);
 
             for (const rule of rules) {
@@ -1400,40 +1397,13 @@ const getUserListings = async function (
                 });
                 const exceptions = exceptionsResp.rows || [];
                 recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, listing, exceptions));
-
-                // Generate future occurrences for this rule (passing today as fromDate)
-                try {
-                    const occurrences = RecurrenceGenerator.generateOccurrences(
-                        rule,
-                        listing.startDate,
-                        listing.endDate,
-                        exceptions,
-                        today  // Only generate occurrences from today onwards
-                    );
-
-                    // Add non-exception occurrences
-                    for (const occ of occurrences) {
-                        if (!occ.isException) {
-                            allUpcomingDates.push({
-                                startDate: occ.startDate,
-                                endDate: occ.endDate
-                            });
-                        }
-                    }
-                } catch (err) {
-                    console.error('Error generating occurrences:', err.message);
-                }
             }
-
-            // Sort upcoming dates: nearest first
-            allUpcomingDates.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
 
             const isRecurrence = recurrenceRules.length > 0;
             return {
                 ...listing,
                 isRecurrence,
-                recurrenceRules,
-                upcomingDates: allUpcomingDates
+                recurrenceRules
             };
         }));
 
