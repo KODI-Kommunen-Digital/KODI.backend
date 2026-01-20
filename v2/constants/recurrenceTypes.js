@@ -16,5 +16,8 @@ module.exports = {
         "Friday": 5,
         "Saturday": 6,
         "Sunday": 0
-    }
+    },
+    // Day ordinals for "Nth weekday of month" pattern
+    // 1 = first, 2 = second, 3 = third, 4 = fourth, -1 = last
+    DAY_ORDINALS: [1, 2, 3, 4, -1]
 };
