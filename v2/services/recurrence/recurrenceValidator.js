@@ -146,6 +146,14 @@ class RecurrenceValidator {
                 if (repeatUntilDate < startDate) {
                     errors.push("RepeatUntil datetime cannot be before start datetime");
                 }
+
+                const maxDurationMs = parseInt(process.env.MAX_RECURRENCE_DURATION_YEARS, 10) || 2;
+                const twoYearsMs = maxDurationMs * 365 * 24 * 60 * 60 * 1000;
+                const durationMs = repeatUntilDate.getTime() - startDate.getTime();
+
+                if (durationMs > twoYearsMs) {
+                    errors.push(`Recurrence duration cannot exceed ${maxDurationMs} years`);
+                }
             }
         }
 

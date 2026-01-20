@@ -408,7 +408,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         for (const rule of payload.recurrenceRules) {
             const validation = RecurrenceValidator.validate(rule);
             if (!validation.isValid) {
-                throw new AppError(`Invalid recurrence rule: ${validation.errors.join(', ')}`, 400);
+                throw new AppError(`Invalid recurrence rule: ${validation.errors.join(', ')}`, 400, 'INVALID_RECURRENCE_RULE');
             }
 
             const { ruleData, listingDates } = RecurrenceSerializer.toDatabase(rule);
@@ -954,7 +954,7 @@ const updateListing = async (
                     // Validate the rule
                     const validation = RecurrenceValidator.validate(rule);
                     if (!validation.isValid) {
-                        throw new AppError(`Invalid recurrence rule: ${validation.errors.join(', ')}`, 400);
+                        throw new AppError(`Invalid recurrence rule: ${validation.errors.join(', ')}`, 400, 'INVALID_RECURRENCE_RULE');
                     }
 
                     // Convert to database format

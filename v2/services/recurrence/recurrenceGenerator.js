@@ -46,7 +46,7 @@ class RecurrenceGenerator {
         let occurrences = [];
 
         // Safety limit for maximum occurrences to prevent infinite loops/memory issues
-        const MAX_OCCURRENCES = 1500;
+        const MAX_OCCURRENCES = parseInt(process.env.MAX_RECURRENCE_OCCURRENCES, 10) || 1500;
 
         switch (rule.freq) {
             case recurrenceTypes.DAILY:
