@@ -22,6 +22,9 @@ const listingRepository = require("../repository/listingsRepo");
 const categoryRepository = require("../repository/categoriesRepo");
 const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
+const recurrenceRulesRepo = require("../repository/recurrenceRulesRepo");
+const recurrenceExceptionsRepo = require("../repository/recurrenceExceptionsRepo");
+const { RecurrenceSerializer, RecurrenceGenerator } = require("./recurrence");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -1380,8 +1383,62 @@ const getUserListings = async function (
             filters,
             pageNo,
             pageSize,
-        })
-        return data;
+        });
+
+        // Fetch recurrence rules for each listing (supports multiple rules)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        const listingsWithRecurrence = await Promise.all(data.map(async (listing) => {
+            const recurrenceRules = [];
+            const allUpcomingDates = [];
+            const rules = await recurrenceRulesRepo.getAllByListingId(listing.id);
+
+            for (const rule of rules) {
+                const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                    filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+                });
+                const exceptions = exceptionsResp.rows || [];
+                recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, listing, exceptions));
+
+                // Generate future occurrences for this rule (passing today as fromDate)
+                try {
+                    const occurrences = RecurrenceGenerator.generateOccurrences(
+                        rule,
+                        listing.startDate,
+                        listing.endDate,
+                        exceptions,
+                        today  // Only generate occurrences from today onwards
+                    );
+
+                    // Add non-exception occurrences
+                    for (const occ of occurrences) {
+                        if (!occ.isException) {
+                            allUpcomingDates.push({
+                                date: occ.date,
+                                startTime: occ.startTime,
+                                endTime: occ.endTime
+                            });
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error generating occurrences:', err.message);
+                }
+            }
+
+            // Sort upcoming dates: nearest first
+            allUpcomingDates.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            const isRecurrence = recurrenceRules.length > 0;
+            return {
+                ...listing,
+                isRecurrence,
+                recurrenceRules,
+                upcomingDates: allUpcomingDates
+            };
+        }));
+
+        return listingsWithRecurrence;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);

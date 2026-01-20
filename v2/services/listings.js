@@ -11,6 +11,9 @@ const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const cityListingMappingRepo = require("../repository/cityListingMappingRepo");
 const usersRepository = require("../repository/userRepo");
+const recurrenceRulesRepo = require("../repository/recurrenceRulesRepo");
+const recurrenceExceptionsRepo = require("../repository/recurrenceExceptionsRepo");
+const { RecurrenceSerializer, RecurrenceGenerator } = require("./recurrence");
 
 const listingFunctions = require("../services/listingFunctions");
 const status = require("../constants/status");
@@ -574,7 +577,60 @@ const getListingWithId = async function (id, repeatedRequest = false) {
         }
 
         delete data.viewCount;
-        return { ...data, logo, otherLogos: listingImageList };
+
+        // Fetch all recurrence rules for this listing
+        const recurrenceRules = [];
+        const allUpcomingDates = [];
+        const rules = await recurrenceRulesRepo.getAllByListingId(id);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        for (const rule of rules) {
+            const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+            });
+            const exceptions = exceptionsResp.rows || [];
+            recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, data, exceptions));
+
+            // Generate future occurrences for this rule (passing today as fromDate)
+            try {
+                const occurrences = RecurrenceGenerator.generateOccurrences(
+                    rule,
+                    data.startDate,
+                    data.endDate,
+                    exceptions,
+                    today  // Only generate occurrences from today onwards
+                );
+
+                // Add non-exception occurrences
+                for (const occ of occurrences) {
+                    if (!occ.isException) {
+                        allUpcomingDates.push({
+                            date: occ.date,
+                            startTime: occ.startTime,
+                            endTime: occ.endTime
+                        });
+                    }
+                }
+            } catch (err) {
+                // If generation fails, skip but don't break the response
+                console.error('Error generating occurrences:', err.message);
+            }
+        }
+
+        // Sort upcoming dates: nearest (most recent) at top, future at bottom
+        allUpcomingDates.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const isRecurrence = recurrenceRules.length > 0;
+
+        return {
+            ...data,
+            logo,
+            otherLogos: listingImageList,
+            isRecurrence,
+            recurrenceRules,
+            upcomingDates: allUpcomingDates
+        };
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -726,8 +782,7 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
             const result = await sendPushNotifications(
                 [listing.userId],
                 "Listing Status Updated",
-                `Your listing status has been updated to ${
-                    newStatus === 3 ? "Feedback" : "Approved"
+                `Your listing status has been updated to ${newStatus === 3 ? "Feedback" : "Approved"
                 } `,
                 {
                     type: "listing_status_update",
