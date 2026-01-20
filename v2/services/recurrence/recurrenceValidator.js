@@ -28,9 +28,13 @@ class RecurrenceValidator {
         const intervalError = this.validateInterval(rule.interval);
         if (intervalError) errors.push(intervalError);
 
-        // Validate weekdays (required for Weekly frequency)
-        const weekdaysError = this.validateWeekdays(rule.weekdays, rule.freq);
+        // Validate weekdays (required for Weekly, optional for Monthly with dayOrdinal)
+        const weekdaysError = this.validateWeekdays(rule.weekdays, rule.freq, rule.dayOrdinal);
         if (weekdaysError) errors.push(weekdaysError);
+
+        // Validate dayOrdinal for Monthly Nth weekday pattern
+        const dayOrdinalError = this.validateDayOrdinal(rule.dayOrdinal, rule.weekdays, rule.freq);
+        if (dayOrdinalError) errors.push(dayOrdinalError);
 
         // Validate date range
         const dateErrors = this.validateDateRange(rule.start, rule.end, rule.repeatUntil);
@@ -83,10 +87,11 @@ class RecurrenceValidator {
      * Validates weekdays array
      * @param {Array} weekdays 
      * @param {string} freq 
+     * @param {number} dayOrdinal - Optional, for Monthly Nth weekday pattern
      * @returns {string|null}
      */
-    static validateWeekdays(weekdays, freq) {
-        // Weekdays are only required for Weekly frequency
+    static validateWeekdays(weekdays, freq, dayOrdinal) {
+        // Weekdays are required for Weekly frequency
         if (freq === recurrenceTypes.WEEKLY) {
             if (!weekdays || !Array.isArray(weekdays) || weekdays.length === 0) {
                 return "Weekdays array is required for Weekly frequency";
@@ -97,9 +102,46 @@ class RecurrenceValidator {
                 }
             }
         }
-        // For Daily and Monthly, weekdays should be empty or not provided
-        if (freq !== recurrenceTypes.WEEKLY && weekdays && weekdays.length > 0) {
-            return `Weekdays should be empty for ${freq} frequency`;
+
+        // For Monthly with dayOrdinal, exactly one weekday is required
+        if (freq === recurrenceTypes.MONTHLY && dayOrdinal !== undefined && dayOrdinal !== null) {
+            if (!weekdays || !Array.isArray(weekdays) || weekdays.length !== 1) {
+                return "Exactly one weekday is required for Monthly Nth weekday pattern";
+            }
+            if (!recurrenceTypes.WEEKDAYS.includes(weekdays[0])) {
+                return `Invalid weekday '${weekdays[0]}'. Must be one of: ${recurrenceTypes.WEEKDAYS.join(", ")}`;
+            }
+        }
+
+        // For Daily, weekdays should be empty
+        if (freq === recurrenceTypes.DAILY && weekdays && weekdays.length > 0) {
+            return "Weekdays should be empty for Daily frequency";
+        }
+
+        // For Monthly without dayOrdinal (date-based), weekdays should be empty
+        if (freq === recurrenceTypes.MONTHLY && (dayOrdinal === undefined || dayOrdinal === null) && weekdays && weekdays.length > 0) {
+            return "Weekdays should be empty for Monthly date-based frequency (use dayOrdinal for weekday-based)";
+        }
+
+        return null;
+    }
+
+    /**
+     * Validates dayOrdinal for Monthly Nth weekday pattern
+     * @param {number} dayOrdinal 
+     * @param {Array} weekdays 
+     * @param {string} freq 
+     * @returns {string|null}
+     */
+    static validateDayOrdinal(dayOrdinal, weekdays, freq) {
+        // dayOrdinal is only valid for Monthly frequency
+        if (dayOrdinal !== undefined && dayOrdinal !== null) {
+            if (freq !== recurrenceTypes.MONTHLY) {
+                return "dayOrdinal is only valid for Monthly frequency";
+            }
+            if (!recurrenceTypes.DAY_ORDINALS.includes(dayOrdinal)) {
+                return `Invalid dayOrdinal '${dayOrdinal}'. Must be one of: ${recurrenceTypes.DAY_ORDINALS.join(", ")} (1=first, 2=second, 3=third, 4=fourth, -1=last)`;
+            }
         }
         return null;
     }

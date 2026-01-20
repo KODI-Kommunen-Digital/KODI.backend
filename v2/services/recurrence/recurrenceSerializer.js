@@ -37,7 +37,8 @@ class RecurrenceSerializer {
                 : null,
             startTime,
             endTime,
-            dayOffset: dayOffset || 0  // Store how many days the event spans
+            dayOffset: dayOffset || 0,  // Store how many days the event spans
+            dayOrdinal: input.dayOrdinal || null  // For Monthly Nth weekday pattern (1=first, 2=second, etc.)
         };
 
         // Prepare listing dates
@@ -101,6 +102,7 @@ class RecurrenceSerializer {
             end,
             repeatUntil,
             dayOffset,
+            dayOrdinal: dbRecord.dayOrdinal || null,  // For Monthly Nth weekday pattern
             exceptions: formattedExceptions
         };
     }

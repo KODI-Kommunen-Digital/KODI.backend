@@ -39,8 +39,21 @@ class RecurrenceGenerator {
             }
         }
 
+        // Format exception dates - extract just the date portion (YYYY-MM-DD)
         const exceptionDates = new Set(
-            exceptions.map(e => this.formatDateOnly(new Date(e.date || e.exceptionDate || e)))
+            exceptions.map(e => {
+                const dateStr = e.date || e.exceptionDate || e;
+                // If already a string in YYYY-MM-DD format, use it directly
+                if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                    return dateStr;
+                }
+                // Otherwise parse and format - use local date to avoid timezone issues
+                const d = new Date(dateStr);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            })
         );
 
         let occurrences = [];
@@ -62,11 +75,15 @@ class RecurrenceGenerator {
                 return [];
         }
 
-        // Filter out exceptions
-        return occurrences.map(occ => ({
-            ...occ,
-            isException: exceptionDates.has(occ.date)
-        }));
+        // Filter out exceptions - extract date portion from ISO startDate for comparison
+        return occurrences.map(occ => {
+            // Extract date portion (YYYY-MM-DD) from ISO string for exception matching
+            const occDateOnly = occ.startDate.split('T')[0];
+            return {
+                ...occ,
+                isException: exceptionDates.has(occDateOnly)
+            };
+        });
     }
 
     /**
@@ -98,8 +115,8 @@ class RecurrenceGenerator {
                 endDateObj.setDate(endDateObj.getDate() + dayOffset);
 
                 occurrences.push({
-                    startDate: `${this.formatDateOnly(currentDate)} ${startTime}`,
-                    endDate: `${this.formatDateOnly(endDateObj)} ${endTime}`
+                    startDate: this.formatDateTimeISO(currentDate, startTime),
+                    endDate: this.formatDateTimeISO(endDateObj, endTime)
                 });
                 count++;
             }
@@ -154,8 +171,8 @@ class RecurrenceGenerator {
                 endDateObj.setDate(endDateObj.getDate() + dayOffset);
 
                 occurrences.push({
-                    startDate: `${this.formatDateOnly(currentDate)} ${startTime}`,
-                    endDate: `${this.formatDateOnly(endDateObj)} ${endTime}`
+                    startDate: this.formatDateTimeISO(currentDate, startTime),
+                    endDate: this.formatDateTimeISO(endDateObj, endTime)
                 });
                 count++;
             }
@@ -170,7 +187,10 @@ class RecurrenceGenerator {
     }
 
     /**
-     * Generate monthly occurrences (same day of month)
+     * Generate monthly occurrences
+     * Supports two patterns:
+     * 1. Date-based: same day of month (e.g., 15th of each month)
+     * 2. Nth weekday: specific weekday ordinal (e.g., 1st Wednesday of each month)
      * @param {Object} rule 
      * @param {Date} start 
      * @param {Date} until 
@@ -179,6 +199,24 @@ class RecurrenceGenerator {
      * @returns {Array}
      */
     static generateMonthlyOccurrences(rule, start, until, limit, effectiveStart) {
+        // Check if this is Nth weekday pattern
+        if (rule.dayOrdinal !== undefined && rule.dayOrdinal !== null && rule.weekdays && rule.weekdays.length === 1) {
+            return this.generateMonthlyNthWeekdayOccurrences(rule, start, until, limit, effectiveStart);
+        }
+        // Otherwise use date-based pattern
+        return this.generateMonthlyDateOccurrences(rule, start, until, limit, effectiveStart);
+    }
+
+    /**
+     * Generate monthly occurrences by same day of month
+     * @param {Object} rule 
+     * @param {Date} start 
+     * @param {Date} until 
+     * @param {number} limit
+     * @param {Date} effectiveStart
+     * @returns {Array}
+     */
+    static generateMonthlyDateOccurrences(rule, start, until, limit, effectiveStart) {
         const occurrences = [];
         // Ensure positive interval
         const interval = Math.max(1, Math.abs(rule.interval || rule.intervalValue || 1));
@@ -192,12 +230,10 @@ class RecurrenceGenerator {
 
         while (count < limit) {
             // Calculate target month based on start + iteration * interval
-            // We use temp dates to handle year/month wrapping correctly
             const targetYear = start.getFullYear();
             const targetMonth = start.getMonth() + (iteration * interval);
 
-            // Determine days in that target month
-            // We set to the 1st of the target month first to avoid overflow issues
+            // Set to the 1st of the target month first to avoid overflow issues
             const tempDate = new Date(start);
             tempDate.setFullYear(targetYear);
             tempDate.setMonth(targetMonth, 1);
@@ -205,7 +241,7 @@ class RecurrenceGenerator {
             const normalizedYear = tempDate.getFullYear();
             const normalizedMonth = tempDate.getMonth();
 
-            // Get number of days in this month (Standard JS trick: day 0 of next month is last day of current)
+            // Get number of days in this month
             const daysInMonth = new Date(normalizedYear, normalizedMonth + 1, 0).getDate();
 
             // Clamp target day to match the month (e.g., Jan 31 -> Feb 28)
@@ -223,19 +259,124 @@ class RecurrenceGenerator {
 
             // Only add if on or after effectiveStart
             if (occurrenceDate >= effectiveStart) {
-                // Calculate end date based on dayOffset
                 const endDateObj = new Date(occurrenceDate);
                 endDateObj.setDate(endDateObj.getDate() + dayOffset);
 
                 occurrences.push({
-                    startDate: `${this.formatDateOnly(occurrenceDate)} ${startTime}`,
-                    endDate: `${this.formatDateOnly(endDateObj)} ${endTime}`
+                    startDate: this.formatDateTimeISO(occurrenceDate, startTime),
+                    endDate: this.formatDateTimeISO(endDateObj, endTime)
                 });
                 count++;
             }
         }
 
         return occurrences;
+    }
+
+    /**
+     * Generate monthly occurrences by Nth weekday of month
+     * e.g., 1st Wednesday, 2nd Friday, last Monday
+     * @param {Object} rule 
+     * @param {Date} start 
+     * @param {Date} until 
+     * @param {number} limit
+     * @param {Date} effectiveStart
+     * @returns {Array}
+     */
+    static generateMonthlyNthWeekdayOccurrences(rule, start, until, limit, effectiveStart) {
+        const occurrences = [];
+        const interval = Math.max(1, Math.abs(rule.interval || rule.intervalValue || 1));
+        const startTime = rule.startTime || this.extractTime(start);
+        const endTime = rule.endTime || this.extractTime(until);
+        const dayOffset = rule.dayOffset || 0;
+
+        // Get weekly information from rule
+        const weekdays = rule.weekdays || [];
+        const weekdayName = weekdays[0];
+        const targetWeekday = recurrenceTypes.WEEKDAY_MAP[weekdayName];
+        const dayOrdinal = rule.dayOrdinal;
+
+        let count = 0;
+        let iteration = 0;
+
+        while (count < limit) {
+            // Calculate target month
+            const targetYear = start.getFullYear();
+            const targetMonth = start.getMonth() + (iteration * interval);
+
+            // Normalize year/month
+            const tempDate = new Date(start);
+            tempDate.setFullYear(targetYear);
+            tempDate.setMonth(targetMonth, 1);
+
+            const normalizedYear = tempDate.getFullYear();
+            const normalizedMonth = tempDate.getMonth();
+
+            // Find the Nth weekday of this month
+            const occurrenceDate = this.getNthWeekdayOfMonth(normalizedYear, normalizedMonth, targetWeekday, dayOrdinal);
+
+            iteration++;
+
+            // Skip if no valid date found (e.g., 5th Monday might not exist)
+            if (!occurrenceDate) continue;
+
+            if (occurrenceDate > until) break;
+
+            // Only add if on or after effectiveStart
+            if (occurrenceDate >= effectiveStart) {
+                const endDateObj = new Date(occurrenceDate);
+                endDateObj.setDate(endDateObj.getDate() + dayOffset);
+
+                occurrences.push({
+                    startDate: this.formatDateTimeISO(occurrenceDate, startTime),
+                    endDate: this.formatDateTimeISO(endDateObj, endTime)
+                });
+                count++;
+            }
+        }
+
+        return occurrences;
+    }
+
+    /**
+     * Get the Nth occurrence of a specific weekday in a month
+     * @param {number} year 
+     * @param {number} month 
+     * @param {number} weekday - 0=Sunday, 1=Monday, ..., 6=Saturday
+     * @param {number} ordinal - 1=first, 2=second, 3=third, 4=fourth, -1=last
+     * @returns {Date|null}
+     */
+    static getNthWeekdayOfMonth(year, month, weekday, ordinal) {
+        if (ordinal === -1) {
+            // Last occurrence of the weekday
+            // Start from the last day of the month and go backwards
+            const lastDay = new Date(year, month + 1, 0);
+            let day = lastDay.getDate();
+            while (day > 0) {
+                const date = new Date(year, month, day);
+                if (date.getDay() === weekday) {
+                    return date;
+                }
+                day--;
+            }
+            return null;
+        }
+
+        // Find the Nth occurrence (1st, 2nd, 3rd, 4th)
+        let count = 0;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month, day);
+            if (date.getDay() === weekday) {
+                count++;
+                if (count === ordinal) {
+                    return date;
+                }
+            }
+        }
+
+        // Ordinal not found (e.g., 5th occurrence doesn't exist)
+        return null;
     }
 
     /**
@@ -288,6 +429,19 @@ class RecurrenceGenerator {
      */
     static extractTime(date) {
         return date.toTimeString().split(" ")[0];
+    }
+
+    /**
+     * Format date with time to ISO string (like 2025-06-28T06:30:00.000Z)
+     * @param {Date} date - Date object
+     * @param {string} timeStr - Time string in HH:MM:SS format
+     * @returns {string} - ISO format datetime
+     */
+    static formatDateTimeISO(date, timeStr) {
+        const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+        const result = new Date(date);
+        result.setHours(hours, minutes, seconds || 0, 0);
+        return result.toISOString();
     }
 
     /**
