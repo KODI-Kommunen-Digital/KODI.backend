@@ -17,6 +17,7 @@ const getAllListings = async (req, res, next) => {
         startAfterDate,
         endBeforeDate,
         dateFilter,
+        eventType,  // singleDay, multiDay, recurring (only for events category)
     } = params;
     const isAdmin = req.roleId === roles.Admin;
     try {
@@ -34,6 +35,7 @@ const getAllListings = async (req, res, next) => {
             startAfterDate,
             endBeforeDate,
             dateFilter,
+            eventType,
         });
         res.status(200).json({
             status: "success",

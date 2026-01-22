@@ -388,6 +388,7 @@ const getMyListings = async function (req, res, next) {
         const categoryId = req.query.categoryId;
         const statusId = req.query.statusId;
         const subcategoryId = req.query.subcategoryId;
+        const eventType = req.query.eventType;  // singleDay, multiDay, recurring
 
         if (isNaN(Number(userId)) || Number(userId) <= 0) {
             throw new AppError(`Invalid UserId ${userId}`, 400);
@@ -414,6 +415,7 @@ const getMyListings = async function (req, res, next) {
             statusId,
             categoryId,
             subcategoryId,
+            eventType,
         );
         if (data) {
             if (
