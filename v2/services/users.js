@@ -25,6 +25,7 @@ const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
 const recurrenceRulesRepo = require("../repository/recurrenceRulesRepo");
 const recurrenceExceptionsRepo = require("../repository/recurrenceExceptionsRepo");
 const { RecurrenceSerializer } = require("./recurrence");
+const categories = require("../constants/categories");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -1257,6 +1258,7 @@ const getUserListings = async function (
     statusId,
     categoryId,
     subcategoryId,
+    eventType,  // singleDay, multiDay, recurring (only for events category)
 ) {
     const filters = [];
 
@@ -1378,11 +1380,26 @@ const getUserListings = async function (
             value: userId
         });
     }
+
+    // Validate eventType if provided for Events category
+    let eventTypeFilter = null;
+    if (eventType && categoryId && parseInt(categoryId) === categories.Events) {
+        const validEventTypes = ['singleDay', 'multiDay', 'recurring'];
+        if (!validEventTypes.includes(eventType)) {
+            throw new AppError(
+                `Invalid eventType '${eventType}'. Allowed values are: ${validEventTypes.join(', ')}`,
+                400
+            );
+        }
+        eventTypeFilter = eventType;
+    }
+
     try {
         const data = await listingRepository.retrieveListings({
             filters,
             pageNo,
             pageSize,
+            eventType: eventTypeFilter,  // Pass to repository for DB-level filtering
         });
 
         // Fetch recurrence rules for each listing (supports multiple rules)
