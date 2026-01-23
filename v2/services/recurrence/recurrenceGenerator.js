@@ -30,11 +30,15 @@ class RecurrenceGenerator {
         }
 
         // Use fromDate to skip past occurrences if provided
-        let effectiveStart = start;
+        // Always normalize effectiveStart to start of day for correct comparison
+        // (occurrence dates from getNthWeekdayOfMonth etc. are created at 00:00:00)
+        let effectiveStart = new Date(start);
+        effectiveStart.setHours(0, 0, 0, 0);  // Normalize to start of day
+
         if (fromDate) {
             const from = new Date(fromDate);
             from.setHours(0, 0, 0, 0);
-            if (!isNaN(from.getTime()) && from > start) {
+            if (!isNaN(from.getTime()) && from > effectiveStart) {
                 effectiveStart = from;
             }
         }

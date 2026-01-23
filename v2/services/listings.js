@@ -609,11 +609,12 @@ const getListingWithId = async function (id, repeatedRequest = false) {
             recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, data, exceptions));
 
             // Generate future occurrences for this rule (passing today as fromDate)
+            // Use the rule's own startDate and repeatUntil instead of listing dates
             try {
                 const occurrences = RecurrenceGenerator.generateOccurrences(
                     rule,
-                    data.startDate,
-                    data.endDate,
+                    rule.startDate || data.startDate,   // Use rule's own start date
+                    rule.repeatUntil || data.endDate,   // Use rule's own repeat until date
                     exceptions,
                     today  // Only generate occurrences from today onwards
                 );
