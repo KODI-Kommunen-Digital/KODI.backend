@@ -343,7 +343,28 @@ const getAllListings = async ({
                 }
             }
         }
-        return listings;
+        // Fetch recurrence rules for each listing (supports multiple rules)
+        const listingsWithRecurrence = await Promise.all(listings.map(async (listing) => {
+            const recurrenceRules = [];
+            const rules = await recurrenceRulesRepo.getAllByListingId(listing.id);
+
+            for (const rule of rules) {
+                const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                    filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+                });
+                const exceptions = exceptionsResp.rows || [];
+                recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, listing, exceptions));
+            }
+
+            const isRecurrence = recurrenceRules.length > 0;
+            return {
+                ...listing,
+                isRecurrence,
+                recurrenceRules
+            };
+        }));
+
+        return listingsWithRecurrence;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
