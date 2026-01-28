@@ -164,6 +164,81 @@ const deleteListing = async function (req, res, next) {
     }
 };
 
+const updateListingStatus = async (req, res, next) => {
+    const listingId = req.params.listingId
+    const { status } = req.body
+    const roleId = req.roleId
+
+    try {
+        await listingService.updateListingStatus({ id: listingId, roleId, newStatus: status });
+        return res.status(200).json({
+            status: "success",
+            id: Number(listingId)
+        });
+    } catch (err) {
+        return next(err)
+    }
+
+}
+const getListingChat = async (req, res, next) => {
+    const listingId = req.params.listingId
+    const userId = req.userId // interanal
+    const roleId = req.roleId // internal
+    const params = req.query;
+    const lastMessageId = params.lastMessageId; // optional
+    const pageNo = params.pageNo || 1;
+    const pageSize = params.pageSize || 10;
+    const isReversed =
+        params.isReversed && params.isReversed === "false" ? false : true;
+    console.log({ isReversed })
+    // check if the listing has a feeback status and then return chat 
+    try {
+        const response = await listingService.getListingChat({ userId, roleId, listingId, isReversed, lastMessageId, pageNo, pageSize })
+        return res.status(200).json({
+            status: "success",
+            data: response
+        });
+    } catch (err) {
+        return next(err)
+    }
+
+}
+const postChatReaction = async (req, res, next) => {
+    const listingId = req.params.listingId
+    const userId = req.userId
+    const roleId = req.roleId
+    const chatId = req.params.chatId
+    const { reaction } = req.body
+    try {
+        const result = await listingService.postChatReaction({ userId, chatId, roleId, reaction, listingId })
+        return res.status(200).json({
+            status: "success",
+            data: result
+        });
+    } catch (err) {
+        return next(err)
+    }
+}
+const createListingChat = async (req, res, next) => {
+    const listingId = req.params.listingId
+    const userId = req.userId
+    const roleId = req.roleId
+    const { message } = req.body
+
+
+    try {
+        const result = await listingService.createListingChat({ userId, roleId, message, listingId })
+        return res.status(200).json({
+            status: "success",
+            data: result
+        });
+    } catch (err) {
+        return next(err)
+    }
+
+}
+
+
 const uploadImage = async function (req, res, next) {
     const listingId = req.params.id;
     const userId = req.userId;
@@ -272,6 +347,10 @@ module.exports = {
     updateListing,
     getListingWithId,
     deleteListing,
+    updateListingStatus,
+    createListingChat,
+    getListingChat,
+    postChatReaction,
     uploadImage,
     uploadPDF,
     deleteImage,

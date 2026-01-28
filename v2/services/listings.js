@@ -4,6 +4,7 @@ const deepl = require("deepl-node");
 const listingImagesRepository = require("../repository/listingsImagesRepo");
 const pollRepository = require("../repository/pollOptionsRepo");
 const listingRepository = require("../repository/listingsRepo");
+const listingChatsRepository = require('../repository/listingChatsRepo');
 const cityRepository = require("../repository/citiesRepo");
 const statusRepository = require("../repository/statusRepo");
 const categoriesRepository = require("../repository/categoriesRepo");
@@ -24,6 +25,7 @@ const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const bucketClient = require("../utils/bucketClient");
 const isValidDate = require('../utils/validateDate');
+const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 
 const getAllListings = async ({
     pageNo,
@@ -66,7 +68,6 @@ const getAllListings = async ({
             sortByStartDateBool = sortByStartDateString === "true";
         }
     }
-
     if (isAdmin) {
         if (statusId) {
             // const response = await cityListingRepo.getStatusById(statusId);
@@ -94,7 +95,7 @@ const getAllListings = async ({
         filters.push({
             key: "statusId",
             sign: "=",
-            value: status.Active
+            value: status.Approved
         });
     }
     let sortByOrder;
@@ -153,28 +154,28 @@ const getAllListings = async ({
     if (dateFilter) {
         const currentDate = new Date();
         switch (dateFilter.toLowerCase()) {
-        case 'today':
-            startAfterDate = currentDate.toISOString().split('T')[0];
-            endBeforeDate = startAfterDate;
-            break;
-        case 'week': {
-            const startOfWeek = new Date(currentDate);
-            startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Start of the week (Monday)
-            startAfterDate = startOfWeek.toISOString().split('T')[0];
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(startOfWeek.getDate() + 6); // End of the week (Sunday)
-            endBeforeDate = endOfWeek.toISOString().split('T')[0];
-            break;
-        }
-        case 'month': {
-            const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // Start of the month
-            startAfterDate = startOfMonth.toISOString().split('T')[0];
-            const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // End of the month
-            endBeforeDate = endOfMonth.toISOString().split('T')[0];
-            break;
-        }
-        default:
-            throw new AppError("Invalid filterBy value. Allowed values are 'today', 'week', or 'month'.", 400);
+            case 'today':
+                startAfterDate = currentDate.toISOString().split('T')[0];
+                endBeforeDate = startAfterDate;
+                break;
+            case 'week': {
+                const startOfWeek = new Date(currentDate);
+                startOfWeek.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Start of the week (Monday)
+                startAfterDate = startOfWeek.toISOString().split('T')[0];
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6); // End of the week (Sunday)
+                endBeforeDate = endOfWeek.toISOString().split('T')[0];
+                break;
+            }
+            case 'month': {
+                const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // Start of the month
+                startAfterDate = startOfMonth.toISOString().split('T')[0];
+                const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // End of the month
+                endBeforeDate = endOfMonth.toISOString().split('T')[0];
+                break;
+            }
+            default:
+                throw new AppError("Invalid filterBy value. Allowed values are 'today', 'week', or 'month'.", 400);
         }
     }
 
@@ -580,6 +581,185 @@ const deleteListing = async function (id, userId, roleId) {
     }
 };
 
+// Define allowed statuses
+const allowedStatuses = [1, 2, 3];
+
+// Function to check if a status transition is allowed
+const isValidTransition = (currentStatus, newStatus) => {
+    if (currentStatus === 2 && (newStatus === 1 || newStatus === 3)) {
+        return true;
+    }
+    return false;
+};
+
+const updateListingStatus = async function ({ id, roleId, newStatus }) {
+    if (roleId !== roles.Admin) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
+    }
+    try {
+        // check if listing exists
+        const listing = await listingRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: id,
+                },
+            ]
+        });
+        console.log({ listing })
+        if (!listing) {
+            throw new AppError(`Listing with id ${id} does not exist`, 404);
+        }
+        if (!allowedStatuses.includes(newStatus)) {
+            throw new AppError(`Invalid status: ${newStatus} does not exist`, 400);
+        }
+        if (!isValidTransition(listing.statusId, newStatus)) {
+            throw new AppError(`Cannot change status from ${listing.statusId} to ${newStatus}.`, 400);
+        }
+
+        const update = await listingRepository.update({
+            data: {
+                statusId: newStatus,
+            },
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: id,
+                },
+            ]
+        });
+        return update;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(`Error updating listing: ${err.message}`);
+    }
+}
+
+const postChatReaction = async function ({ userId, roleId, chatId, reaction, listingId }) {
+    try {
+        if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+            throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
+        }
+        if (!reaction) {
+            throw new AppError(`Reaction is required`, 400);
+        }
+        const currentListingData = await listingRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: listingId,
+                },
+            ]
+        });
+        if (!currentListingData) {
+            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+        }
+        if (currentListingData.statusId !== 3) {
+            throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+        }
+        if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        const data = {
+            chatId,
+            userId,
+            reaction,
+        }
+        const result = await listingChatReactionRepo.create({
+            data,
+        });
+        return result;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+
+}
+
+const createListingChat = async function ({ userId, roleId, message, listingId }) {
+    // 
+    try {
+        if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+            throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
+        }
+        if (!message) {
+            throw new AppError(`Message is required`, 400);
+        }
+        const currentListingData = await listingRepository.getOne({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: listingId,
+                },
+            ]
+        });
+        if (!currentListingData) {
+            throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+        }
+        if (currentListingData.statusId !== 3) {
+            throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+        }
+        if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+            throw new AppError(`You are not allowed to access this resource`, 403);
+        }
+        const data = {
+            listingId,
+            senderId: userId,
+            senderType: roleId === roles.Admin ? "admin" : "user",
+            message
+        }
+        const result = await listingChatsRepository.create({
+            data,
+        });
+        const response = await listingChatsRepository.getOne({
+            filters:
+                [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: result.id,
+                    },
+                ]
+
+        })
+        return response;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+
+}
+
+const getListingChat = async function ({ userId, roleId, listingId, lastMessageId, isReversed, pageNo, pageSize }) {
+    if (isNaN(Number(listingId)) || Number(listingId) <= 0) {
+        throw new AppError(`Invalid ListingsId ${listingId} given`, 400);
+    }
+
+    const currentListingData = await listingRepository.getOne({
+        filters: [
+            {
+                key: "id",
+                sign: "=",
+                value: listingId,
+            },
+        ]
+    });
+    if (!currentListingData) {
+        throw new AppError(`Listing with id ${listingId} does not exist`, 404);
+    }
+    if (currentListingData.statusId !== 3) {
+        throw new AppError(`Listing with id ${listingId} does not have feedback status`, 400);
+    }
+    if (roleId !== roles.Admin && currentListingData.userId !== userId) {
+        throw new AppError(`You are not allowed to access this resource`, 403);
+    }
+    const result = await listingChatsRepository.getChats({ listingId, lastMessageId, isReversed, pageNo, pageSize });
+    return result
+}
 const uploadImage = async function (
     listingId,
     userId,
@@ -1087,6 +1267,10 @@ module.exports = {
     deleteListing,
     updateListing,
     getListingWithId,
+    updateListingStatus,
+    createListingChat,
+    getListingChat,
+    postChatReaction,
     uploadImage,
     uploadPDF,
     deleteImage,

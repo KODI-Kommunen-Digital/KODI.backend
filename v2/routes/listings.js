@@ -14,6 +14,10 @@ const {
     deleteImage,
     deletePDF,
     vote,
+    updateListingStatus,
+    getListingChat,
+    createListingChat,
+    postChatReaction,
 } = require("../controllers/listings");
 const rateLimit = require("express-rate-limit");
 
@@ -43,6 +47,21 @@ router.delete("/:id", authentication, deleteListing);
 router.patch("/:listingId", authentication, updateListing);
 
 router.delete("/:listingId", authentication, deleteListing);
+// change status of a listing
+router.patch('/:listingId/status', authentication, updateListingStatus);
+// get feeback
+router.get('/:listingId/chat', authentication, getListingChat);
+router.post('/:listingId/chat', authentication, createListingChat);
+// image support for chat
+router.post('/:listingId/chat/:chatId/react', authentication, postChatReaction)
+
+router.post('/:listingId/chat/imageUpload', optionalAuthentication, (req, res) => {
+    const imageFiles = req?.files;
+    const imageList = req?.body?.image;
+    console.log({ imageFiles, imageList })
+    res.send('bye')
+})
+
 
 router.post(
     "/:id/imageUpload",

@@ -56,6 +56,9 @@ const voteOnListingSwagger = require('./cityListings/voteOnListingSwagger')
 const deleteListingSwagger = require("./listings/deleteListing");
 const getListingByIdSwagger = require("./listings/getListingById");
 const updateListingByIdSwagger = require("./listings/updateListingById");
+const updateListingStatuschemaSwagger = require("./listings/updateListingStatus");
+const getListingChatSwagger = require("./listings/getListingChats");
+const createListingChatSwagger = require("./listings/createListingChat");
 
 const apiDocumentation = (selectedVersion = '') => {
     return {
@@ -187,6 +190,13 @@ const apiDocumentation = (selectedVersion = '') => {
                 '/listings/{id}/pdfDelete': {
                     'delete': deletePDFSchemaSwagger,
                 },
+                '/listings/{id}/status': {
+                    "patch": updateListingStatuschemaSwagger
+                },
+                '/listings/{id}/chat': {
+                    "get": getListingChatSwagger,
+                    "post": createListingChatSwagger
+                }
             }),
             [selectedVersion === 'v2' ? '/listings/{id}/vote' : '/cities/{cityId}/listings/{id}/vote']: {
                 'post': voteOnListingSwagger,

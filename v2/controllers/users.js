@@ -417,7 +417,7 @@ const getMyListings = async function (req, res, next) {
         if (data) {
             if (
                 !process.env.IS_LISTING_VIEW_COUNT ||
-        process.env.IS_LISTING_VIEW_COUNT === "False"
+                process.env.IS_LISTING_VIEW_COUNT === "False"
             ) {
                 data.forEach((listing) => delete listing.viewCount);
             }
@@ -468,7 +468,7 @@ const storeFirebaseUserToken = async function (req, res, next) {
         if (!token) {
             throw new AppError(`Fire base token not present`, 400);
         }
-        if(!deviceToken) {
+        if (!deviceToken) {
             throw new AppError(`Device Id not present`, 400);
         }
         await userService.storeFirebaseUserToken(userId, token, deviceToken);
@@ -490,9 +490,9 @@ const updateAllNotifications = async function (req, res, next) {
         if (userId !== req.userId) {
             throw new AppError(`You are not allowed to access this resource`, 403);
         }
-        const resp =   await notificationService.updateAllNotifications(userId, notificationStatus);
+        const resp = await notificationService.updateAllNotifications(userId, notificationStatus);
         res.status(200).json({
-            status  : "success",
+            status: "success",
             data: resp.message
         });
     } catch (err) {

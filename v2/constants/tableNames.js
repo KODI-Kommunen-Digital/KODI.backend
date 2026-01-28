@@ -3,6 +3,8 @@ module.exports = {
     ROLES_TABLE: "roles",
     LISTINGS_TABLE: "listings",
     LISTINGS_IMAGES_TABLE: "listing_images",
+    LISTINGS_CHATS_TABLE: "listing_chats",
+    LISTINGS_CHAT_REACTIONS_TABLE: "listing_chat_reactions",
     CITIES_TABLE: "cities",
     USER_CITYUSER_MAPPING_TABLE: "user_cityuser_mapping",
     USER_LISTING_MAPPING_TABLE: "user_listing_mapping",
