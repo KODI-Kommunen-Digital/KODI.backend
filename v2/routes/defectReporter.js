@@ -13,8 +13,8 @@ router.post("/", async (req, res, next) => {
     try {
         const { title, description, email } = payload;
 
-        // check if all mandatory fields are present, currently email is not included as mandatory
-        if (!title || !description || !req.files || !req.files.image) {
+        // check if all mandatory fields are present, currently email and image are not included as mandatory
+        if (!title || !description) {
             return next(new AppError("All fields are mandatory", 400));
         }
 
@@ -24,12 +24,22 @@ router.post("/", async (req, res, next) => {
             tag = new Date().toISOString().slice(0,-5);
         }
 
-        const imageFile = req.files.image;
+        const imageFile = req.files?.image;
+        let imageHash = null;
+        let attachments = [];
 
-        const imageHash = crypto
-            .createHash("md5")
-            .update(imageFile.data) // note: `data` instead of `buffer`
-            .digest("hex");
+        if (imageFile) {
+            imageHash = crypto
+                .createHash("md5")
+                .update(imageFile.data) // note: `data` instead of `buffer`
+                .digest("hex");
+
+            attachments.push({
+                filename: `defect_image_${tag}.jpg`,
+                content: imageFile.data, // Buffer
+                contentType: imageFile.mimetype || "image/jpeg",
+            });
+        }
 
         const defectReport = {
             email,
@@ -46,13 +56,7 @@ router.post("/", async (req, res, next) => {
         await sendCustomMail({
             email: process.env.DEFECT_REPORTER_SENDER_EMAIL,
             pass: process.env.DEFECT_REPORTER_SENDER_PASSWORD,
-        },recipients, subject, null, body, [
-            {
-                filename: `defect_image_${tag}.jpg`,
-                content: imageFile.data, // Buffer
-                contentType: imageFile.mimetype || "image/jpeg",
-            },
-        ]);
+        }, recipients, subject, null, body, attachments);
 
         const response = await database.create(tables.DEFECT_REPORTS, defectReport);
 
