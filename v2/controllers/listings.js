@@ -55,7 +55,11 @@ const searchListings = async (req, res, next) => {
         statusId,
         cityId,
         searchQuery,
+        categoryId,
+        subcategoryId,
+        eventType,  // singleDay, multiDay, recurring (only for events category)
     } = params;
+    const isAdmin = req.roleId === roles.Admin;
 
     try {
         const listings = await listingService.searchListings({
@@ -65,6 +69,10 @@ const searchListings = async (req, res, next) => {
             statusId,
             cityId,
             searchQuery,
+            categoryId,
+            subcategoryId,
+            eventType,
+            isAdmin,
         });
 
         res.status(200).json({

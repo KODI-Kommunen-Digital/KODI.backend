@@ -378,6 +378,9 @@ const searchListings = async ({
     statusId,
     cityId,
     searchQuery,
+    categoryId,
+    subcategoryId,
+    eventType,  // singleDay, multiDay, recurring (only for events category)
     isAdmin,
 }) => {
     const filters = [];
@@ -448,7 +451,7 @@ const searchListings = async ({
             throw new AppError(`Invalid status ${statusId}`, 400);
         }
         // const status = await statusRepo.getStatusById(statusId);
-        const status = await statusRepository.getOne({
+        const statusResp = await statusRepository.getOne({
             filters: [
                 {
                     key: "id",
@@ -457,7 +460,7 @@ const searchListings = async ({
                 },
             ],
         });
-        if (!status) {
+        if (!statusResp) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
         // filters.statusId = statusId;
@@ -475,6 +478,68 @@ const searchListings = async ({
         });
     }
 
+    // Validate and add category filter
+    if (categoryId) {
+        const categoryResp = await categoriesRepository.getAll({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: categoryId,
+                },
+                {
+                    key: "isEnabled",
+                    sign: "=",
+                    value: true,
+                },
+            ],
+        });
+        if (!categoryResp || !categoryResp.rows || !categoryResp.rows.length) {
+            throw new AppError(`Invalid Category '${categoryId}' given`, 400);
+        }
+
+        if (subcategoryId) {
+            const subcategory = await subcategoriesRepository.getAll({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: subcategoryId,
+                    },
+                ],
+            });
+            if (!subcategory || !subcategory.rows || !subcategory.rows.length) {
+                throw new AppError(
+                    `Invalid subCategory '${subcategoryId}' given`,
+                    400
+                );
+            }
+            filters.push({
+                key: "subcategoryId",
+                sign: "=",
+                value: subcategoryId,
+            });
+        }
+        filters.push({
+            key: "categoryId",
+            sign: "=",
+            value: categoryId,
+        });
+    }
+
+    // Validate eventType if provided for Events category
+    let eventTypeFilter = null;
+    if (eventType && categoryId && parseInt(categoryId) === categories.Events) {
+        const validEventTypes = ['singleDay', 'multiDay', 'recurring'];
+        if (!validEventTypes.includes(eventType)) {
+            throw new AppError(
+                `Invalid eventType '${eventType}'. Allowed values are: ${validEventTypes.join(', ')}`,
+                400
+            );
+        }
+        eventTypeFilter = eventType;
+    }
+
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
@@ -483,13 +548,32 @@ const searchListings = async ({
             pageNo,
             pageSize,
             sortByStartDate: sortByStartDateBool,
+            eventType: eventTypeFilter,  // Pass to repository for DB-level filtering
         });
 
-        // Remove viewCount from listings
-        return listings.map((listing) => {
+        // Fetch recurrence rules for each listing (supports multiple rules)
+        const listingsWithRecurrence = await Promise.all(listings.map(async (listing) => {
             const { viewCount, ...listingWithoutViewCount } = listing;
-            return listingWithoutViewCount;
-        });
+            const recurrenceRules = [];
+            const rules = await recurrenceRulesRepo.getAllByListingId(listing.id);
+
+            for (const rule of rules) {
+                const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                    filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+                });
+                const exceptions = exceptionsResp.rows || [];
+                recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, listing, exceptions));
+            }
+
+            const isRecurrence = recurrenceRules.length > 0;
+            return {
+                ...listingWithoutViewCount,
+                isRecurrence,
+                recurrenceRules
+            };
+        }));
+
+        return listingsWithRecurrence;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(`Error searching listings: ${err.message}`);
