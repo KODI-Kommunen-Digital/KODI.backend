@@ -58,6 +58,9 @@ const searchListings = async (req, res, next) => {
         categoryId,
         subcategoryId,
         eventType,  // singleDay, multiDay, recurring (only for events category)
+        startAfterDate,
+        endBeforeDate,
+        dateFilter,
     } = params;
     const isAdmin = req.roleId === roles.Admin;
 
@@ -72,6 +75,9 @@ const searchListings = async (req, res, next) => {
             categoryId,
             subcategoryId,
             eventType,
+            startAfterDate,
+            endBeforeDate,
+            dateFilter,
             isAdmin,
         });
 
