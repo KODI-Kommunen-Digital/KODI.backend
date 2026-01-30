@@ -358,8 +358,8 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.startDate = getDateInFormate(startDate);
             } else if (!hasRecurrenceWithDates) {
                 // Only require startDate if recurrenceRules don't provide dates
-                if (payload.isRecurring) {
-                    throw new AppError(`Frequency is required for recurring events`, 400);
+                if (payload.isRecurrence) {
+                    throw new AppError(`Recurring Type is required for recurring events`, 400);
                 }
                 throw new AppError(`Start date is not present`, 400);
             }
