@@ -99,19 +99,18 @@ class ListingsRepo extends BaseRepo {
             queryParams.push(endBeforeDate);
         }
 
-        // Apply eventType filter at database level for proper pagination
         if (eventType) {
             if (eventType === 'recurring') {
                 // Has recurrence rules
                 query += ` AND RR.recurrenceCount > 0`;
             } else if (eventType === 'singleDay') {
-                // Same day start/end AND no recurrence rules
+                // Same day start/end OR endDate is NULL (single day events) AND no recurrence rules
                 query += ` AND (RR.recurrenceCount IS NULL OR RR.recurrenceCount = 0)`;
-                query += ` AND DATE(L.startDate) = DATE(L.endDate)`;
+                query += ` AND (L.endDate IS NULL OR DATE(L.startDate) = DATE(L.endDate))`;
             } else if (eventType === 'multiDay') {
-                // Different day start/end AND no recurrence rules
+                // Different day start/end AND no recurrence rules (endDate must exist and be different from startDate)
                 query += ` AND (RR.recurrenceCount IS NULL OR RR.recurrenceCount = 0)`;
-                query += ` AND DATE(L.startDate) != DATE(L.endDate)`;
+                query += ` AND L.endDate IS NOT NULL AND DATE(L.startDate) != DATE(L.endDate)`;
             }
         }
 
