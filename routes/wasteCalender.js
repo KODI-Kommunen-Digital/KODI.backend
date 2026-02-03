@@ -159,26 +159,26 @@ deviceRouter.post("/register", async function (req, res, next) {
 
         if (existingDevice.rows && existingDevice.rows.length > 0) {
             // Update existing device
+            const existing = existingDevice.rows[0];
             const updateData = {
                 fcm_token: payload.fcmToken,
                 device_type: payload.deviceType || 'android',
-                app_version: payload.appVersion || null,
-                is_active: true
+                app_version: payload.appVersion || null
             };
 
             await database.update(
                 tables.MULLKALENDER_PUSH_DEVICES,
                 updateData,
-                { id: existingDevice.rows[0].id }
+                { id: existing.id }
             );
 
             deviceData = {
-                id: existingDevice.rows[0].id,
+                id: existing.id,
                 deviceId: payload.deviceId,
                 fcmToken: payload.fcmToken,
                 deviceType: updateData.device_type,
                 appVersion: updateData.app_version,
-                isActive: true
+                isActive: existing.is_active
             };
         } else {
             // Create new device
