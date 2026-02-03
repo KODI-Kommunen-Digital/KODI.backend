@@ -444,8 +444,14 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
                 );
                 deviceStreetId = streetInsertResult.id;
             } else {
-                // Same street - just update waste types
+                // Same street - reactivate subscription and update waste types
                 deviceStreetId = currentStreetSubscription.id;
+
+                await database.update(
+                    tables.MULLKALENDER_PUSH_DEVICE_STREETS,
+                    { is_active: true },
+                    { id: deviceStreetId }
+                );
 
                 // Delete existing waste type subscriptions
                 await database.deleteData(
