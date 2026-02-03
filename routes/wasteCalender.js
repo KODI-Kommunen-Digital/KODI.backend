@@ -305,12 +305,17 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
     }
 });
 
-// DELETE /unsubscribe/:deviceId - Deactivate device
-deviceRouter.delete("/unsubscribe/:deviceId", async function (req, res, next) {
+// PATCH /status/:deviceId - Update device active/inactive status
+deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
     const deviceId = req.params.deviceId;
+    const payload = req.body;
 
     if (!deviceId) {
         return next(new AppError(`deviceId is required`, 400));
+    }
+
+    if (typeof payload.isActive !== 'boolean') {
+        return next(new AppError(`isActive (boolean) is required`, 400));
     }
 
     try {
@@ -319,31 +324,28 @@ deviceRouter.delete("/unsubscribe/:deviceId", async function (req, res, next) {
         const deviceResult = await database.get(
             tables.MULLKALENDER_PUSH_DEVICES,
             { device_id: deviceId },
-            "id"
+            "id, is_active"
         );
 
         if (!deviceResult.rows || deviceResult.rows.length === 0) {
             return next(new AppError(`Device not found`, 404));
         }
 
-        // Soft delete - set is_active to false
+        // Update device status only (not street subscription)
         await database.update(
             tables.MULLKALENDER_PUSH_DEVICES,
-            { is_active: false },
+            { is_active: payload.isActive },
             { id: deviceResult.rows[0].id }
-        );
-
-        // Also deactivate street subscription
-        await database.update(
-            tables.MULLKALENDER_PUSH_DEVICE_STREETS,
-            { is_active: false },
-            { push_device_id: deviceResult.rows[0].id }
         );
         /* eslint-enable camelcase */
 
         return res.status(200).json({
             status: "success",
-            message: "Device unsubscribed successfully"
+            data: {
+                deviceId,
+                isActive: payload.isActive
+            },
+            message: payload.isActive ? "Device activated successfully" : "Device deactivated successfully"
         });
     } catch (err) {
         return next(new AppError(err));
@@ -372,11 +374,11 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
     }
 
     try {
-        // Find the device
+        // Find the device (works regardless of device active status)
         /* eslint-disable camelcase */
         const deviceResult = await database.get(
             tables.MULLKALENDER_PUSH_DEVICES,
-            { device_id: payload.deviceId, is_active: true },
+            { device_id: payload.deviceId },
             "id"
         );
 
