@@ -431,7 +431,7 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
         const existingStreet = await database.get(
             tables.MULLKALENDER_PUSH_DEVICE_STREETS,
             { push_device_id: pushDeviceId },
-            "id, street_id"
+            "id, street_id, is_active"
         );
 
         let deviceStreetId;
@@ -440,7 +440,9 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
             const currentStreetSubscription = existingStreet.rows[0];
             
             if (currentStreetSubscription.street_id !== parseInt(payload.streetId)) {
-                // Street changed - explicitly delete waste types first, then delete street subscription
+                // Street changed - preserve is_active status, delete old and create new
+                const preservedIsActive = currentStreetSubscription.is_active;
+
                 await database.deleteData(
                     tables.MULLKALENDER_PUSH_DEVICE_WASTE_TYPES,
                     { device_street_id: currentStreetSubscription.id }
@@ -451,26 +453,20 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
                     { id: currentStreetSubscription.id }
                 );
 
-                // Create new street subscription
+                // Create new street subscription with preserved is_active status
                 const streetInsertResult = await database.create(
                     tables.MULLKALENDER_PUSH_DEVICE_STREETS,
                     {
                         push_device_id: pushDeviceId,
                         city_id: parseInt(cityId),
                         street_id: parseInt(payload.streetId),
-                        is_active: true
+                        is_active: preservedIsActive
                     }
                 );
                 deviceStreetId = streetInsertResult.id;
             } else {
-                // Same street - reactivate subscription and update waste types
+                // Same street - just update waste types, don't change is_active
                 deviceStreetId = currentStreetSubscription.id;
-
-                await database.update(
-                    tables.MULLKALENDER_PUSH_DEVICE_STREETS,
-                    { is_active: true },
-                    { id: deviceStreetId }
-                );
 
                 // Delete existing waste type subscriptions
                 await database.deleteData(
@@ -479,7 +475,7 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
                 );
             }
         } else {
-            // No existing subscription - create new
+            // No existing subscription - create new with is_active = true
             const streetInsertResult = await database.create(
                 tables.MULLKALENDER_PUSH_DEVICE_STREETS,
                 {
