@@ -163,7 +163,8 @@ deviceRouter.post("/register", async function (req, res, next) {
             const updateData = {
                 fcm_token: payload.fcmToken,
                 device_type: payload.deviceType || 'android',
-                app_version: payload.appVersion || null
+                app_version: payload.appVersion || null,
+                is_active: true
             };
 
             await database.update(
@@ -178,7 +179,7 @@ deviceRouter.post("/register", async function (req, res, next) {
                 fcmToken: payload.fcmToken,
                 deviceType: updateData.device_type,
                 appVersion: updateData.app_version,
-                isActive: existing.is_active
+                isActive: true
             };
         } else {
             // Create new device
@@ -238,11 +239,11 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
 
         const device = deviceResult.rows[0];
 
-        // Get street subscription
+        // Get street subscription (don't filter by is_active to show subscription even if inactive)
         const streetSubscription = await database.get(
             tables.MULLKALENDER_PUSH_DEVICE_STREETS,
-            { push_device_id: device.id, is_active: true },
-            "id, city_id, street_id"
+            { push_device_id: device.id },
+            "id, city_id, street_id, is_active"
         );
 
         let street = null;
@@ -259,7 +260,10 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
             );
 
             if (streetResult.rows && streetResult.rows.length > 0) {
-                street = streetResult.rows[0];
+                street = {
+                    ...streetResult.rows[0],
+                    isActive: deviceStreet.is_active
+                };
             }
 
             // Get waste type subscriptions
@@ -305,7 +309,7 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
     }
 });
 
-// PATCH /status/:deviceId - Update device active/inactive status
+// PATCH /status/:deviceId - Update subscribed street active/inactive status for the device
 deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
     const deviceId = req.params.deviceId;
     const payload = req.body;
@@ -324,18 +328,31 @@ deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
         const deviceResult = await database.get(
             tables.MULLKALENDER_PUSH_DEVICES,
             { device_id: deviceId },
-            "id, is_active"
+            "id"
         );
 
         if (!deviceResult.rows || deviceResult.rows.length === 0) {
             return next(new AppError(`Device not found`, 404));
         }
 
-        // Update device status only (not street subscription)
+        const pushDeviceId = deviceResult.rows[0].id;
+
+        // Find subscribed street(s) for this device (do not filter by is_active so we can reactivate)
+        const streetSubscriptions = await database.get(
+            tables.MULLKALENDER_PUSH_DEVICE_STREETS,
+            { push_device_id: pushDeviceId },
+            "id"
+        );
+
+        if (!streetSubscriptions.rows || streetSubscriptions.rows.length === 0) {
+            return next(new AppError(`No street subscription found for this device`, 404));
+        }
+
+        // Update subscribed street(s) active status
         await database.update(
-            tables.MULLKALENDER_PUSH_DEVICES,
+            tables.MULLKALENDER_PUSH_DEVICE_STREETS,
             { is_active: payload.isActive },
-            { id: deviceResult.rows[0].id }
+            { push_device_id: pushDeviceId }
         );
         /* eslint-enable camelcase */
 
@@ -345,7 +362,7 @@ deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
                 deviceId,
                 isActive: payload.isActive
             },
-            message: payload.isActive ? "Device activated successfully" : "Device deactivated successfully"
+            message: payload.isActive ? "Street subscription activated successfully" : "Street subscription deactivated successfully"
         });
     } catch (err) {
         return next(new AppError(err));
