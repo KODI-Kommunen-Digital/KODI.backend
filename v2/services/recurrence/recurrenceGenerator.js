@@ -12,17 +12,29 @@ class RecurrenceGenerator {
      * Generate all occurrences for a recurrence rule
      * @param {Object} rule - The recurrence rule (from DB or API)
      * @param {Date|string} startDate - First occurrence date
-     * @param {Date|string} repeatUntil - End date for recurrence
+     * @param {Date|string|null} repeatUntil - End date for recurrence (null = infinite)
      * @param {Array} exceptions - List of exception dates to skip
      * @param {Date|string|null} fromDate - Optional: Only generate occurrences from this date onwards (e.g., today)
      * @returns {Array} - Array of occurrence date objects { date, startTime, endTime }
      */
     static generateOccurrences(rule, startDate, repeatUntil, exceptions = [], fromDate = null) {
         const start = new Date(startDate);
-        const until = new Date(repeatUntil);
+        if (isNaN(start.getTime())) {
+            throw new Error("Invalid start date");
+        }
 
-        if (isNaN(start.getTime()) || isNaN(until.getTime())) {
-            throw new Error("Invalid start or repeatUntil date");
+        // Handle null repeatUntil (infinite recurring events)
+        // For infinite events, generate occurrences up to a horizon (default: 1 year from now)
+        let until;
+        if (!repeatUntil) {
+            const horizonYears = parseInt(process.env.MAX_RECURRENCE_HORIZON_YEARS, 10) || 1;
+            until = new Date();
+            until.setFullYear(until.getFullYear() + horizonYears);
+        } else {
+            until = new Date(repeatUntil);
+            if (isNaN(until.getTime())) {
+                throw new Error("Invalid repeatUntil date");
+            }
         }
 
         if (start > until) {
@@ -63,7 +75,7 @@ class RecurrenceGenerator {
         let occurrences = [];
 
         // Safety limit for maximum occurrences to prevent infinite loops/memory issues
-        const MAX_OCCURRENCES = parseInt(process.env.MAX_RECURRENCE_OCCURRENCES, 10) || 1500;
+        const MAX_OCCURRENCES = parseInt(process.env.MAX_RECURRENCE_OCCURRENCES, 10) || 100;
 
         switch (rule.freq) {
             case recurrenceTypes.DAILY:
@@ -387,7 +399,7 @@ class RecurrenceGenerator {
      * Check if a specific date has an occurrence
      * @param {Object} rule 
      * @param {Date|string} startDate 
-     * @param {Date|string} repeatUntil 
+     * @param {Date|string|null} repeatUntil - null for infinite recurring events
      * @param {Date|string} checkDate 
      * @param {Array} exceptions 
      * @returns {boolean}
@@ -402,7 +414,7 @@ class RecurrenceGenerator {
      * Get next N occurrences from a given date
      * @param {Object} rule 
      * @param {Date|string} startDate 
-     * @param {Date|string} repeatUntil 
+     * @param {Date|string|null} repeatUntil - null for infinite recurring events
      * @param {Date|string} fromDate 
      * @param {number} count 
      * @param {Array} exceptions 

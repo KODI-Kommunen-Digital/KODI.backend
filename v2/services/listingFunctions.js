@@ -407,6 +407,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         const validatedRules = [];
         let earliestStart = null;
         let latestEnd = null;
+        let hasInfiniteRule = false;  // Track if any rule runs indefinitely
 
         // Validate all rules and find date range
         for (const rule of payload.recurrenceRules) {
@@ -418,25 +419,38 @@ async function createListing(cityIds, payload, userId, roleId) {
             const { ruleData, listingDates } = RecurrenceSerializer.toDatabase(rule);
             validatedRules.push({ ruleData, exceptions: rule.exceptions || [] });
 
-            // Track earliest start and latest end across all rules
+            // Track earliest start across all rules
             const startDate = new Date(listingDates.startDate);
-            const endDate = new Date(listingDates.endDate);
-
             if (!earliestStart || startDate < earliestStart) {
                 earliestStart = startDate;
             }
-            if (!latestEnd || endDate > latestEnd) {
-                latestEnd = endDate;
+
+            // Track latest end (only if endDate is defined, otherwise it's infinite)
+            if (listingDates.endDate) {
+                const endDate = new Date(listingDates.endDate);
+                if (!latestEnd || endDate > latestEnd) {
+                    latestEnd = endDate;
+                }
+            } else {
+                // This rule runs indefinitely
+                hasInfiniteRule = true;
             }
         }
 
         // Set dates on insertionData BEFORE creating the listing
         insertionData.startDate = getDateInFormate(earliestStart);
-        insertionData.endDate = getDateInFormate(latestEnd);
-        // Set expiry date to one day after the latest repeatUntil date
-        insertionData.expiryDate = getDateInFormate(
-            new Date(latestEnd.getTime() + 1000 * 60 * 60 * 24)
-        );
+
+        // If any rule runs indefinitely, set endDate and expiryDate to null
+        if (hasInfiniteRule) {
+            insertionData.endDate = null;
+            insertionData.expiryDate = null;
+        } else if (latestEnd) {
+            insertionData.endDate = getDateInFormate(latestEnd);
+            // Set expiry date to one day after the latest repeatUntil date
+            insertionData.expiryDate = getDateInFormate(
+                new Date(latestEnd.getTime() + 1000 * 60 * 60 * 24)
+            );
+        }
 
         // Store the validated rules for creating after listing is created
         payload._recurrenceRulesData = validatedRules;
@@ -953,6 +967,7 @@ const updateListing = async (
             if (listingData.recurrenceRules && Array.isArray(listingData.recurrenceRules) && listingData.recurrenceRules.length > 0) {
                 let earliestStart = null;
                 let latestEnd = null;
+                let hasInfiniteRule = false;  // Track if any rule runs indefinitely
 
                 for (const rule of listingData.recurrenceRules) {
                     // Validate the rule
@@ -964,15 +979,21 @@ const updateListing = async (
                     // Convert to database format
                     const { ruleData, listingDates } = RecurrenceSerializer.toDatabase(rule);
 
-                    // Track earliest start and latest end across all rules
+                    // Track earliest start across all rules
                     const startDate = new Date(listingDates.startDate);
-                    const endDate = new Date(listingDates.endDate);
-
                     if (!earliestStart || startDate < earliestStart) {
                         earliestStart = startDate;
                     }
-                    if (!latestEnd || endDate > latestEnd) {
-                        latestEnd = endDate;
+
+                    // Track latest end (only if endDate is defined, otherwise it's infinite)
+                    if (listingDates.endDate) {
+                        const endDate = new Date(listingDates.endDate);
+                        if (!latestEnd || endDate > latestEnd) {
+                            latestEnd = endDate;
+                        }
+                    } else {
+                        // This rule runs indefinitely
+                        hasInfiniteRule = true;
                     }
 
                     // Create the recurrence rule
@@ -998,12 +1019,24 @@ const updateListing = async (
                 }
 
                 // Update listing dates with the combined date range
+                // If any rule runs indefinitely, set endDate and expiryDate to null
+                const updateData = {
+                    startDate: getDateInFormate(earliestStart)
+                };
+
+                if (hasInfiniteRule) {
+                    updateData.endDate = null;
+                    updateData.expiryDate = null;
+                } else if (latestEnd) {
+                    updateData.endDate = getDateInFormate(latestEnd);
+                    updateData.expiryDate = getDateInFormate(
+                        new Date(latestEnd.getTime() + 1000 * 60 * 60 * 24)
+                    );
+                }
+
                 await listingsRepository.updateWithTransaction(
                     {
-                        data: {
-                            startDate: getDateInFormate(earliestStart),
-                            endDate: getDateInFormate(latestEnd)
-                        },
+                        data: updateData,
                         filters: [{ key: "id", sign: "=", value: listingId }]
                     },
                     transaction

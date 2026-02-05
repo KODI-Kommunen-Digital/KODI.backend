@@ -150,7 +150,7 @@ class RecurrenceValidator {
      * Validates the date range
      * @param {string} start - Start datetime
      * @param {string} end - End datetime
-     * @param {string} repeatUntil - Repeat until datetime
+     * @param {string} repeatUntil - Repeat until datetime (optional - if not provided, event runs indefinitely)
      * @returns {string[]} - Array of error messages
      */
     static validateDateRange(start, end, repeatUntil) {
@@ -162,14 +162,11 @@ class RecurrenceValidator {
         if (!end) {
             errors.push("End datetime is required");
         }
-        if (!repeatUntil) {
-            errors.push("RepeatUntil datetime is required");
-        }
+        // repeatUntil is now optional - if not provided, the event runs indefinitely
 
-        if (start && end && repeatUntil) {
+        if (start && end) {
             const startDate = new Date(start);
             const endDate = new Date(end);
-            const repeatUntilDate = new Date(repeatUntil);
 
             if (isNaN(startDate.getTime())) {
                 errors.push("Invalid start datetime format");
@@ -177,24 +174,31 @@ class RecurrenceValidator {
             if (isNaN(endDate.getTime())) {
                 errors.push("Invalid end datetime format");
             }
-            if (isNaN(repeatUntilDate.getTime())) {
-                errors.push("Invalid repeatUntil datetime format");
-            }
 
             if (!errors.length) {
                 if (endDate < startDate) {
                     errors.push("End datetime cannot be before start datetime");
                 }
-                if (repeatUntilDate < startDate) {
-                    errors.push("RepeatUntil datetime cannot be before start datetime");
-                }
+            }
 
-                const maxDurationMs = parseInt(process.env.MAX_RECURRENCE_DURATION_YEARS, 10) || 50;
-                const twoYearsMs = maxDurationMs * 365 * 24 * 60 * 60 * 1000;
-                const durationMs = repeatUntilDate.getTime() - startDate.getTime();
+            // Only validate repeatUntil if it's provided
+            if (repeatUntil) {
+                const repeatUntilDate = new Date(repeatUntil);
 
-                if (durationMs > twoYearsMs) {
-                    errors.push(`Recurrence duration cannot exceed ${maxDurationMs} years`);
+                if (isNaN(repeatUntilDate.getTime())) {
+                    errors.push("Invalid repeatUntil datetime format");
+                } else if (!errors.length) {
+                    if (repeatUntilDate < startDate) {
+                        errors.push("RepeatUntil datetime cannot be before start datetime");
+                    }
+
+                    const maxDurationMs = parseInt(process.env.MAX_RECURRENCE_DURATION_YEARS, 10) || 50;
+                    const maxYearsMs = maxDurationMs * 365 * 24 * 60 * 60 * 1000;
+                    const durationMs = repeatUntilDate.getTime() - startDate.getTime();
+
+                    if (durationMs > maxYearsMs) {
+                        errors.push(`Recurrence duration cannot exceed ${maxDurationMs} years`);
+                    }
                 }
             }
         }
