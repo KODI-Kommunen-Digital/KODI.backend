@@ -344,8 +344,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             const hasRecurrenceWithDates = payload.recurrenceRules &&
                 Array.isArray(payload.recurrenceRules) &&
                 payload.recurrenceRules.length > 0 &&
-                payload.recurrenceRules[0].start &&
-                payload.recurrenceRules[0].repeatUntil;
+                payload.recurrenceRules[0].start;
 
             if (payload.startDate) {
                 const startDate = new Date(payload.startDate);
@@ -804,8 +803,7 @@ const updateListing = async (
             const hasRecurrenceWithDates = listingData.recurrenceRules &&
                 Array.isArray(listingData.recurrenceRules) &&
                 listingData.recurrenceRules.length > 0 &&
-                listingData.recurrenceRules[0].start &&
-                listingData.recurrenceRules[0].repeatUntil;
+                listingData.recurrenceRules[0].start;
 
             if (listingData.startDate && listingData.startDate.length > 0) {
                 updationData.startDate = getDateInFormate(
