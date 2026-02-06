@@ -800,11 +800,18 @@ const updateListing = async (
                 );
             }
         } else if (parseInt(listingData.categoryId) === categories.Events) {
+            // Check if recurrence rules provide dates (same pattern as createListing)
+            const hasRecurrenceWithDates = listingData.recurrenceRules &&
+                Array.isArray(listingData.recurrenceRules) &&
+                listingData.recurrenceRules.length > 0 &&
+                listingData.recurrenceRules[0].start &&
+                listingData.recurrenceRules[0].repeatUntil;
+
             if (listingData.startDate && listingData.startDate.length > 0) {
                 updationData.startDate = getDateInFormate(
                     new Date(listingData.startDate)
                 );
-            } else if (!currentListingData.startDate) {
+            } else if (!hasRecurrenceWithDates && !currentListingData.startDate) {
                 throw new AppError(`Start date is not present`, 400);
             }
 
@@ -818,14 +825,20 @@ const updateListing = async (
                         1000 * 60 * 60 * 24
                     )
                 );
-            } else if (!currentListingData.endDate) {
-                updationData.expiryDate = getDateInFormate(
-                    new Date(
-                        new Date(listingData.startDate).getTime() +
-                        1000 * 60 * 60 * 24
-                    )
-                );
+            } else if (!hasRecurrenceWithDates && !currentListingData.endDate) {
+                // Only compute expiry from startDate when NOT using recurrence rules
+                const effectiveStartDate = listingData.startDate || currentListingData.startDate;
+                if (effectiveStartDate) {
+                    updationData.expiryDate = getDateInFormate(
+                        new Date(
+                            new Date(effectiveStartDate).getTime() +
+                            1000 * 60 * 60 * 24
+                        )
+                    );
+                }
             }
+            // When hasRecurrenceWithDates is true, the recurrence handling section
+            // below will set startDate, endDate, and expiryDate from the rules.
         } else {
             updationData.expiryDate = null;
         }
