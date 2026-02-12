@@ -28,6 +28,7 @@ async function sendPushNotificationToAll(topic = "warnings", title = "New Notifi
         const response = await admin.messaging().send(message)
         return response
     } catch (err) {
+        console.log({ err })
         try {
             const occuredAt = new Date()
             database.create(tables.EXCEPTIONS_TABLE, { message: err.message ?? 'no message', stackTrace: err.stack ?? 'no stack', occuredAt: getDateInFormate(occuredAt) })
