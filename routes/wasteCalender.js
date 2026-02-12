@@ -80,10 +80,22 @@ router.get("/wasteTypes", async function (req, res, next) {
 router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
     const cityId = req.cityId;
     const streetId = req.params.streetId;
+    const wasteIdParam = req.query.wasteIds;
 
     if (!cityId || isNaN(cityId)){
         return next(new AppError(`invalid cityId given`, 400));
     }
+
+    // Parse and validate optional comma-separated wasteId filter
+    let wasteIds = [];
+    if (wasteIdParam) {
+        wasteIds = wasteIdParam.split(",").map(id => id.trim());
+        if (wasteIds.some(id => isNaN(id) || id === "")) {
+            return next(new AppError(`Invalid wasteId values given. Provide comma-separated numeric IDs.`, 400));
+        }
+        wasteIds = wasteIds.map(id => parseInt(id));
+    }
+
     if (cityId) {
         try {
             let response = await database.get(
@@ -95,6 +107,14 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
                 return next(
                     new AppError(`Invalid CityId '${cityId}' given`, 400)
                 );
+            }
+
+            const queryParams = [streetId, cityId];
+            let wasteIdFilter = "";
+            if (wasteIds.length > 0) {
+                const placeholders = wasteIds.map(() => "?").join(", ");
+                wasteIdFilter = ` and mwt.id in (${placeholders})`;
+                queryParams.push(...wasteIds);
             }
 
             response = await database.callQuery(
@@ -110,8 +130,8 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
                     inner join mullkalender_dates md
                     on md.dateGroup = mpg.dateGroupId
                     inner join mullkalender_waste_types mwt
-                    on mwt.id = mpg.wasteId order by md.dateofPickup;`,
-                [streetId, cityId],
+                    on mwt.id = mpg.wasteId${wasteIdFilter} order by md.dateofPickup;`,
+                queryParams,
             )
 
             const groupedDates = {}
