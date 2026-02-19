@@ -35,4 +35,6 @@ module.exports = {
     FIREBASE_TOKEN_TABLE: 'firebase_token',
     USER_PREFERENCE_CITIES_TABLE: 'user_preference_cities',
     USER_PREFERENCE_CATEGORIES_TABLE: 'user_preference_categories',
+    RECURRENCE_RULES_TABLE: 'listings_recurrence_rules',
+    RECURRENCE_EXCEPTIONS_TABLE: 'listings_recurrence_exceptions',
 };

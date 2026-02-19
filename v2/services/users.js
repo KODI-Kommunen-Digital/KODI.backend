@@ -22,6 +22,10 @@ const listingRepository = require("../repository/listingsRepo");
 const categoryRepository = require("../repository/categoriesRepo");
 const subCategoryRepository = require("../repository/subcategoriesRepo");
 const firebaseTokenRepository = require("../repository/firebaseTokenRepo");
+const recurrenceRulesRepo = require("../repository/recurrenceRulesRepo");
+const recurrenceExceptionsRepo = require("../repository/recurrenceExceptionsRepo");
+const { RecurrenceSerializer } = require("./recurrence");
+const categories = require("../constants/categories");
 
 const login = async function (payload, sourceAddress, browsername, devicetype) {
     try {
@@ -1254,6 +1258,7 @@ const getUserListings = async function (
     statusId,
     categoryId,
     subcategoryId,
+    eventType,  // singleDay, multiDay, recurring (only for events category)
 ) {
     const filters = [];
 
@@ -1375,13 +1380,51 @@ const getUserListings = async function (
             value: userId
         });
     }
+
+    // Validate eventType if provided for Events category
+    let eventTypeFilter = null;
+    if (eventType && categoryId && parseInt(categoryId) === categories.Events) {
+        const validEventTypes = ['singleDay', 'multiDay', 'recurring'];
+        if (!validEventTypes.includes(eventType)) {
+            throw new AppError(
+                `Invalid eventType '${eventType}'. Allowed values are: ${validEventTypes.join(', ')}`,
+                400
+            );
+        }
+        eventTypeFilter = eventType;
+    }
+
     try {
         const data = await listingRepository.retrieveListings({
             filters,
             pageNo,
             pageSize,
-        })
-        return data;
+            eventType: eventTypeFilter,  // Pass to repository for DB-level filtering
+        });
+
+        // Fetch recurrence rules for each listing (supports multiple rules)
+
+        const listingsWithRecurrence = await Promise.all(data.map(async (listing) => {
+            const recurrenceRules = [];
+            const rules = await recurrenceRulesRepo.getAllByListingId(listing.id);
+
+            for (const rule of rules) {
+                const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                    filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+                });
+                const exceptions = exceptionsResp.rows || [];
+                recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, listing, exceptions));
+            }
+
+            const isRecurrence = recurrenceRules.length > 0;
+            return {
+                ...listing,
+                isRecurrence,
+                recurrenceRules
+            };
+        }));
+
+        return listingsWithRecurrence;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);

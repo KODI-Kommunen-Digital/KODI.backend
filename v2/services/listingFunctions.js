@@ -19,6 +19,9 @@ const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const listingsRepository = require("../repository/listingsRepo");
 const listingsImageRepository = require("../repository/listingsImagesRepo");
 const pollOptionsRepository = require("../repository/pollOptionsRepo");
+const recurrenceRulesRepo = require("../repository/recurrenceRulesRepo");
+const recurrenceExceptionsRepo = require("../repository/recurrenceExceptionsRepo");
+const { RecurrenceValidator, RecurrenceSerializer } = require("./recurrence");
 
 async function createListing(cityIds, payload, userId, roleId) {
     const insertionData = {};
@@ -337,6 +340,12 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
 
         if (parseInt(payload.categoryId) === categories.Events) {
+            // Check if dates are provided via recurrenceRules or directly
+            const hasRecurrenceWithDates = payload.recurrenceRules &&
+                Array.isArray(payload.recurrenceRules) &&
+                payload.recurrenceRules.length > 0 &&
+                payload.recurrenceRules[0].start;
+
             if (payload.startDate) {
                 const startDate = new Date(payload.startDate);
                 if (isNaN(startDate.getTime())) {
@@ -346,7 +355,12 @@ async function createListing(cityIds, payload, userId, roleId) {
                     );
                 }
                 insertionData.startDate = getDateInFormate(startDate);
-            } else {
+            } else if (!hasRecurrenceWithDates) {
+                // Only require startDate if recurrenceRules don't provide dates
+                if (payload.isRecurrence && (!payload.recurrenceRules || (Array.isArray(payload.recurrenceRules) &&
+                    payload.recurrenceRules?.length === 0))) {
+                    throw new AppError(`Recurring Type is required for recurring events`, 400);
+                }
                 throw new AppError(`Start date is not present`, 400);
             }
 
@@ -358,7 +372,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                         400
                     );
                 }
-                if (endDate < new Date(payload.startDate)) {
+                if (payload.startDate && endDate < new Date(payload.startDate)) {
                     throw new AppError(
                         "End date cannot be before start date",
                         400
@@ -371,7 +385,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                         1000 * 60 * 60 * 24
                     )
                 );
-            } else {
+            } else if (payload.startDate) {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(payload.startDate).getTime() +
@@ -379,11 +393,66 @@ async function createListing(cityIds, payload, userId, roleId) {
                     )
                 );
             }
+            // Note: If using recurrenceRules, dates and expiryDate will be set later in the recurrence handling section
         }
     } catch (error) {
         throw error instanceof AppError
             ? error
             : new AppError(`Invalid time format ${error}`, 400);
+    }
+
+    // Handle recurrence rules - extract dates BEFORE creating the listing
+    if (payload.recurrenceRules && Array.isArray(payload.recurrenceRules) && payload.recurrenceRules.length > 0) {
+        const validatedRules = [];
+        let earliestStart = null;
+        let latestEnd = null;
+        let hasInfiniteRule = false;  // Track if any rule runs indefinitely
+
+        // Validate all rules and find date range
+        for (const rule of payload.recurrenceRules) {
+            const validation = RecurrenceValidator.validate(rule);
+            if (!validation.isValid) {
+                throw new AppError(`Invalid recurrence rule: ${validation.errors.join(', ')}`, 400, 'INVALID_RECURRENCE_RULE');
+            }
+
+            const { ruleData, listingDates } = RecurrenceSerializer.toDatabase(rule);
+            validatedRules.push({ ruleData, exceptions: rule.exceptions || [] });
+
+            // Track earliest start across all rules
+            const startDate = new Date(listingDates.startDate);
+            if (!earliestStart || startDate < earliestStart) {
+                earliestStart = startDate;
+            }
+
+            // Track latest end (only if endDate is defined, otherwise it's infinite)
+            if (listingDates.endDate) {
+                const endDate = new Date(listingDates.endDate);
+                if (!latestEnd || endDate > latestEnd) {
+                    latestEnd = endDate;
+                }
+            } else {
+                // This rule runs indefinitely
+                hasInfiniteRule = true;
+            }
+        }
+
+        // Set dates on insertionData BEFORE creating the listing
+        insertionData.startDate = getDateInFormate(earliestStart);
+
+        // If any rule runs indefinitely, set endDate and expiryDate to null
+        if (hasInfiniteRule) {
+            insertionData.endDate = null;
+            insertionData.expiryDate = null;
+        } else if (latestEnd) {
+            insertionData.endDate = getDateInFormate(latestEnd);
+            // Set expiry date to one day after the latest repeatUntil date
+            insertionData.expiryDate = getDateInFormate(
+                new Date(latestEnd.getTime() + 1000 * 60 * 60 * 24)
+            );
+        }
+
+        // Store the validated rules for creating after listing is created
+        payload._recurrenceRulesData = validatedRules;
     }
 
     const allResponses = [];
@@ -525,6 +594,32 @@ async function createListing(cityIds, payload, userId, roleId) {
                 { cities: JSON.stringify(cities), id: listingId.toString() }
             );
         }
+
+        // Create recurrence rules if provided (supports multiple rules)
+        if (payload._recurrenceRulesData && payload._recurrenceRulesData.length > 0) {
+            for (const { ruleData, exceptions } of payload._recurrenceRulesData) {
+                const ruleToCreate = { ...ruleData, listingId };
+                const createdRule = await recurrenceRulesRepo.createWithTransaction(
+                    { data: ruleToCreate },
+                    transaction
+                );
+
+                // Create exceptions for this rule
+                for (const exception of exceptions) {
+                    await recurrenceExceptionsRepo.createWithTransaction(
+                        {
+                            data: {
+                                recurrenceRuleId: createdRule.id,
+                                exceptionDate: exception.date,
+                                reason: exception.reason || null
+                            }
+                        },
+                        transaction
+                    );
+                }
+            }
+        }
+
         await listingsRepository.commitTransaction(transaction);
 
         return allResponses;
@@ -704,11 +799,17 @@ const updateListing = async (
                 );
             }
         } else if (parseInt(listingData.categoryId) === categories.Events) {
+            // Check if recurrence rules provide dates (same pattern as createListing)
+            const hasRecurrenceWithDates = listingData.recurrenceRules &&
+                Array.isArray(listingData.recurrenceRules) &&
+                listingData.recurrenceRules.length > 0 &&
+                listingData.recurrenceRules[0].start;
+
             if (listingData.startDate && listingData.startDate.length > 0) {
                 updationData.startDate = getDateInFormate(
                     new Date(listingData.startDate)
                 );
-            } else if (!currentListingData.startDate) {
+            } else if (!hasRecurrenceWithDates && !currentListingData.startDate) {
                 throw new AppError(`Start date is not present`, 400);
             }
 
@@ -722,14 +823,20 @@ const updateListing = async (
                         1000 * 60 * 60 * 24
                     )
                 );
-            } else if (!currentListingData.endDate) {
-                updationData.expiryDate = getDateInFormate(
-                    new Date(
-                        new Date(listingData.startDate).getTime() +
-                        1000 * 60 * 60 * 24
-                    )
-                );
+            } else if (!hasRecurrenceWithDates && !currentListingData.endDate) {
+                // Only compute expiry from startDate when NOT using recurrence rules
+                const effectiveStartDate = listingData.startDate || currentListingData.startDate;
+                if (effectiveStartDate) {
+                    updationData.expiryDate = getDateInFormate(
+                        new Date(
+                            new Date(effectiveStartDate).getTime() +
+                            1000 * 60 * 60 * 24
+                        )
+                    );
+                }
             }
+            // When hasRecurrenceWithDates is true, the recurrence handling section
+            // below will set startDate, endDate, and expiryDate from the rules.
         } else {
             updationData.expiryDate = null;
         }
@@ -860,6 +967,92 @@ const updateListing = async (
         } else {
             updationData.subcategoryId = null;
             delete listingData.subcategoryId;
+        }
+
+        // Handle recurrence rules update (supports multiple rules)
+        if (listingData.recurrenceRules !== undefined) {
+            // Delete existing rules (cascade deletes exceptions)
+            await recurrenceRulesRepo.deleteByListingIdWithTransaction(listingId, transaction);
+
+            // Create new rules if provided
+            if (listingData.recurrenceRules && Array.isArray(listingData.recurrenceRules) && listingData.recurrenceRules.length > 0) {
+                let earliestStart = null;
+                let latestEnd = null;
+                let hasInfiniteRule = false;  // Track if any rule runs indefinitely
+
+                for (const rule of listingData.recurrenceRules) {
+                    // Validate the rule
+                    const validation = RecurrenceValidator.validate(rule);
+                    if (!validation.isValid) {
+                        throw new AppError(`Invalid recurrence rule: ${validation.errors.join(', ')}`, 400, 'INVALID_RECURRENCE_RULE');
+                    }
+
+                    // Convert to database format
+                    const { ruleData, listingDates } = RecurrenceSerializer.toDatabase(rule);
+
+                    // Track earliest start across all rules
+                    const startDate = new Date(listingDates.startDate);
+                    if (!earliestStart || startDate < earliestStart) {
+                        earliestStart = startDate;
+                    }
+
+                    // Track latest end (only if endDate is defined, otherwise it's infinite)
+                    if (listingDates.endDate) {
+                        const endDate = new Date(listingDates.endDate);
+                        if (!latestEnd || endDate > latestEnd) {
+                            latestEnd = endDate;
+                        }
+                    } else {
+                        // This rule runs indefinitely
+                        hasInfiniteRule = true;
+                    }
+
+                    // Create the recurrence rule
+                    ruleData.listingId = listingId;
+                    const createdRule = await recurrenceRulesRepo.createWithTransaction(
+                        { data: ruleData },
+                        transaction
+                    );
+
+                    // Create exceptions for this rule
+                    for (const exception of (rule.exceptions || [])) {
+                        await recurrenceExceptionsRepo.createWithTransaction(
+                            {
+                                data: {
+                                    recurrenceRuleId: createdRule.id,
+                                    exceptionDate: exception.date,
+                                    reason: exception.reason || null
+                                }
+                            },
+                            transaction
+                        );
+                    }
+                }
+
+                // Update listing dates with the combined date range
+                // If any rule runs indefinitely, set endDate and expiryDate to null
+                const updateData = {
+                    startDate: getDateInFormate(earliestStart)
+                };
+
+                if (hasInfiniteRule) {
+                    updateData.endDate = null;
+                    updateData.expiryDate = null;
+                } else if (latestEnd) {
+                    updateData.endDate = getDateInFormate(latestEnd);
+                    updateData.expiryDate = getDateInFormate(
+                        new Date(latestEnd.getTime() + 1000 * 60 * 60 * 24)
+                    );
+                }
+
+                await listingsRepository.updateWithTransaction(
+                    {
+                        data: updateData,
+                        filters: [{ key: "id", sign: "=", value: listingId }]
+                    },
+                    transaction
+                );
+            }
         }
 
         await listingsRepository.commitTransaction(transaction);

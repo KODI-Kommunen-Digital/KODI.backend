@@ -124,6 +124,11 @@ const getFavoriteListingsForUser = async function (
             filters: favFilters
         });
         const favListingIds = response?.rows?.map((fav) => fav.listingId) ?? [];
+        
+        if (favListingIds.length === 0) {
+            return [];
+        }
+        
         listingFilters.push({
             key: 'id',
             sign: 'IN',

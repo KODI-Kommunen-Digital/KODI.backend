@@ -16,6 +16,7 @@ class ListingsRepo extends BaseRepo {
         sortByStartDate = false,
         startAfterDate = null, // Start date for range
         endBeforeDate = null,   // End date for range
+        eventType = null,       // singleDay, multiDay, recurring (for Events category)
     }) => {
         const queryParams = [];
 
@@ -71,6 +72,11 @@ class ListingsRepo extends BaseRepo {
                 FROM listing_images
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId
+            LEFT JOIN (
+                SELECT listingId, COUNT(*) as recurrenceCount
+                FROM listings_recurrence_rules
+                GROUP BY listingId
+            ) RR ON L.id = RR.listingId
             WHERE 1=1
         `;
 
@@ -91,6 +97,21 @@ class ListingsRepo extends BaseRepo {
         if (endBeforeDate) {
             query += ` AND DATE(L.startDate) <= ?`;
             queryParams.push(endBeforeDate);
+        }
+
+        if (eventType) {
+            if (eventType === 'recurring') {
+                // Has recurrence rules
+                query += ` AND RR.recurrenceCount > 0`;
+            } else if (eventType === 'singleDay') {
+                // Same day start/end OR endDate is NULL (single day events) AND no recurrence rules
+                query += ` AND (RR.recurrenceCount IS NULL OR RR.recurrenceCount = 0)`;
+                query += ` AND (L.endDate IS NULL OR DATE(L.startDate) = DATE(L.endDate))`;
+            } else if (eventType === 'multiDay') {
+                // Different day start/end AND no recurrence rules (endDate must exist and be different from startDate)
+                query += ` AND (RR.recurrenceCount IS NULL OR RR.recurrenceCount = 0)`;
+                query += ` AND L.endDate IS NOT NULL AND DATE(L.startDate) != DATE(L.endDate)`;
+            }
         }
 
         filters.forEach((filter) => {

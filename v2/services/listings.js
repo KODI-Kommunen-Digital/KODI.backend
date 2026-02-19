@@ -11,6 +11,9 @@ const categoriesRepository = require("../repository/categoriesRepo");
 const subcategoriesRepository = require("../repository/subcategoriesRepo");
 const cityListingMappingRepo = require("../repository/cityListingMappingRepo");
 const usersRepository = require("../repository/userRepo");
+const recurrenceRulesRepo = require("../repository/recurrenceRulesRepo");
+const recurrenceExceptionsRepo = require("../repository/recurrenceExceptionsRepo");
+const { RecurrenceSerializer, RecurrenceGenerator } = require("./recurrence");
 
 const listingFunctions = require("../services/listingFunctions");
 const status = require("../constants/status");
@@ -46,6 +49,7 @@ const getAllListings = async ({
     startAfterDate,
     endBeforeDate,
     dateFilter,
+    eventType,  // singleDay, multiDay, recurring (only for events category)
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -277,6 +281,19 @@ const getAllListings = async ({
         });
     }
 
+    // Validate eventType if provided for Events category
+    let eventTypeFilter = null;
+    if (eventType && categoryId && parseInt(categoryId) === categories.Events) {
+        const validEventTypes = ['singleDay', 'multiDay', 'recurring'];
+        if (!validEventTypes.includes(eventType)) {
+            throw new AppError(
+                `Invalid eventType '${eventType}'. Allowed values are: ${validEventTypes.join(', ')}`,
+                400
+            );
+        }
+        eventTypeFilter = eventType;
+    }
+
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
@@ -286,7 +303,9 @@ const getAllListings = async ({
             sortByStartDate: sortByStartDateBool,
             startAfterDate, // Start date for range
             endBeforeDate,
+            eventType: eventTypeFilter,  // Pass to repository for DB-level filtering
         });
+
         const noOfListings = listings.length;
         if (
             noOfListings > 0 &&
@@ -324,7 +343,28 @@ const getAllListings = async ({
                 }
             }
         }
-        return listings;
+        // Fetch recurrence rules for each listing (supports multiple rules)
+        const listingsWithRecurrence = await Promise.all(listings.map(async (listing) => {
+            const recurrenceRules = [];
+            const rules = await recurrenceRulesRepo.getAllByListingId(listing.id);
+
+            for (const rule of rules) {
+                const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                    filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+                });
+                const exceptions = exceptionsResp.rows || [];
+                recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, listing, exceptions));
+            }
+
+            const isRecurrence = recurrenceRules.length > 0;
+            return {
+                ...listing,
+                isRecurrence,
+                recurrenceRules
+            };
+        }));
+
+        return listingsWithRecurrence;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -338,6 +378,12 @@ const searchListings = async ({
     statusId,
     cityId,
     searchQuery,
+    categoryId,
+    subcategoryId,
+    eventType,  // singleDay, multiDay, recurring (only for events category)
+    startAfterDate,
+    endBeforeDate,
+    dateFilter,
     isAdmin,
 }) => {
     const filters = [];
@@ -408,7 +454,7 @@ const searchListings = async ({
             throw new AppError(`Invalid status ${statusId}`, 400);
         }
         // const status = await statusRepo.getStatusById(statusId);
-        const status = await statusRepository.getOne({
+        const statusResp = await statusRepository.getOne({
             filters: [
                 {
                     key: "id",
@@ -417,7 +463,7 @@ const searchListings = async ({
                 },
             ],
         });
-        if (!status) {
+        if (!statusResp) {
             throw new AppError(`Invalid Status '${statusId}' given`, 400);
         }
         // filters.statusId = statusId;
@@ -435,6 +481,126 @@ const searchListings = async ({
         });
     }
 
+    // Validate and add category filter
+    if (categoryId) {
+        const categoryResp = await categoriesRepository.getAll({
+            filters: [
+                {
+                    key: "id",
+                    sign: "=",
+                    value: categoryId,
+                },
+                {
+                    key: "isEnabled",
+                    sign: "=",
+                    value: true,
+                },
+            ],
+        });
+        if (!categoryResp || !categoryResp.rows || !categoryResp.rows.length) {
+            throw new AppError(`Invalid Category '${categoryId}' given`, 400);
+        }
+
+        if (subcategoryId) {
+            const subcategory = await subcategoriesRepository.getAll({
+                filters: [
+                    {
+                        key: "id",
+                        sign: "=",
+                        value: subcategoryId,
+                    },
+                ],
+            });
+            if (!subcategory || !subcategory.rows || !subcategory.rows.length) {
+                throw new AppError(
+                    `Invalid subCategory '${subcategoryId}' given`,
+                    400
+                );
+            }
+            filters.push({
+                key: "subcategoryId",
+                sign: "=",
+                value: subcategoryId,
+            });
+        }
+        filters.push({
+            key: "categoryId",
+            sign: "=",
+            value: categoryId,
+        });
+    }
+
+    // Handle dateFilter to set startAfterDate and endBeforeDate
+    if (dateFilter) {
+        const currentDate = new Date();
+        switch (dateFilter.toLowerCase()) {
+            case "today":
+                startAfterDate = currentDate.toISOString().split("T")[0];
+                endBeforeDate = startAfterDate;
+                break;
+            case "week": {
+                const startOfWeek = new Date(currentDate);
+                startOfWeek.setDate(
+                    currentDate.getDate() - currentDate.getDay() + 1
+                ); // Start of the week (Monday)
+                startAfterDate = startOfWeek.toISOString().split("T")[0];
+                const endOfWeek = new Date(currentDate);
+                endOfWeek.setDate(
+                    currentDate.getDate() - currentDate.getDay() + 7
+                ); // End of the week (Sunday)
+                endBeforeDate = endOfWeek.toISOString().split("T")[0];
+                break;
+            }
+            case "month": {
+                const startOfMonth = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    1
+                ); // Start of the month
+                startAfterDate = startOfMonth.toISOString().split("T")[0];
+                const endOfMonth = new Date(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth() + 1,
+                    0
+                ); // End of the month
+                endBeforeDate = endOfMonth.toISOString().split("T")[0];
+                break;
+            }
+            default:
+                throw new AppError(
+                    "Invalid filterBy value. Allowed values are 'today', 'week', or 'month'.",
+                    400
+                );
+        }
+    }
+
+    if (startAfterDate && !isValidDate(startAfterDate)) {
+        throw new AppError(
+            `Invalid Date given '${startAfterDate}', formate Should be YYYY-MM-DD`,
+            400
+        );
+    }
+
+    if (endBeforeDate && !isValidDate(endBeforeDate)) {
+        throw new AppError(
+            `Invalid Date given '${endBeforeDate}', formate Should be YYYY-MM-DD`,
+            400
+        );
+    }
+
+    // Validate eventType if provided for Events category
+    let eventTypeFilter = null;
+    if (eventType && categoryId && parseInt(categoryId) === categories.Events) {
+        const validEventTypes = ['singleDay', 'multiDay', 'recurring'];
+        if (!validEventTypes.includes(eventType)) {
+            throw new AppError(
+                `Invalid eventType '${eventType}'. Allowed values are: ${validEventTypes.join(', ')}`,
+                400
+            );
+        }
+        eventTypeFilter = eventType;
+    }
+
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
@@ -443,13 +609,34 @@ const searchListings = async ({
             pageNo,
             pageSize,
             sortByStartDate: sortByStartDateBool,
+            startAfterDate,
+            endBeforeDate,
+            eventType: eventTypeFilter,  // Pass to repository for DB-level filtering
         });
 
-        // Remove viewCount from listings
-        return listings.map((listing) => {
+        // Fetch recurrence rules for each listing (supports multiple rules)
+        const listingsWithRecurrence = await Promise.all(listings.map(async (listing) => {
             const { viewCount, ...listingWithoutViewCount } = listing;
-            return listingWithoutViewCount;
-        });
+            const recurrenceRules = [];
+            const rules = await recurrenceRulesRepo.getAllByListingId(listing.id);
+
+            for (const rule of rules) {
+                const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                    filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+                });
+                const exceptions = exceptionsResp.rows || [];
+                recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, listing, exceptions));
+            }
+
+            const isRecurrence = recurrenceRules.length > 0;
+            return {
+                ...listingWithoutViewCount,
+                isRecurrence,
+                recurrenceRules
+            };
+        }));
+
+        return listingsWithRecurrence;
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(`Error searching listings: ${err.message}`);
@@ -574,7 +761,60 @@ const getListingWithId = async function (id, repeatedRequest = false) {
         }
 
         delete data.viewCount;
-        return { ...data, logo, otherLogos: listingImageList };
+
+        // Fetch all recurrence rules for this listing
+        const recurrenceRules = [];
+        const allUpcomingDates = [];
+        const rules = await recurrenceRulesRepo.getAllByListingId(id);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        for (const rule of rules) {
+            const exceptionsResp = await recurrenceExceptionsRepo.getAll({
+                filters: [{ key: "recurrenceRuleId", sign: "=", value: rule.id }]
+            });
+            const exceptions = exceptionsResp.rows || [];
+            recurrenceRules.push(RecurrenceSerializer.toApiResponse(rule, data, exceptions));
+
+            // Generate future occurrences for this rule (passing today as fromDate)
+            // Use the rule's own startDate and repeatUntil instead of listing dates
+            try {
+                const occurrences = RecurrenceGenerator.generateOccurrences(
+                    rule,
+                    rule.startDate || data.startDate,   // Use rule's own start date
+                    rule.repeatUntil || data.endDate,   // Use rule's own repeat until date
+                    exceptions,
+                    today  // Only generate occurrences from today onwards
+                );
+
+                // Add non-exception occurrences
+                for (const occ of occurrences) {
+                    if (!occ.isException) {
+                        allUpcomingDates.push({
+                            startDate: occ.startDate,
+                            endDate: occ.endDate
+                        });
+                    }
+                }
+            } catch (err) {
+                // If generation fails, skip but don't break the response
+                console.error('Error generating occurrences:', err.message);
+            }
+        }
+
+        // Sort upcoming dates: nearest (most recent) at top, future at bottom
+        allUpcomingDates.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+
+        const isRecurrence = recurrenceRules.length > 0;
+
+        return {
+            ...data,
+            logo,
+            otherLogos: listingImageList,
+            isRecurrence,
+            recurrenceRules,
+            upcomingDates: allUpcomingDates
+        };
     } catch (err) {
         if (err instanceof AppError) throw err;
         throw new AppError(err);
@@ -726,8 +966,7 @@ const updateListingStatus = async function ({ id, roleId, newStatus }) {
             const result = await sendPushNotifications(
                 [listing.userId],
                 "Listing Status Updated",
-                `Your listing status has been updated to ${
-                    newStatus === 3 ? "Feedback" : "Approved"
+                `Your listing status has been updated to ${newStatus === 3 ? "Feedback" : "Approved"
                 } `,
                 {
                     type: "listing_status_update",

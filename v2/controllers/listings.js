@@ -17,6 +17,7 @@ const getAllListings = async (req, res, next) => {
         startAfterDate,
         endBeforeDate,
         dateFilter,
+        eventType,  // singleDay, multiDay, recurring (only for events category)
     } = params;
     const isAdmin = req.roleId === roles.Admin;
     try {
@@ -34,6 +35,7 @@ const getAllListings = async (req, res, next) => {
             startAfterDate,
             endBeforeDate,
             dateFilter,
+            eventType,
         });
         res.status(200).json({
             status: "success",
@@ -53,7 +55,14 @@ const searchListings = async (req, res, next) => {
         statusId,
         cityId,
         searchQuery,
+        categoryId,
+        subcategoryId,
+        eventType,  // singleDay, multiDay, recurring (only for events category)
+        startAfterDate,
+        endBeforeDate,
+        dateFilter,
     } = params;
+    const isAdmin = req.roleId === roles.Admin;
 
     try {
         const listings = await listingService.searchListings({
@@ -63,6 +72,13 @@ const searchListings = async (req, res, next) => {
             statusId,
             cityId,
             searchQuery,
+            categoryId,
+            subcategoryId,
+            eventType,
+            startAfterDate,
+            endBeforeDate,
+            dateFilter,
+            isAdmin,
         });
 
         res.status(200).json({
