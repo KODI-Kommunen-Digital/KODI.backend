@@ -406,7 +406,7 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
         return next(new AppError(`Valid streetId is required`, 400));
     }
 
-    if (!payload.wasteTypeIds || !Array.isArray(payload.wasteTypeIds) || payload.wasteTypeIds.length === 0) {
+    if (!payload.wasteTypeIds || !Array.isArray(payload.wasteTypeIds)) {
         return next(new AppError(`wasteTypeIds array is required`, 400));
     }
 
@@ -436,15 +436,17 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
             return next(new AppError(`Street not found for this city`, 404));
         }
 
-        // Validate waste types exist
-        const wasteTypesResult = await database.get(
-            tables.MULLKALENDER_WASTE_TYPES,
-            { id: payload.wasteTypeIds },
-            "id, name"
-        );
-
-        if (!wasteTypesResult.rows || wasteTypesResult.rows.length !== payload.wasteTypeIds.length) {
-            return next(new AppError(`One or more waste types not found`, 404));
+        // Validate waste types exist (skip when empty - used to remove all waste type subscriptions)
+        let wasteTypesResult = { rows: [] };
+        if (payload.wasteTypeIds.length > 0) {
+            wasteTypesResult = await database.get(
+                tables.MULLKALENDER_WASTE_TYPES,
+                { id: payload.wasteTypeIds },
+                "id, name"
+            );
+            if (!wasteTypesResult.rows || wasteTypesResult.rows.length !== payload.wasteTypeIds.length) {
+                return next(new AppError(`One or more waste types not found`, 404));
+            }
         }
 
         // Check if device already has a street subscription
