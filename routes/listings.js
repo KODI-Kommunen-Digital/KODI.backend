@@ -242,7 +242,7 @@ router.get("/", async function (req, res, next) {
         }
         const paginationParams = [((pageNo - 1) * pageSize), pageSize];
         const fullQuery = `SELECT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
-        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
+        ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"}, id DESC LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
         const response = await database.callQuery(fullQuery, finalQueryParams);
         const listings = response.rows;
