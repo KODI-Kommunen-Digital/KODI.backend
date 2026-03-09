@@ -17,8 +17,7 @@ const imageUpload = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
-const axios = require("axios");
-const parser = require("xml-js");
+const database = require("../../services/database");
 const roles = require("../constants/roles");
 const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
@@ -1187,19 +1186,21 @@ const deleteImage = async function (id, userId, roleId) {
     }
 
     // todo: move this to a separate layer
-    let imageList = await axios.get(
-        "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST,
-    );
-    imageList = JSON.parse(
-        parser.xml2json(imageList.data, { compact: true, spaces: 4 }),
-    );
 
-    const userListingFilter = `user_${userId}/listing_${id}`;
-    const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-        obj.Key._text.includes(userListingFilter),
-    ).filter((obj) => !obj.Key._text.includes("admin/"));
+    const query = `
+        SELECT logo
+        FROM listing_images
+        WHERE logo LIKE ?
+        AND logo NOT LIKE '%admin/%'
+    `;
 
-    const imagesToDelete = userImageList.map((image) => ({ Key: image.Key._text }))
+    const prefix = `user_${userId}/listing_${id}/%`;
+
+    const {rows: listingImages} = await database.callQuery(query, [prefix]);
+
+    const imagesToDelete = listingImages.map((img) => ({
+        Key: img.logo
+    }));
 
     try {
         if (imagesToDelete && imagesToDelete.length > 0) {
