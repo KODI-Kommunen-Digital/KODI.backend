@@ -20,8 +20,7 @@ const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const bucketClient = require("../utils/bucketClient");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
-const axios = require("axios");
-const parser = require("xml-js");
+const database = require("../../services/database");
 
 // const sendPushNotification = require("../services/sendPushNotification");
 // const pollRepo = require("../repository/polls");
@@ -1274,15 +1273,28 @@ const deleteImageForCityListing = async function (id, cityId, userId, roleId) {
     }
 
     // todo: move this to a separate layer
-    let imageList = await axios.get(
-        "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST,
-    );
-    imageList = JSON.parse(
-        parser.xml2json(imageList.data, { compact: true, spaces: 4 }),
-    );
-    const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-        obj.Key._text.includes(`user_${userId}/city_${cityId}_listing_${id}`),
-    );
+    // let imageList = await axios.get(
+    //     "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST,
+    // );
+    // imageList = JSON.parse(
+    //     parser.xml2json(imageList.data, { compact: true, spaces: 4 }),
+    // );
+    // const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
+    //     obj.Key._text.includes(`user_${userId}/city_${cityId}_listing_${id}`),
+    // );
+
+    const query = `
+        SELECT logo
+        FROM listing_images
+        WHERE logo LIKE ?
+    `;
+
+    const prefix = `user_${userId}/city_${cityId}_listing_${id}`;
+
+    const {rows: listingImages} = await database.callQuery(query, [prefix]);
+    const userImageList = listingImages.map(img => ({
+        Key: img.logo
+    }));
 
     try {
         const onSucccess = async () => {
@@ -1304,7 +1316,7 @@ const deleteImageForCityListing = async function (id, cityId, userId, roleId) {
         };
 
         await imageDeleteMultiple(
-            userImageList.map((image) => ({ Key: image.Key._text })),
+            userImageList,
             onSucccess,
             onFail,
         );
