@@ -26,7 +26,7 @@ router.post("/", async (req, res, next) => {
 
         const imageFile = req.files?.image;
         let imageHash = null;
-        let attachments = [];
+        const attachments = [];
 
         if (imageFile) {
             imageHash = crypto
