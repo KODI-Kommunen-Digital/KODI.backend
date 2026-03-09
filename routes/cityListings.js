@@ -745,15 +745,18 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
         const currentListingData = response.rows[0];
 
-        let imageList = await axios.get(
-            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
-        );
-        imageList = JSON.parse(
-            parser.xml2json(imageList.data, { compact: true, spaces: 4 })
-        );
-        const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-            obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
-        );
+        const query = `
+            SELECT logo
+            FROM listing_images
+            WHERE logo LIKE ?
+        `;
+
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}`;
+
+        const {rows: listingImages} = await database.callQuery(query, [prefix]);
+        const userImageList = listingImages.map(img => ({
+            Key: img.logo
+        }));
         response = await database.get(
             tables.USER_CITYUSER_MAPPING_TABLE,
             { userId: req.userId, cityId },
@@ -791,7 +794,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
             return next(new AppError("Image Delete failed with Error Code: " + err));
         };
         await imageDeleteMultiple(
-            userImageList.map((image) => ({ Key: image.Key._text })),
+            userImageList,
             onSucccess,
             onFail
         );
@@ -1254,15 +1257,18 @@ router.delete(
             );
         }
 
-        let imageList = await axios.get(
-            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
-        );
-        imageList = JSON.parse(
-            parser.xml2json(imageList.data, { compact: true, spaces: 4 })
-        );
-        const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-            obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
-        );
+        const query = `
+            SELECT logo
+            FROM listing_images
+            WHERE logo LIKE ?
+        `;
+
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}`;
+
+        const {rows: listingImages} = await database.callQuery(query, [prefix]);
+        const userImageList = listingImages.map(img => ({
+            Key: img.logo
+        }));
         try {
             const onSucccess = async () => {
                 await database.deleteData(
@@ -1281,7 +1287,7 @@ router.delete(
                 );
             };
             await imageDeleteMultiple(
-                userImageList.map((image) => ({ Key: image.Key._text })),
+                userImageList,
                 onSucccess,
                 onFail
             );
