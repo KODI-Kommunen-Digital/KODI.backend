@@ -16,13 +16,12 @@ const imageUpload = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
-const axios = require("axios");
-const parser = require("xml-js");
 const roles = require("../constants/roles");
 const categories = require("../constants/categories");
 const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const DEFAULTIMAGE = "Defaultimage";
 const isValidDate = require('../utils/validateDate');
+const database = require("../../services/database");
 
 const getAllListings = async ({
     pageNo,

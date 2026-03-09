@@ -1,5 +1,3 @@
-const axios = require("axios");
-const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const database = require("../../services/database");
 

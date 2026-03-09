@@ -20,8 +20,7 @@ const defaultImageCount = require("../constants/defaultImagesInBucketCount");
 const bucketClient = require("../utils/bucketClient");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
-const axios = require("axios");
-const parser = require("xml-js");
+const database = require("../../services/database");
 
 // const sendPushNotification = require("../services/sendPushNotification");
 // const pollRepo = require("../repository/polls");
