@@ -16,8 +16,6 @@ const { imageUpload, appendExtention } = require("../utils/imageUpload");
 const getPdfImage = require("../utils/getPdfImage");
 const pdfUpload = require("../utils/pdfUpload");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
-const axios = require("axios");
-const parser = require("xml-js");
 const roles = require("../constants/roles");
 const categories = require("../constants/categories");
 const calculateRecurrence = require("../utils/recurrenceCalculator");
@@ -28,6 +26,7 @@ const isValidDate = require("../utils/validateDate");
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 const { translateObjectValues } = require("./translationService");
 const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
+const database = require("../../services/database");
 
 const getAllListings = async ({
     pageNo,
