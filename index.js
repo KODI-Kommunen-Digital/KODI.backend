@@ -19,7 +19,7 @@ const citizenServicesRouter = require("./routes/citizenServices");
 const contactUsRouter = require("./routes/contactUs");
 const moreInfoRouter = require("./routes/moreInfo");
 const advertisement = require("./routes/ads");
-const wasteCalender = require("./routes/wasteCalender");
+const { router: wasteCalender, deviceRouter: wasteCalenderDevice } = require("./routes/wasteCalender");
 const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers");
@@ -112,6 +112,10 @@ app.use(
     cityListingsRouter
 );
 if (process.env.WASTE_CALENDER_ENABLED === "True") {
+    // Device registration endpoint (no cityId needed)
+    app.use("/wasteCalender/pushNotification", wasteCalenderDevice);
+    
+    // City-specific waste calendar endpoints
     app.use(
         "/cities/:cityId/wasteCalender",
         function (req, res, next) {

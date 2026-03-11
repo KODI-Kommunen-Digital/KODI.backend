@@ -27,6 +27,9 @@ module.exports = {
     MULLKALENDER_STREET_PROPERTIES_HOUSE: 'mullkalender_street_properties_house',
     MULLKALENDER_STREETS: 'mullkalender_streets',
     MULLKALENDER_WASTE_TYPES: 'mullkalender_waste_types',
+    MULLKALENDER_PUSH_DEVICES: 'mullkalender_push_devices',
+    MULLKALENDER_PUSH_DEVICE_STREETS: 'mullkalender_push_device_streets',
+    MULLKALENDER_PUSH_DEVICE_WASTE_TYPES: 'mullkalender_push_device_waste_types',
     POLL_OPTIONS_TABLE: 'poll_options',
     DEFECT_REPORTS: 'defect_reports'
 }
