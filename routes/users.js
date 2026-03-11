@@ -9,9 +9,7 @@ const tokenUtil = require("../utils/token");
 const authentication = require("../middlewares/authentication");
 const optionalAuthentication = require("../middlewares/optionalAuthentication");
 const bcrypt = require("bcrypt");
-const crypto = require("crypto");
-const axios = require("axios");
-const parser = require("xml-js");
+const crypto = require("crypto"); 
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const roles = require("../constants/roles");
@@ -632,17 +630,23 @@ router.delete("/:id", authentication, async function (req, res, next) {
         });
         const cityUsers = response.rows;
 
-        let imageList = await axios.get(
-            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
-        );
-        imageList = JSON.parse(
-            parser.xml2json(imageList.data, { compact: true, spaces: 4 })
-        );
-        const userImageList = imageList.ListBucketResult.Contents.filter(
-            (obj) => obj.Key._text.includes("user_" + userId)
-        );
+        const query = `
+            SELECT logo
+            FROM listing_images
+            WHERE logo LIKE ?
+        `;
 
-        await imageDeleteAsync.deleteMultiple(userImageList.map((image) => ({ Key: image.Key._text })))
+        const prefix = `user_${userId}/%`;
+
+        const {rows: listingImages} = await database.callQuery(query, [prefix]);
+        
+        const userImageList = listingImages.map(img => ({
+            Key: img.logo
+        }));
+
+        if (userImageList.length > 0) {
+            await imageDeleteAsync.deleteMultiple(userImageList);
+        }
 
         for (const cityUser of cityUsers) {
             await database.callStoredProcedure(storedProcedures.DELETE_CITY_USER, [cityUser.cityUserId], cityUser.cityId);
