@@ -28,6 +28,7 @@ const isValidDate = require("../utils/validateDate");
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 const { translateObjectValues } = require("./translationService");
 const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
+const listingSeriesRepository = require("../repository/listingSeriesRepo");
 
 const getAllListings = async ({
     pageNo,
@@ -45,6 +46,7 @@ const getAllListings = async ({
     endBeforeDate,
     dateFilter,
     userId,
+    seriesId,
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -245,9 +247,9 @@ const getAllListings = async ({
             cityIds?.map(async (city) => {
                 cityAdminMap[city] = userId
                     ? await cityUserRolesRepository.isUserCityAdmin(
-                          userId,
-                          city
-                      )
+                        userId,
+                        city
+                    )
                     : false;
             })
         );
@@ -285,6 +287,14 @@ const getAllListings = async ({
         });
     }
 
+    if (seriesId) {
+        filters.push({
+            key: "seriesId",
+            sign: "=",
+            value: seriesId,
+        });
+    }
+    console.log({ filters })
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
@@ -297,6 +307,7 @@ const getAllListings = async ({
             endBeforeDate,
             statusId: statusData,
         });
+        console.log({ listings })
         if (
             listings.length &&
             reqTranslate &&
@@ -1686,8 +1697,19 @@ const vote = async function (listingId, optionId, vote) {
     }
 };
 
+const getAllListingSeries = async () => {
+    try {
+        const result = await listingSeriesRepository.getAll();
+        return result.rows;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
 module.exports = {
     getAllListings,
+    getAllListingSeries,
     searchListings,
     createListing,
     deleteListing,

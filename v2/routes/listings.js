@@ -4,6 +4,7 @@ const authentication = require("../middlewares/authentication");
 const optionalAuthentication = require("../middlewares/optionalAuthentication");
 const {
     getAllListings,
+    getAllListingSeries,
     searchListings,
     createListing,
     updateListing,
@@ -36,6 +37,8 @@ const rateLogger = rateLimit({
 });
 
 router.get("/search", searchListings);
+
+router.get("/series", getAllListingSeries);
 
 router.get("/:id", rateLogger, getListingWithId);
 
