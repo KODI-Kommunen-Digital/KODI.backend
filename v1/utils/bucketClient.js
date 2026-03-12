@@ -14,7 +14,7 @@ async function fetchImageList(userId, cityId, listingId) {
 
     const prefix = `user_${userId}/city_${cityId}_listing_${listingId}`;
 
-    return database.callQuery(query, [prefix]);
+    return database.callQuery(query, [prefix], cityId);
 }
 
 function filterUserImages(imageList) {
