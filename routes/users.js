@@ -71,13 +71,13 @@ router.post("/login", async function (req, res, next) {
             );
         }
 
-        // const correctPassword = await bcrypt.compare(
-        //     payload.password,
-        //     userData.password
-        // );
-        // if (!correctPassword) {
-        //     return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
-        // }
+        const correctPassword = await bcrypt.compare(
+            payload.password,
+            userData.password
+        );
+        if (!correctPassword) {
+            return next(new AppError(`Invalid password`, 401, errorCodes.INVALID_PASSWORD));
+        }
 
         const userMappings = await database.get(
             tables.USER_CITYUSER_MAPPING_TABLE,
