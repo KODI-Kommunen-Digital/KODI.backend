@@ -1,5 +1,5 @@
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
-const database = require("../../services/database");
+const ObsClient = require("../utils/eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
 
 // const getUserImages = async (userId) => {
 //     let imageList = await axios.get(
@@ -13,19 +13,35 @@ const database = require("../../services/database");
 //     );
 // };
 const getUserImages = async (userId) => {
-    const query = `
-        SELECT logo
-        FROM listing_images
-        WHERE logo LIKE ?
-    `;
 
-    const prefix = `user_${userId}/%`;
-
-    const {rows: images} = await database.callQuery(query, [prefix]);
-
-    return images.map((img) => ({
-        Key: img.logo
-    }));
+    const server = process.env.BUCKET_HOST;
+    /*
+             * Initialize a obs client instance with your account for accessing OBS
+             */
+    const obs = new ObsClient({
+        accessKeyId: process.env.BUCKET_ACCESS_KEY,
+        secretAccessKey: process.env.BUCKET_SECRET_KEY,
+        server,
+    });
+        
+    const bucketName = process.env.BUCKET_NAME;  
+    function listObjectsAsync(params) {
+        return new Promise((resolve, reject) => {
+            obs.listObjects(params, (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            });
+        });
+    }
+ 
+    const res = await listObjectsAsync({
+        Bucket: bucketName,
+    });
+    const userImageList = res?.InterfaceResult?.Contents.filter(
+        (obj) => obj.Key.includes("user_" + userId)
+    );
+    const filteredImages = userImageList.map((image) => ({ Key: image.Key }));
+    return filteredImages;
 };
 
 const deleteImage = async (userImageList, onSuccess, onFail) => {
