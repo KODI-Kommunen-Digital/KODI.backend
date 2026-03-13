@@ -17,6 +17,7 @@ const getAllListings = async (req, res, next) => {
         startAfterDate,
         endBeforeDate,
         dateFilter,
+        seriesId,
     } = params;
     const isAdmin = req.roleId === roles.Admin;
     const acceptLanguage = req.headers["accept-language"] || "";
@@ -48,7 +49,9 @@ const getAllListings = async (req, res, next) => {
             endBeforeDate,
             dateFilter,
             userId: req.userId,
+            seriesId,
         });
+        console.log({ listings })
         res.status(200).json({
             status: "success",
             data: listings,
@@ -379,8 +382,21 @@ const vote = async function (req, res, next) {
     }
 };
 
+const getAllListingSeries = async (req, res, next) => {
+    try {
+        const series = await listingService.getAllListingSeries();
+        res.status(200).json({
+            status: "success",
+            data: series,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getAllListings,
+    getAllListingSeries,
     searchListings,
     createListing,
     updateListing,

@@ -45,4 +45,5 @@ module.exports = {
     ONBOARD_USER_TABLE: "users_onboarded",
     TERMS_TABLE: "terms",
     USER_TERMS_TABLE: "user_terms",
+    LISTING_SERIES_TABLE: "listing_series",
 };

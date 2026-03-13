@@ -26,6 +26,7 @@ const isValidDate = require("../utils/validateDate");
 const listingChatReactionRepo = require("../repository/listingChatReactionRepo");
 const { translateObjectValues } = require("./translationService");
 const cityUserRolesRepository = require("../repository/cityUserRolesRepo");
+const listingSeriesRepository = require("../repository/listingSeriesRepo");
 const database = require("../../services/database");
 
 const getAllListings = async ({
@@ -44,6 +45,7 @@ const getAllListings = async ({
     endBeforeDate,
     dateFilter,
     userId,
+    seriesId,
 }) => {
     const filters = [];
     let sortByStartDateBool = false;
@@ -244,9 +246,9 @@ const getAllListings = async ({
             cityIds?.map(async (city) => {
                 cityAdminMap[city] = userId
                     ? await cityUserRolesRepository.isUserCityAdmin(
-                          userId,
-                          city
-                      )
+                        userId,
+                        city
+                    )
                     : false;
             })
         );
@@ -284,6 +286,14 @@ const getAllListings = async ({
         });
     }
 
+    if (seriesId) {
+        filters.push({
+            key: "seriesId",
+            sign: "=",
+            value: seriesId,
+        });
+    }
+    console.log({ filters })
     try {
         const listings = await listingRepository.retrieveListings({
             filters,
@@ -296,6 +306,7 @@ const getAllListings = async ({
             endBeforeDate,
             statusId: statusData,
         });
+        console.log({ listings })
         if (
             listings.length &&
             reqTranslate &&
@@ -1505,10 +1516,10 @@ const deleteImage = async function (id, userId, roleId) {
     // const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
     //     obj.Key._text.includes(userListingFilter)
     // ).filter((obj) => !obj.Key._text.includes("admin/"));
+
     // const imagesToDelete = userImageList.map((image) => ({
     //     Key: image.Key._text,
     // }));
-    
     const query = `
         SELECT logo
         FROM listing_images
@@ -1518,7 +1529,7 @@ const deleteImage = async function (id, userId, roleId) {
 
     const prefix = `user_${userId}/listing_${id}/%`;
 
-    const {rows: listingImages} = await database.callQuery(query, [prefix]);
+    const { rows: listingImages } = await database.callQuery(query, [prefix]);
 
     const imagesToDelete = listingImages.map((img) => ({
         Key: img.logo
@@ -1699,8 +1710,19 @@ const vote = async function (listingId, optionId, vote) {
     }
 };
 
+const getAllListingSeries = async () => {
+    try {
+        const result = await listingSeriesRepository.getAll();
+        return result.rows;
+    } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw new AppError(err);
+    }
+};
+
 module.exports = {
     getAllListings,
+    getAllListingSeries,
     searchListings,
     createListing,
     deleteListing,

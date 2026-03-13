@@ -569,14 +569,21 @@ async function createListing(cityIds, payload, userId, roleId) {
                 parseInt(insertionData.subcategoryId) ===
                     subcategories.newsflash &&
                 mappingStatus === status.Active &&
-                roleId === roles.Admin
+                roleId === roles.Admin &&
+                payload.notify === true
             ) {
-                await sendPushNotification.sendPushNotificationToAll(
-                    "warnings",
-                    "Eilmeldung",
-                    city.name + " - " + insertionData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() }
-                );
+                setTimeout(async () => {
+                    try {
+                        await sendPushNotification.sendPushNotificationToAll(
+                            "warnings",
+                            "Eilmeldung",
+                            city.name + " - " + insertionData.title,
+                            { cityId: cityId.toString(), id: listingId.toString() }
+                        );
+                    } catch (pushErr) {
+                        console.error(`Failed to send push notification for listing ${listingId}`, pushErr);
+                    }
+                }, 60000); // 1 minute delay for image upload
             }
         }
         const activeListingsCities = allResponses
@@ -610,26 +617,33 @@ async function createListing(cityIds, payload, userId, roleId) {
             (roleId === roles.Admin ||
                 roleId === roles["City Admin"] ||
                 roleId === roles.Moderator) &&
-            activeListingsCities?.length > 0
+            activeListingsCities?.length > 0 &&
+            payload.notify === true
         ) {
-            // get all the normal users (role ID 3 - Content Creator) and return array of ids
-            const normalUserIds = await userRepo.getNormalUserIds();
+            setTimeout(async () => {
+                try {
+                    // get all the normal users (role ID 3 - Content Creator) and return array of ids
+                    const normalUserIds = await userRepo.getNormalUserIds();
 
-            // Build the complete listing data with all related information
-            const listingData = await buildCompleteListingData(listingId);
+                    // Build the complete listing data with all related information
+                    const listingData = await buildCompleteListingData(listingId);
 
-            await sendPushNotification.sendPushNotifications(
-                normalUserIds,
-                "Neue Meldung",
-                insertionData.title,
-                {
-                    type: "new_listing",
-                    data: JSON.stringify(listingData),
+                    await sendPushNotification.sendPushNotifications(
+                        normalUserIds,
+                        "Neue Meldung",
+                        insertionData.title,
+                        {
+                            type: "new_listing",
+                            data: JSON.stringify(listingData),
+                        }
+                    );
+                    console.log(
+                        `sending push notification to user for listing ${listingId} and users ${normalUserIds}`
+                    );
+                } catch (pushErr) {
+                    console.error(`Failed to send push notification for listing ${listingId}`, pushErr);
                 }
-            );
-            console.log(
-                `sending push notification to user for listing ${listingId} and users ${normalUserIds}`
-            );
+            }, 60000); // 1 minute delay for image upload
         }
         return allResponses;
     } catch (err) {
