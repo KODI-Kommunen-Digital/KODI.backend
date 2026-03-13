@@ -685,10 +685,10 @@ router.delete("/:id", authentication, async function (req, res, next) {
             });
         }
  
-        const res = await listObjectsAsync({
+        const listData = await listObjectsAsync({
             Bucket: bucketName,
         });
-        const userImageList = res?.InterfaceResult?.Contents.filter(
+        const userImageList = listData?.InterfaceResult?.Contents.filter(
             (obj) => obj.Key.includes("user_" + userId)
         );
         const filteredImages = userImageList.map((image) => ({ Key: image.Key }));
