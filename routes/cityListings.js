@@ -15,8 +15,6 @@ const imageUpload = require("../utils/imageUpload");
 const pdfUpload = require("../utils/pdfUpload");
 const objectDelete = require("../utils/imageDelete");
 const getDateInFormate = require("../utils/getDateInFormate");
-const axios = require("axios");
-const parser = require("xml-js");
 const imageDeleteMultiple = require("../utils/imageDeleteMultiple");
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const getPdfImage = require("../utils/getPdfImage");
@@ -24,6 +22,7 @@ const { createListing } = require('../services/listingFunctions');
 const rateLimit = require('express-rate-limit');
 // const createRateLimitMiddleware = require("./rateLimitMiddleware");
 const sendPushNotification = require("../services/sendPushNotification");
+const optionalAuthentication = require("../v1/middlewares/optionalAuthentication");
 
 // const radiusSearch = require('../services/handler')
 
@@ -42,7 +41,7 @@ const rateLogger = rateLimit({
     skipSuccessfulRequests: false, // Skip counting successful requests
 });
 
-router.get("/", async function (req, res, next) {
+router.get("/", optionalAuthentication, async function (req, res, next) {
     const params = req.query;
     const cityId = req.cityId;
     const filters = {};
@@ -89,7 +88,7 @@ router.get("/", async function (req, res, next) {
         );
     }
 
-    if (params.statusId) {
+    if (req.roleId === roles.Admin && params.statusId) {
         try {
             const response = await database.get(
                 tables.STATUS_TABLE,
@@ -108,6 +107,8 @@ router.get("/", async function (req, res, next) {
             return next(new AppError(err));
         }
         filters.statusId = params.statusId;
+    } else {
+        filters.statusId = status.Active;
     }
 
     if (params.categoryId) {
@@ -666,6 +667,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
     }
 
     if (
+        payload.statusId &&
         payload.statusId !== currentListingData.statusId &&
         req.roleId === roles.Admin
     ) {
@@ -772,15 +774,28 @@ router.delete("/:id", authentication, async function (req, res, next) {
 
         const currentListingData = response.rows[0];
 
-        let imageList = await axios.get(
-            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
-        );
-        imageList = JSON.parse(
-            parser.xml2json(imageList.data, { compact: true, spaces: 4 })
-        );
-        const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-            obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
-        );
+        const query = `
+            SELECT logo
+            FROM listing_images
+            WHERE logo LIKE ?
+        `;
+
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}%`;
+
+        const {rows: listingImages} = await database.callQuery(query, [prefix], cityId);
+        const userImageList = listingImages.map(img => ({
+            Key: img.logo
+        }));
+        
+        // let imageList = await axios.get(
+        //     "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
+        // );
+        // imageList = JSON.parse(
+        //     parser.xml2json(imageList.data, { compact: true, spaces: 4 })
+        // );
+        // const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
+        //     obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
+        // );
         response = await database.get(
             tables.USER_CITYUSER_MAPPING_TABLE,
             { userId: req.userId, cityId },
@@ -1278,15 +1293,27 @@ router.delete(
             );
         }
 
-        let imageList = await axios.get(
-            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
-        );
-        imageList = JSON.parse(
-            parser.xml2json(imageList.data, { compact: true, spaces: 4 })
-        );
-        const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
-            obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
-        );
+        // let imageList = await axios.get(
+        //     "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
+        // );
+        // imageList = JSON.parse(
+        //     parser.xml2json(imageList.data, { compact: true, spaces: 4 })
+        // );
+        // const userImageList = imageList.ListBucketResult.Contents.filter((obj) =>
+        //     obj.Key._text.includes(`user_${req.userId}/city_${cityId}_listing_${id}`)
+        // );
+        const query = `
+            SELECT logo
+            FROM listing_images
+            WHERE logo LIKE ?
+        `;
+
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}%`;
+
+        const {rows: listingImages} = await database.callQuery(query, [prefix], cityId);
+        const userImageList = listingImages.map(img => ({
+            Key: img.logo
+        }));
         try {
             const onSucccess = async () => {
                 await database.deleteData(

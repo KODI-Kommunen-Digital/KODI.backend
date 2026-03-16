@@ -216,6 +216,11 @@ const createListingSwagger = {
             },
         },
     },
+    security: [
+        {
+            bearerAuth: [],
+        },
+    ],
 };
 
 module.exports = createListingSwagger;

@@ -25,9 +25,14 @@ const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers");
 const swaggerUi = require('swagger-ui-express');
 const apiDocumentation = require('./docs/docRoot');
+const apiVersions = require('./constants/apiVersions');
+const bridgeRoutes = require('./bridgeRoutes');
+const listingNotificationCron = require('./v2/services/listingNotificationCron');
 
 // defining the Express app
 const app = express();
+app.set('trust proxy', 1);
+
 
 // defining an array to work as the database (temporary solution)
 const message = {
@@ -48,7 +53,6 @@ app.use(morgan("combined"));
 
 app.use(headers)
 
-app.use("/reportDefect", defectReportRouter);
 app.use(
     fileUpload({
         limits: {
@@ -62,63 +66,40 @@ app.get("/", (req, res) => {
     res.send(message);
 });
 
-app.get("/test", (req, res) => {
-    res.send('testing pipeline!!');
-});
+for (const version in apiVersions) {
+    app.use(`/${version}`, apiVersions[version].router);
+}
 
-app.use("/users", usersRouter);
-app.use("/cities", citiesRouter);
-app.use("/listings", listingsRouter);
-app.use("/categories", categoriesRouter);
-app.use("/status", statusRouter);
-app.use("/citizenServices", citizenServicesRouter);
-app.use("/contactUs", contactUsRouter);
-app.use("/moreInfo", moreInfoRouter);
-app.use(
-    "/users/:userId/favorites",
-    function (req, res, next) {
-        if (
-            isNaN(Number(req.params.userId)) ||
-            Number(req.params.userId) <= 0
-        ) {
-            return next(new AppError(`Invalid user id given`, 400));
-        }
-        req.paramUserId = req.params.userId;
-        next();
-    },
-    favoriteRouter
-);
-app.use(
-    "/cities/:cityId/villages",
-    function (req, res, next) {
-        if (
-            isNaN(Number(req.params.cityId)) ||
-            Number(req.params.cityId) <= 0
-        ) {
-            return next(new AppError(`Invalid city id given`, 400));
-        }
-        req.cityId = req.params.cityId;
-        next();
-    },
-    villageRouter
-);
-app.use(
-    "/cities/:cityId/listings",
-    function (req, res, next) {
-        if (
-            isNaN(Number(req.params.cityId)) ||
-            Number(req.params.cityId) <= 0
-        ) {
-            return next(new AppError(`Invalid city id given`, 400));
-        }
-        req.cityId = req.params.cityId;
-        next();
-    },
-    cityListingsRouter
-);
-if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+if (process.env.BRIDGE_ENABLED === 'True') {
+    app.use("", bridgeRoutes);
+} else {
+    app.use("/users", usersRouter);
+    app.use("/cities", citiesRouter);
+    app.use("/listings", listingsRouter);
+    app.use("/categories", categoriesRouter);
+    app.use("/status", statusRouter);
+    app.use("/citizenServices", citizenServicesRouter);
+    app.use("/contactUs", contactUsRouter);
+    app.use("/moreInfo", moreInfoRouter);
+    app.get("/test", (req, res) => {
+        res.send('testing pipeline!!');
+    });
     app.use(
-        "/cities/:cityId/wasteCalender",
+        "/users/:userId/favorites",
+        function (req, res, next) {
+            if (
+                isNaN(Number(req.params.userId)) ||
+                Number(req.params.userId) <= 0
+            ) {
+                return next(new AppError(`Invalid user id given`, 400));
+            }
+            req.paramUserId = req.params.userId;
+            next();
+        },
+        favoriteRouter
+    );
+    app.use(
+        "/cities/:cityId/villages",
         function (req, res, next) {
             if (
                 isNaN(Number(req.params.cityId)) ||
@@ -129,11 +110,109 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
             req.cityId = req.params.cityId;
             next();
         },
-        wasteCalender
+        villageRouter
     );
+    app.use(
+        "/cities/:cityId/listings",
+        function (req, res, next) {
+            if (
+                isNaN(Number(req.params.cityId)) ||
+                Number(req.params.cityId) <= 0
+            ) {
+                return next(new AppError(`Invalid city id given`, 400));
+            }
+            req.cityId = req.params.cityId;
+            next();
+        },
+        cityListingsRouter
+    );
+    if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+        app.use(
+            "/users/:userId/favorites",
+            function (req, res, next) {
+                if (
+                    isNaN(Number(req.params.userId)) ||
+                    Number(req.params.userId) <= 0
+                ) {
+                    return next(new AppError(`Invalid user id given`, 400));
+                }
+                req.paramUserId = req.params.userId;
+                next();
+            },
+            favoriteRouter
+        );
+        app.use(
+            "/cities/:cityId/villages",
+            function (req, res, next) {
+                if (
+                    isNaN(Number(req.params.cityId)) ||
+                    Number(req.params.cityId) <= 0
+                ) {
+                    return next(new AppError(`Invalid city id given`, 400));
+                }
+                req.cityId = req.params.cityId;
+                next();
+            },
+            villageRouter
+        );
+        app.use(
+            "/cities/:cityId/listings",
+            function (req, res, next) {
+                if (
+                    isNaN(Number(req.params.cityId)) ||
+                    Number(req.params.cityId) <= 0
+                ) {
+                    return next(new AppError(`Invalid city id given`, 400));
+                }
+                req.cityId = req.params.cityId;
+                next();
+            },
+            cityListingsRouter
+        );
+        if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+            app.use(
+                "/cities/:cityId/wasteCalender",
+                function (req, res, next) {
+                    if (
+                        isNaN(Number(req.params.cityId)) ||
+                        Number(req.params.cityId) <= 0
+                    ) {
+                        return next(new AppError(`Invalid city id given`, 400));
+                    }
+                    req.cityId = req.params.cityId;
+                    next();
+                },
+                wasteCalender
+            );
+        }
+        app.use("/ads", advertisement)
+        app.use("/reportDefect", defectReportRouter);
+    }
 }
-app.use("/ads", advertisement)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(apiDocumentation));
+
+app.use("/api-docs", swaggerUi.serve);
+app.get("/api-docs", (req, res) => {
+    const documentation = apiDocumentation();
+    swaggerUi.setup(documentation)(req, res);
+});
+
+// Version-specific Swagger docs
+Object.keys(apiVersions).forEach(version => {
+    app.use(`/api-docs/${version}`, swaggerUi.serve);
+    app.get(`/api-docs/${version}`, (req, res) => {
+        const documentation = apiDocumentation(version);
+        swaggerUi.setup(documentation)(req, res);
+    });
+});
+
+// Handle 404 for unknown API doc versions
+app.use('/api-docs/*', (req, res) => {
+    res.status(404).json({
+        status: 'error',
+        message: 'API documentation version not found'
+    });
+});
+
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
@@ -144,12 +223,17 @@ app.use(errorHandler);
 // starting the server
 app.listen(process.env.PORT, () => {
     console.log(`listening on port ${process.env.PORT}`);
+    
+    // Start the cron job when the server starts
+    if (process.env.NODE_ENV !== 'test') {
+        console.log('Starting notification cron job...');
+        listingNotificationCron.start();
+    }
 });
 
 process.on("uncaughtException", function (err) {
     console.error(
-        `${new Date().toUTCString()}: UncaughtException: ${err.message}\n${
-            err.stack
+        `${new Date().toUTCString()}: UncaughtException: ${err.message}\n${err.stack
         }`
     );
     process.exit(1);
