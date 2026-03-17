@@ -544,7 +544,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-    if (payload.subcategoryId && subcategory) {
+    // Handle explicit subcategory removal (subcategoryId: null in payload)
+    if (Object.prototype.hasOwnProperty.call(payload, "subcategoryId") && (payload.subcategoryId === null || payload.subcategoryId === "" || payload.subcategoryId === 0)) {
+        updationData.subcategoryId = null;
+    } else if (payload.subcategoryId && subcategory) {
         if (!subcategory) {
             return next(
                 new AppError(
