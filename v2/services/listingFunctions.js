@@ -557,7 +557,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 parseInt(insertionData.categoryId) === categories.News &&
                 parseInt(insertionData.subcategoryId) ===
                 subcategories.newsflash &&
-                insertionData.statusId === status.Active &&
+                insertionData.statusId === status.Approved &&
                 roleId === roles.Admin
             ) {
                 await sendPushNotification.sendPushNotificationToAll(
@@ -570,7 +570,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         }
         if (
             roleId === roles.Admin &&
-            insertionData.statusId === status.Active
+            insertionData.statusId === status.Approved
         ) {
             await sendPushNotification.sendPushNotificationsToUsers(
                 cityIds,
@@ -1394,7 +1394,7 @@ async function updateCityMappings(
         if (
             parseInt(updationData.categoryId) === categories.News &&
             parseInt(updationData.subcategoryId) === subcategories.newsflash &&
-            updationData.statusId === status.Active &&
+            updationData.statusId === status.Approved &&
             roleId === roles.Admin
         ) {
             const notifications = updatedCityIds.map((cityId) => ({
