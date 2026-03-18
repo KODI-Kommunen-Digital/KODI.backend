@@ -10,8 +10,6 @@ const authentication = require("../middlewares/authentication");
 const optionalAuthentication = require("../middlewares/optionalAuthentication");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const axios = require("axios");
-const parser = require("xml-js");
 const imageUpload = require("../utils/imageUpload");
 const objectDelete = require("../utils/imageDelete");
 const roles = require("../constants/roles");
@@ -20,6 +18,7 @@ const getDateInFormate = require("../utils/getDateInFormate")
 const imageDeleteAsync = require("../utils/imageDeleteAsync");
 const storedProcedures = require("../constants/storedProcedures");
 const { getUserListings } = require("../services/getUserListings");
+const ObsClient = require("../utils/eSDK_Storage_OBS_V2.1.4_Node.js/lib/obs");
 
 const filterNonPostRequests = (req, res, next) => {
     if (req.method !== 'POST') {
@@ -632,18 +631,38 @@ router.delete("/:id", authentication, async function (req, res, next) {
         });
         const cityUsers = response.rows;
 
-        let imageList = await axios.get(
-            "https://" + process.env.BUCKET_NAME + "." + process.env.BUCKET_HOST
-        );
-        imageList = JSON.parse(
-            parser.xml2json(imageList.data, { compact: true, spaces: 4 })
-        );
-        const userImageList = imageList.ListBucketResult.Contents.filter(
-            (obj) => obj.Key._text.includes("user_" + userId)
-        );
+        const server = process.env.BUCKET_HOST;
+        /*
+             * Initialize a obs client instance with your account for accessing OBS
+             */
+        const obs = new ObsClient({
+            accessKeyId: process.env.BUCKET_ACCESS_KEY,
+            secretAccessKey: process.env.BUCKET_SECRET_KEY,
+            server,
+        });
+        
+        const bucketName = process.env.BUCKET_NAME;  
+        function listObjectsAsync(params) {
+            return new Promise((resolve, reject) => {
+                obs.listObjects(params, (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+        }
+ 
+        const resData = await listObjectsAsync({
+            Bucket: bucketName,
+        });
 
-        await imageDeleteAsync.deleteMultiple(userImageList.map((image) => ({ Key: image.Key._text })))
-
+        const userImageList = resData?.InterfaceResult?.Contents.filter(
+            (obj) => obj.Key.includes("user_" + userId)
+        ); 
+        const filteredImages = userImageList.map((image) => ({ Key: image.Key }));
+            
+        if (filteredImages.length > 0) {
+            await imageDeleteAsync.deleteMultiple(filteredImages);
+        }
         for (const cityUser of cityUsers) {
             await database.callStoredProcedure(storedProcedures.DELETE_CITY_USER, [cityUser.cityUserId], cityUser.cityId);
         }
