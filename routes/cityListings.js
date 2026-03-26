@@ -500,7 +500,7 @@ router.patch("/:id", authentication, async function (req, res, next) {
                 }
 
                 const endDateCleared =
-                    payload.endDate === "";
+                    payload.endDate === "" || payload.endDate === null;
                 if (endDateCleared) {
                     updationData.endDate = null;
                     updationData.expiryDate = getDateInFormate(
@@ -604,7 +604,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
         }
         updationData.title = payload.title;
     }
-    if (payload.place) {
+    if (payload.place === "" || payload.place === null) {
+        updationData.place = null;
+    } else if (payload.place) {
         updationData.place = payload.place;
     }
     if (payload.description) {
@@ -626,7 +628,9 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.address = payload.address;
     }
 
-    if (payload.email && payload.email !== currentListingData.email) {
+    if (payload.email === "" || payload.email === null) {
+        updationData.email = null;
+    } else if (payload.email && payload.email !== currentListingData.email) {
         const re =
             /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
         if (!re.test(payload.email)) {
@@ -635,15 +639,19 @@ router.patch("/:id", authentication, async function (req, res, next) {
         updationData.email = payload.email;
     }
 
-    if (payload.phone && payload.phone !== currentListingData.phone) {
-        const re = /^[+][(]{0,1}[0-9]{1,3}[)]{0,1}[-\s./0-9]$/g;
+    if (payload.phone === "" || payload.phone === null) {
+        updationData.phone = null;
+    } else if (payload.phone && payload.phone !== currentListingData.phone) {
+        const re = /^[+]*[(]{0,1}[0-9]{1,3}[)]{0,1}[-\s\./0-9]*$/g;
         if (!re.test(payload.phone)) {
             return next(new AppError(`Invalid Phone number given`, 400));
         }
         updationData.phone = payload.phone;
     }
 
-    if (payload.website) {
+    if (payload.website === "" || payload.website === null) {
+        updationData.website = null;
+    } else if (payload.website) {
         updationData.website = payload.website;
     }
     if (payload.price) {
