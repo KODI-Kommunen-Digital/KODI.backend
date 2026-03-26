@@ -499,15 +499,31 @@ router.patch("/:id", authentication, async function (req, res, next) {
                     return next(new AppError(`Start date is not present`, 400));
                 }
 
-                if (payload.endDate) {
-                    updationData.endDate = getDateInFormate(new Date(payload.endDate));
+                const endDateCleared =
+                    payload.endDate === "";
+                if (endDateCleared) {
+                    updationData.endDate = null;
                     updationData.expiryDate = getDateInFormate(
-                        new Date(new Date(payload.endDate).getTime() + 1000 * 60 * 60 * 24)
+                        new Date(
+                            new Date(payload.startDate).getTime() +
+                                1000 * 60 * 60 * 24
+                        )
+                    );
+                } else if (payload.endDate) {
+                    updationData.endDate = getDateInFormate(
+                        new Date(payload.endDate)
+                    );
+                    updationData.expiryDate = getDateInFormate(
+                        new Date(
+                            new Date(payload.endDate).getTime() +
+                                1000 * 60 * 60 * 24
+                        )
                     );
                 } else {
                     updationData.expiryDate = getDateInFormate(
                         new Date(
-                            new Date(payload.startDate).getTime() + 1000 * 60 * 60 * 24
+                            new Date(payload.startDate).getTime() +
+                                1000 * 60 * 60 * 24
                         )
                     );
                 }
