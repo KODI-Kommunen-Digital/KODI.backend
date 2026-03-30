@@ -19,7 +19,7 @@ const citizenServicesRouter = require("./routes/citizenServices");
 const contactUsRouter = require("./routes/contactUs");
 const moreInfoRouter = require("./routes/moreInfo");
 const advertisement = require("./routes/ads");
-const wasteCalender = require("./routes/wasteCalender");
+const { router: wasteCalender, deviceRouter: wasteCalenderDevice } = require("./routes/wasteCalender");
 const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers")
@@ -44,7 +44,7 @@ app.use(cors());
 // adding morgan to log HTTP requests
 app.use(morgan("combined"));
 
-app.use(headers)
+app.use(headers);
 
 app.use("/reportDefect", defectReportRouter);
 app.use(
@@ -110,7 +110,11 @@ app.use(
     },
     cityListingsRouter
 );
-if (process.env.WASTE_CALENDER_ENABLED === 'True') {
+if (process.env.WASTE_CALENDER_ENABLED === "True") {
+    // Device registration endpoint (no cityId needed)
+    app.use("/wasteCalender/pushNotification", wasteCalenderDevice);
+    
+    // City-specific waste calendar endpoints
     app.use(
         "/cities/:cityId/wasteCalender",
         function (req, res, next) {
@@ -126,12 +130,12 @@ if (process.env.WASTE_CALENDER_ENABLED === 'True') {
         wasteCalender
     );
 }
-app.use("/ads", advertisement)
+app.use("/ads", advertisement);
 app.all("*", (req, res, next) => {
     next(new AppError(`The URL ${req.originalUrl} does not exists`, 404));
 });
 
-Sentry.setupExpressErrorHandler(app)
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 // starting the server

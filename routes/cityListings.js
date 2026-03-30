@@ -544,7 +544,10 @@ router.patch("/:id", authentication, async function (req, res, next) {
             return next(new AppError(err));
         }
     }
-    if (payload.subcategoryId && subcategory) {
+    // Handle explicit subcategory removal (subcategoryId: null in payload)
+    if (Object.prototype.hasOwnProperty.call(payload, "subcategoryId") && (payload.subcategoryId === null || payload.subcategoryId === "" || payload.subcategoryId === 0)) {
+        updationData.subcategoryId = null;
+    } else if (payload.subcategoryId && subcategory) {
         if (!subcategory) {
             return next(
                 new AppError(
@@ -745,7 +748,7 @@ router.delete("/:id", authentication, async function (req, res, next) {
             WHERE logo LIKE ?
         `;
 
-        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}`;
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}%`;
 
         const {rows: listingImages} = await database.callQuery(query, [`${prefix}%`], cityId);
         const userImageList = listingImages.map(img => ({
@@ -1254,7 +1257,7 @@ router.delete(
             WHERE logo LIKE ?
         `;
 
-        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}`;
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}%`;
 
         const {rows: listingImages} = await database.callQuery(query, [prefix], cityId);
         const userImageList = listingImages.map(img => ({
