@@ -14,6 +14,7 @@ router.get("/", async function (req, res, next) {
     const pageSize = Number(params.pageSize) || 9;
     const searchQuery = params.searchQuery;
     let sortByStartDate = false;
+    let showRecentListings = false;
     let cities = [];
     const queryFilterParams = [];
     let queryFilters = '';
@@ -94,6 +95,10 @@ router.get("/", async function (req, res, next) {
             } else {
                 queryFilters += ` AND L.categoryId = ? `;
                 queryFilterParams.push(Number(params.categoryId));
+                if (Number(params.categoryId) === 3) {
+                    const todayStr = new Date().toISOString().split("T")[0];
+                    queryFilters += ` AND L.endDate >= '${todayStr}' `;   
+                }
                 if (params.subcategoryId) {
                     if (isNaN(Number(params.subcategoryId)) || Number(params.subcategoryId) <= 0) {
                         return next(
@@ -218,6 +223,25 @@ router.get("/", async function (req, res, next) {
         queryFilters += startDateCondition;
     }
 
+    // Validate recent listings check
+    if (params.showRecentListings) {
+        const showRecentListingsString = params.showRecentListings.toString();
+        if (showRecentListingsString !== 'true' && showRecentListingsString !== 'false') {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            showRecentListings = showRecentListingsString === 'true';
+            if(showRecentListings) {
+                const today = new Date();
+                const todayDateStr = today.toISOString().split("T")[0];
+                const recentListingCondition = ` AND (L.startDate <= '${todayDateStr}' 
+                OR L.categoryId = 1) `;
+                queryFilters += recentListingCondition;
+            }
+        }
+    }
+
     // Construct and execute the final query
     try {
         const individualQueries = [];
@@ -254,9 +278,9 @@ router.get("/", async function (req, res, next) {
         // const fullQuery = `SELECT U.* FROM (${individualQueries.join(" UNION ALL ")}) AS U 
         // ORDER BY ${sortByStartDate ? "startDate, createdAt" : "createdAt DESC"} LIMIT ?, ?;`;
         const newFullQuery = `WITH all_listings AS(${individualQueries.join(" UNION ALL ")}),
-        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY externalId ORDER BY createdAt DESC) AS rn FROM all_listings a)
+        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY COALESCE(externalId, CONCAT(title,'-',COALESCE(startDate, createdAt))) ORDER BY createdAt DESC) AS rn FROM all_listings a)
         SELECT * FROM ranked WHERE rn = 1
-        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : "createdAt DESC"}, externalId LIMIT ?, ?;`;
+        ORDER BY ${sortByStartDate ? "startDate, createdAt DESC" : showRecentListings ? "COALESCE(startDate, createdAt) DESC" : "createdAt DESC"}, externalId LIMIT ?, ?;`;
         const finalQueryParams = queryParams.concat(paginationParams);
         const response = await database.callQuery(newFullQuery, finalQueryParams);
         const listings = response.rows;
@@ -320,6 +344,7 @@ router.get("/search", async function (req, res, next) {
     const filters = [];
     let cities = [];
     let sortByStartDate = false;
+    let showRecentListings = false;
     const searchQuery = params.searchQuery;
 
     if (isNaN(Number(pageNo)) || Number(pageNo) <= 0) {
@@ -432,6 +457,25 @@ router.get("/search", async function (req, res, next) {
         }
     }
 
+    // Validate recent listings check
+    if (params.showRecentListings) {
+        const showRecentListingsString = params.showRecentListings.toString();
+        if (showRecentListingsString !== 'true' && showRecentListingsString !== 'false') {
+            return next(
+                new AppError(`The parameter sortByCreatedDate can only be a boolean`, 400)
+            );
+        } else {
+            showRecentListings = showRecentListingsString === 'true';
+            if(showRecentListings) {
+                const today = new Date();
+                const todayDateStr = today.toISOString().split("T")[0];
+                const recentListingCondition = `(L.startDate <= '${todayDateStr}' 
+                OR L.categoryId = 1)`;
+                filters.push(recentListingCondition);
+            }
+        }
+    }
+
     const individualQueries = cities.map(city => {
         let cityQueryParams = [`%${searchQuery}%`, `%${searchQuery}%`]; 
         let query = `SELECT L.*, 
@@ -468,10 +512,11 @@ router.get("/search", async function (req, res, next) {
     const paginationParams = [(pageNo - 1) * pageSize, pageSize];
     combinedParams = combinedParams.concat(paginationParams);
 
-    const orderByClause = sortByStartDate ? "ORDER BY startDate, createdAt" : "ORDER BY createdAt DESC";
-    const combinedQuery = `SELECT * FROM (${combinedQueryParts.join(" UNION ALL ")}) AS combined 
-                            ${orderByClause} 
-                            LIMIT ?, ?`;
+    const orderByClause = sortByStartDate ? "startDate, createdAt DESC" : showRecentListings ? "COALESCE(startDate, createdAt) DESC" : "createdAt DESC";
+    const combinedQuery = `WITH all_listings AS(${combinedQueryParts.join(" UNION ALL ")}),
+        ranked AS (SELECT a.*, ROW_NUMBER() OVER (PARTITION BY COALESCE(externalId, CONCAT(title,'-',COALESCE(startDate, createdAt))) ORDER BY createdAt DESC) AS rn FROM all_listings a)
+        SELECT * FROM ranked WHERE rn = 1
+        ORDER BY ${orderByClause}, externalId LIMIT ?, ?;`;
 
     try {
         const response = await database.callQuery(combinedQuery, combinedParams);
