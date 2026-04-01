@@ -568,9 +568,15 @@ async function createListing(cityIds, payload, userId, roleId) {
                 );
             }
         }
+        const isFlashNews =
+            parseInt(insertionData.categoryId, 10) === categories.News &&
+            parseInt(insertionData.subcategoryId, 10) ===
+                subcategories.newsflash;
+
         if (
             roleId === roles.Admin &&
-            insertionData.statusId === status.Approved
+            insertionData.statusId === status.Approved &&
+            !isFlashNews
         ) {
             await sendPushNotification.sendPushNotificationsToUsers(
                 cityIds,
