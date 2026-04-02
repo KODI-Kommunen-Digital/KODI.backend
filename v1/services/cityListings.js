@@ -1289,9 +1289,9 @@ const deleteImageForCityListing = async function (id, cityId, userId, roleId) {
         WHERE logo LIKE ?
     `;
 
-    const prefix = `user_${userId}/city_${cityId}_listing_${id}`;
+    const prefix = `user_${userId}/city_${cityId}_listing_${id}%`;
 
-    const {rows: listingImages} = await database.callQuery(query, [prefix]);
+    const {rows: listingImages} = await database.callQuery(query, [prefix], cityId);
     const userImageList = listingImages.map(img => ({
         Key: img.logo
     }));

@@ -780,9 +780,9 @@ router.delete("/:id", authentication, async function (req, res, next) {
             WHERE logo LIKE ?
         `;
 
-        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}`;
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}%`;
 
-        const {rows: listingImages} = await database.callQuery(query, [prefix]);
+        const {rows: listingImages} = await database.callQuery(query, [prefix], cityId);
         const userImageList = listingImages.map(img => ({
             Key: img.logo
         }));
@@ -1298,9 +1298,9 @@ router.delete(
             WHERE logo LIKE ?
         `;
 
-        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}`;
+        const prefix = `user_${req.userId}/city_${cityId}_listing_${id}%`;
 
-        const {rows: listingImages} = await database.callQuery(query, [prefix]);
+        const {rows: listingImages} = await database.callQuery(query, [prefix], cityId);
         const userImageList = listingImages.map(img => ({
             Key: img.logo
         }));
