@@ -552,22 +552,29 @@ async function createListing(cityIds, payload, userId, roleId) {
                 listingId,
                 mappingId: response.id,
             });
-
-            if (
-                parseInt(insertionData.categoryId) === categories.News &&
-                parseInt(insertionData.subcategoryId) ===
-                subcategories.newsflash &&
-                insertionData.statusId === status.Approved &&
-                roleId === roles.Admin
-            ) {
-                await sendPushNotification.sendPushNotificationToAll(
-                    "warnings",
-                    "Eilmeldung",
-                    city.name + " - " + insertionData.title,
-                    { cityId: cityId.toString(), id: listingId.toString() }
-                );
-            }
         }
+
+        if (
+            parseInt(insertionData.categoryId) === categories.News &&
+            parseInt(insertionData.subcategoryId) ===
+                subcategories.newsflash &&
+            insertionData.statusId === status.Approved &&
+            roleId === roles.Admin &&
+            cityIds.length > 0
+        ) {
+            const mainCityId = Number(cityIds[0]);
+            const mainCity = cities.find(
+                (c) => Number(c.id) === mainCityId
+            );
+            const mainCityName = mainCity?.name ?? "";
+            await sendPushNotification.sendPushNotificationToAll(
+                "warnings",
+                "Eilmeldung",
+                mainCityName + " - " + insertionData.title,
+                { cityId: String(mainCityId), id: listingId.toString() }
+            );
+        }
+
         const isFlashNews =
             parseInt(insertionData.categoryId, 10) === categories.News &&
             parseInt(insertionData.subcategoryId, 10) ===
@@ -1371,11 +1378,6 @@ async function updateCityMappings(
             columns: ["id", "name"],
         });
 
-        const cityDetailsMap = cityDetailsResponse.rows.map((city) => [
-            city.id,
-            city.name,
-        ]);
-
         await cityListingMappingRepo.deleteWithTransaction(
             { filters: [{ key: "listingId", sign: "=", value: listingId }] },
             transaction
@@ -1403,27 +1405,19 @@ async function updateCityMappings(
             updationData.statusId === status.Approved &&
             roleId === roles.Admin
         ) {
-            const notifications = updatedCityIds.map((cityId) => ({
-                topic: "warnings",
-                title: "Eilmeldung",
-                message: `${cityDetailsMap.get(cityId) || "Unknown"} - ${updationData.title
-                    }`,
-                payload: {
-                    cityId: cityId.toString(),
+            const mainCityId = Number(updatedCityIds[0]);
+            const mainCityRow = cityDetailsResponse.rows.find(
+                (c) => Number(c.id) === mainCityId
+            );
+            const mainCityName = mainCityRow?.name ?? "Unknown";
+            await sendPushNotification.sendPushNotificationToAll(
+                "warnings",
+                "Eilmeldung",
+                `${mainCityName} - ${updationData.title}`,
+                {
+                    cityId: String(mainCityId),
                     id: listingId.toString(),
-                },
-            }));
-
-            // Send notifications in parallel
-            await Promise.all(
-                notifications.map((notification) =>
-                    sendPushNotification.sendPushNotificationToAll(
-                        notification.topic,
-                        notification.title,
-                        notification.message,
-                        notification.payload
-                    )
-                )
+                }
             );
         }
     } catch (err) {
