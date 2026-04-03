@@ -7,6 +7,6 @@ module.exports = function (title, description) {
                 Weitere Einzelheiten finden Sie im beigefügten Bild.<br>
                 <br>
                 Liebe Grüße,<br>
-                Das Heidi-Team</p>`
+                Das Rodachtal-Team</p>`
     }
 }
