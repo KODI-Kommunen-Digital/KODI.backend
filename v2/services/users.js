@@ -1600,6 +1600,23 @@ const storeFirebaseUserToken = async function (
             });
         }
 
+        // Ensure this firebase token is not associated with any other user.
+        // A single token (device) must belong to only one account at a time.
+        await firebaseTokenRepository.delete({
+            filters: [
+                {
+                    key: "firebaseToken",
+                    sign: "=",
+                    value: newFirebaseToken,
+                },
+                {
+                    key: "userId",
+                    sign: "!=",
+                    value: userId,
+                },
+            ],
+        });
+
         const response = await firebaseTokenRepository.getOne({
             filters: [
                 {
