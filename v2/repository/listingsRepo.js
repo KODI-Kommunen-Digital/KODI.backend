@@ -17,6 +17,7 @@ class ListingsRepo extends BaseRepo {
         startAfterDate = null, // Start date for range
         endBeforeDate = null, // End date for range
         statusId,
+        seriesId = null,
     }) => {
         let words = [];
         if (searchQuery) {
@@ -125,10 +126,16 @@ class ListingsRepo extends BaseRepo {
                 FROM listing_images
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId
+            ${seriesId ? `INNER JOIN ${tableNames.LISTING_EVENT_CATEGORY_TABLE} lec ON L.id = lec.listingId` : ""}
             WHERE 1=1
         `;
 
         queryParams.push(today, today);
+
+        if (seriesId) {
+            query += ` AND lec.eventCategoryId = ?`;
+            queryParams.push(seriesId);
+        }
 
         // For searchRank
         if (searchQuery) {

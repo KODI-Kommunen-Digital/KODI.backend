@@ -286,13 +286,6 @@ const getAllListings = async ({
         });
     }
 
-    if (seriesId) {
-        filters.push({
-            key: "seriesId",
-            sign: "=",
-            value: seriesId,
-        });
-    }
     console.log({ filters })
     try {
         const listings = await listingRepository.retrieveListings({
@@ -305,6 +298,7 @@ const getAllListings = async ({
             startAfterDate, // Start date for range
             endBeforeDate,
             statusId: statusData,
+            seriesId,
         });
         console.log({ listings })
         if (
