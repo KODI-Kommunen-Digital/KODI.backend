@@ -17,6 +17,7 @@ class ListingsRepo extends BaseRepo {
         startAfterDate = null, // Start date for range
         endBeforeDate = null, // End date for range
         statusId,
+        seriesId = null,
     }) => {
         let words = [];
         if (searchQuery) {
@@ -70,20 +71,21 @@ class ListingsRepo extends BaseRepo {
                 sub.logoCount,
                 sub.otherLogos,
                 ${ongoingSelect}
-                ${searchQuery
-                ? `,
+                ${
+                    searchQuery
+                        ? `,
                     (CASE 
                         WHEN ${words
-                    .map(() => `(L.title LIKE ?)`)
-                    .join(" AND ")} THEN 1
+                            .map(() => `(L.title LIKE ?)`)
+                            .join(" AND ")} THEN 1
                         WHEN ${words
-                    .map(() => `(L.description LIKE ?)`)
-                    .join(" AND ")} THEN 2
+                            .map(() => `(L.description LIKE ?)`)
+                            .join(" AND ")} THEN 2
                         ELSE 3
                     END) AS searchRank
                     `
-                : ""
-            }
+                        : ""
+                }
             FROM listings L
             INNER JOIN (
                 SELECT 
@@ -102,18 +104,20 @@ class ListingsRepo extends BaseRepo {
                 FROM city_listing_mappings clm
                 INNER JOIN cities c ON c.id = clm.cityId
                 WHERE 1 = 1
-                ${cities.length > 0
-                ? ` AND clm.cityId IN (${cities
-                    .map(() => "?")
-                    .join(",")})`
-                : ""
-            }
-                ${statusId
-                ? statusId === "*"
-                    ? ""
-                    : ` AND clm.status = ${statusId}`
-                : " AND clm.status = 1"
-            } -- default status.Active = 1
+                ${
+                    cities.length > 0
+                        ? ` AND clm.cityId IN (${cities
+                              .map(() => "?")
+                              .join(",")})`
+                        : ""
+                }
+                ${
+                    statusId
+                        ? statusId === "*"
+                            ? ""
+                            : ` AND clm.status = ${statusId}`
+                        : " AND clm.status = 1"
+                } -- default status.Active = 1
                 GROUP BY clm.listingId
             ) C ON L.id = C.listingId
             LEFT JOIN (
@@ -125,6 +129,11 @@ class ListingsRepo extends BaseRepo {
                 FROM listing_images
                 GROUP BY listingId
             ) sub ON L.id = sub.listingId
+            ${
+                seriesId
+                    ? `INNER JOIN ${tableNames.LISTING_EVENT_CATEGORY_TABLE} lec ON L.id = lec.listingId`
+                    : ""
+            }
             WHERE 1=1
         `;
 
@@ -142,13 +151,18 @@ class ListingsRepo extends BaseRepo {
             // The subquery expects one parameter per city, so spread them
             queryParams.push(...cities);
         }
+
+        if (seriesId) {
+            query += ` AND lec.eventCategoryId = ?`;
+            queryParams.push(Number(seriesId));
+        }
         // WHERE clause
         if (searchQuery) {
             query += ` AND (${words
                 .map(() => `L.title LIKE ?`)
                 .join(" AND ")} OR ${words
-                    .map(() => `L.description LIKE ?`)
-                    .join(" AND ")})`;
+                .map(() => `L.description LIKE ?`)
+                .join(" AND ")})`;
             words.forEach((word) => queryParams.push(`%${word}%`)); // title WHERE
             words.forEach((word) => queryParams.push(`%${word}%`)); // description WHERE
         }
@@ -204,11 +218,11 @@ class ListingsRepo extends BaseRepo {
         const paginationQuery = `${query} ${orderByClause} LIMIT ?, ?`;
         const offset = (pageNo - 1) * pageSize;
         queryParams.push(parseInt(offset, 10), parseInt(pageSize, 10));
-        console.log({ paginationQuery, queryParams })
+        console.log({ paginationQuery, queryParams });
         try {
             const response = await database.callQuery(
                 paginationQuery,
-                queryParams
+                queryParams,
             );
             return response.rows;
         } catch (error) {
