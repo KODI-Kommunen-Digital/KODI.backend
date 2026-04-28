@@ -8,7 +8,7 @@ const AppError = require("../utils/appError");
 router.get("/streets", async function (req, res, next) {
     const cityId = req.cityId;
 
-    if (!cityId || isNaN(cityId)){
+    if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
     if (cityId) {
@@ -16,11 +16,11 @@ router.get("/streets", async function (req, res, next) {
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: parseInt(cityId) },
-                null
+                null,
             );
             if (response.rows.cities && response.rows.cities.length === 0) {
                 return next(
-                    new AppError(`Invalid CityId '${cityId}' given`, 400)
+                    new AppError(`Invalid CityId '${cityId}' given`, 400),
                 );
             }
         } catch (err) {
@@ -29,14 +29,19 @@ router.get("/streets", async function (req, res, next) {
     }
 
     database
-        .get(tables.MULLKALENDER_STREETS, { cityId }, "id, name, hashedStreetName")
+        .get(
+            tables.MULLKALENDER_STREETS,
+            { cityId },
+            "id, name, hashedStreetName",
+        )
         .then((response) => {
             const data = response.rows;
             res.status(200).json({
                 status: "success",
                 data,
             });
-        }).catch((err) => {
+        })
+        .catch((err) => {
             return next(new AppError(err));
         });
 });
@@ -44,7 +49,7 @@ router.get("/streets", async function (req, res, next) {
 router.get("/wasteTypes", async function (req, res, next) {
     const cityId = req.cityId;
 
-    if (!cityId || isNaN(cityId)){
+    if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
     if (cityId) {
@@ -52,11 +57,11 @@ router.get("/wasteTypes", async function (req, res, next) {
             const response = await database.get(
                 tables.CITIES_TABLE,
                 { id: parseInt(cityId) },
-                null
+                null,
             );
             if (response.rows.cities && response.rows.cities.length === 0) {
                 return next(
-                    new AppError(`Invalid CityId '${cityId}' given`, 400)
+                    new AppError(`Invalid CityId '${cityId}' given`, 400),
                 );
             }
         } catch (err) {
@@ -65,14 +70,15 @@ router.get("/wasteTypes", async function (req, res, next) {
     }
 
     database
-        .get(tables.MULLKALENDER_WASTE_TYPES, null, "id, name")
+        .get(tables.MULLKALENDER_WASTE_TYPES, null)
         .then((response) => {
             const data = response.rows;
             res.status(200).json({
                 status: "success",
                 data,
             });
-        }).catch((err) => {
+        })
+        .catch((err) => {
             return next(new AppError(err));
         });
 });
@@ -82,18 +88,23 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
     const streetId = req.params.streetId;
     const wasteIdParam = req.query.wasteIds;
 
-    if (!cityId || isNaN(cityId)){
+    if (!cityId || isNaN(cityId)) {
         return next(new AppError(`invalid cityId given`, 400));
     }
 
     // Parse and validate optional comma-separated wasteId filter
     let wasteIds = [];
     if (wasteIdParam) {
-        wasteIds = wasteIdParam.split(",").map(id => id.trim());
-        if (wasteIds.some(id => isNaN(id) || id === "")) {
-            return next(new AppError(`Invalid wasteId values given. Provide comma-separated numeric IDs.`, 400));
+        wasteIds = wasteIdParam.split(",").map((id) => id.trim());
+        if (wasteIds.some((id) => isNaN(id) || id === "")) {
+            return next(
+                new AppError(
+                    `Invalid wasteId values given. Provide comma-separated numeric IDs.`,
+                    400,
+                ),
+            );
         }
-        wasteIds = wasteIds.map(id => parseInt(id));
+        wasteIds = wasteIds.map((id) => parseInt(id));
     }
 
     if (cityId) {
@@ -101,11 +112,11 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
             let response = await database.get(
                 tables.CITIES_TABLE,
                 { id: parseInt(cityId) },
-                null
+                null,
             );
             if (response.rows.cities && response.rows.cities.length === 0) {
                 return next(
-                    new AppError(`Invalid CityId '${cityId}' given`, 400)
+                    new AppError(`Invalid CityId '${cityId}' given`, 400),
                 );
             }
 
@@ -132,11 +143,11 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
                     inner join mullkalender_waste_types mwt
                     on mwt.id = mpg.wasteId${wasteIdFilter} order by md.dateofPickup;`,
                 queryParams,
-            )
+            );
 
-            const groupedDates = {}
+            const groupedDates = {};
 
-            response.rows.forEach(element => {
+            response.rows.forEach((element) => {
                 if (!groupedDates[element.dateofPickup.toISOString()]) {
                     groupedDates[element.dateofPickup.toISOString()] = [];
                 }
@@ -145,14 +156,13 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
 
             res.status(200).json({
                 status: "success",
-                data: groupedDates
+                data: groupedDates,
             });
         } catch (err) {
             return next(new AppError(err));
         }
     }
 });
-
 
 // POST /register - Register/Update device with FCM token
 deviceRouter.post("/register", async function (req, res, next) {
@@ -172,7 +182,7 @@ deviceRouter.post("/register", async function (req, res, next) {
         const existingDevice = await database.get(
             tables.MULLKALENDER_PUSH_DEVICES,
             { device_id: payload.deviceId },
-            "id, device_id, fcm_token, device_type, app_version, is_active"
+            "id, device_id, fcm_token, device_type, app_version, is_active",
         );
 
         let deviceData;
@@ -182,15 +192,15 @@ deviceRouter.post("/register", async function (req, res, next) {
             const existing = existingDevice.rows[0];
             const updateData = {
                 fcm_token: payload.fcmToken,
-                device_type: payload.deviceType || 'android',
+                device_type: payload.deviceType || "android",
                 app_version: payload.appVersion || null,
-                is_active: true
+                is_active: true,
             };
 
             await database.update(
                 tables.MULLKALENDER_PUSH_DEVICES,
                 updateData,
-                { id: existing.id }
+                { id: existing.id },
             );
 
             deviceData = {
@@ -199,22 +209,22 @@ deviceRouter.post("/register", async function (req, res, next) {
                 fcmToken: payload.fcmToken,
                 deviceType: updateData.device_type,
                 appVersion: updateData.app_version,
-                isActive: true
+                isActive: true,
             };
         } else {
             // Create new device
             const insertData = {
                 device_id: payload.deviceId,
                 fcm_token: payload.fcmToken,
-                device_type: payload.deviceType || 'android',
+                device_type: payload.deviceType || "android",
                 app_version: payload.appVersion || null,
-                is_active: true
+                is_active: true,
             };
             /* eslint-enable camelcase */
 
             const result = await database.create(
                 tables.MULLKALENDER_PUSH_DEVICES,
-                insertData
+                insertData,
             );
 
             deviceData = {
@@ -223,13 +233,13 @@ deviceRouter.post("/register", async function (req, res, next) {
                 fcmToken: payload.fcmToken,
                 deviceType: insertData.device_type,
                 appVersion: insertData.app_version,
-                isActive: true
+                isActive: true,
             };
         }
 
         return res.status(200).json({
             status: "success",
-            data: deviceData
+            data: deviceData,
         });
     } catch (err) {
         return next(new AppError(err));
@@ -250,7 +260,7 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
         const deviceResult = await database.get(
             tables.MULLKALENDER_PUSH_DEVICES,
             { device_id: deviceId },
-            "id, device_id, fcm_token, device_type, app_version, is_active, created_at, updated_at"
+            "id, device_id, fcm_token, device_type, app_version, is_active, created_at, updated_at",
         );
 
         if (!deviceResult.rows || deviceResult.rows.length === 0) {
@@ -263,7 +273,7 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
         const streetSubscription = await database.get(
             tables.MULLKALENDER_PUSH_DEVICE_STREETS,
             { push_device_id: device.id },
-            "id, city_id, street_id, is_active"
+            "id, city_id, street_id, is_active",
         );
 
         let street = null;
@@ -276,13 +286,13 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
             const streetResult = await database.get(
                 tables.MULLKALENDER_STREETS,
                 { id: deviceStreet.street_id },
-                "id, name, hashedStreetName"
+                "id, name, hashedStreetName",
             );
 
             if (streetResult.rows && streetResult.rows.length > 0) {
                 street = {
                     ...streetResult.rows[0],
-                    isActive: deviceStreet.is_active
+                    isActive: deviceStreet.is_active,
                 };
             }
 
@@ -290,17 +300,22 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
             const wasteTypeSubscriptions = await database.get(
                 tables.MULLKALENDER_PUSH_DEVICE_WASTE_TYPES,
                 { device_street_id: deviceStreet.id },
-                "waste_type_id"
+                "waste_type_id",
             );
 
-            if (wasteTypeSubscriptions.rows && wasteTypeSubscriptions.rows.length > 0) {
-                const wasteTypeIds = wasteTypeSubscriptions.rows.map(w => w.waste_type_id);
+            if (
+                wasteTypeSubscriptions.rows &&
+                wasteTypeSubscriptions.rows.length > 0
+            ) {
+                const wasteTypeIds = wasteTypeSubscriptions.rows.map(
+                    (w) => w.waste_type_id,
+                );
                 /* eslint-enable camelcase */
-                
+
                 const wasteTypesResult = await database.get(
                     tables.MULLKALENDER_WASTE_TYPES,
                     { id: wasteTypeIds },
-                    "id, name"
+                    "id, name",
                 );
 
                 wasteTypes = wasteTypesResult.rows || [];
@@ -318,11 +333,11 @@ deviceRouter.get("/subscription/:deviceId", async function (req, res, next) {
                     appVersion: device.app_version,
                     isActive: device.is_active,
                     createdAt: device.created_at,
-                    updatedAt: device.updated_at
+                    updatedAt: device.updated_at,
                 },
                 street,
-                wasteTypes
-            }
+                wasteTypes,
+            },
         });
     } catch (err) {
         return next(new AppError(err));
@@ -338,7 +353,7 @@ deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
         return next(new AppError(`deviceId is required`, 400));
     }
 
-    if (typeof payload.isActive !== 'boolean') {
+    if (typeof payload.isActive !== "boolean") {
         return next(new AppError(`isActive (boolean) is required`, 400));
     }
 
@@ -348,7 +363,7 @@ deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
         const deviceResult = await database.get(
             tables.MULLKALENDER_PUSH_DEVICES,
             { device_id: deviceId },
-            "id"
+            "id",
         );
 
         if (!deviceResult.rows || deviceResult.rows.length === 0) {
@@ -361,18 +376,26 @@ deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
         const streetSubscriptions = await database.get(
             tables.MULLKALENDER_PUSH_DEVICE_STREETS,
             { push_device_id: pushDeviceId },
-            "id"
+            "id",
         );
 
-        if (!streetSubscriptions.rows || streetSubscriptions.rows.length === 0) {
-            return next(new AppError(`No street subscription found for this device`, 404));
+        if (
+            !streetSubscriptions.rows ||
+            streetSubscriptions.rows.length === 0
+        ) {
+            return next(
+                new AppError(
+                    `No street subscription found for this device`,
+                    404,
+                ),
+            );
         }
 
         // Update subscribed street(s) active status
         await database.update(
             tables.MULLKALENDER_PUSH_DEVICE_STREETS,
             { is_active: payload.isActive },
-            { push_device_id: pushDeviceId }
+            { push_device_id: pushDeviceId },
         );
         /* eslint-enable camelcase */
 
@@ -380,9 +403,11 @@ deviceRouter.patch("/status/:deviceId", async function (req, res, next) {
             status: "success",
             data: {
                 deviceId,
-                isActive: payload.isActive
+                isActive: payload.isActive,
             },
-            message: payload.isActive ? "Street subscription activated successfully" : "Street subscription deactivated successfully"
+            message: payload.isActive
+                ? "Street subscription activated successfully"
+                : "Street subscription deactivated successfully",
         });
     } catch (err) {
         return next(new AppError(err));
@@ -416,11 +441,13 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
         const deviceResult = await database.get(
             tables.MULLKALENDER_PUSH_DEVICES,
             { device_id: payload.deviceId },
-            "id"
+            "id",
         );
 
         if (!deviceResult.rows || deviceResult.rows.length === 0) {
-            return next(new AppError(`Device not found. Please register first.`, 404));
+            return next(
+                new AppError(`Device not found. Please register first.`, 404),
+            );
         }
 
         const pushDeviceId = deviceResult.rows[0].id;
@@ -429,7 +456,7 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
         const streetResult = await database.get(
             tables.MULLKALENDER_STREETS,
             { id: parseInt(payload.streetId), cityId: parseInt(cityId) },
-            "id, name"
+            "id, name",
         );
 
         if (!streetResult.rows || streetResult.rows.length === 0) {
@@ -442,10 +469,15 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
             wasteTypesResult = await database.get(
                 tables.MULLKALENDER_WASTE_TYPES,
                 { id: payload.wasteTypeIds },
-                "id, name"
+                "id, name",
             );
-            if (!wasteTypesResult.rows || wasteTypesResult.rows.length !== payload.wasteTypeIds.length) {
-                return next(new AppError(`One or more waste types not found`, 404));
+            if (
+                !wasteTypesResult.rows ||
+                wasteTypesResult.rows.length !== payload.wasteTypeIds.length
+            ) {
+                return next(
+                    new AppError(`One or more waste types not found`, 404),
+                );
             }
         }
 
@@ -453,26 +485,29 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
         const existingStreet = await database.get(
             tables.MULLKALENDER_PUSH_DEVICE_STREETS,
             { push_device_id: pushDeviceId },
-            "id, street_id, is_active"
+            "id, street_id, is_active",
         );
 
         let deviceStreetId;
 
         if (existingStreet.rows && existingStreet.rows.length > 0) {
             const currentStreetSubscription = existingStreet.rows[0];
-            
-            if (currentStreetSubscription.street_id !== parseInt(payload.streetId)) {
+
+            if (
+                currentStreetSubscription.street_id !==
+                parseInt(payload.streetId)
+            ) {
                 // Street changed - preserve is_active status, delete old and create new
                 const preservedIsActive = currentStreetSubscription.is_active;
 
                 await database.deleteData(
                     tables.MULLKALENDER_PUSH_DEVICE_WASTE_TYPES,
-                    { device_street_id: currentStreetSubscription.id }
+                    { device_street_id: currentStreetSubscription.id },
                 );
 
                 await database.deleteData(
                     tables.MULLKALENDER_PUSH_DEVICE_STREETS,
-                    { id: currentStreetSubscription.id }
+                    { id: currentStreetSubscription.id },
                 );
 
                 // Create new street subscription with preserved is_active status
@@ -482,8 +517,8 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
                         push_device_id: pushDeviceId,
                         city_id: parseInt(cityId),
                         street_id: parseInt(payload.streetId),
-                        is_active: preservedIsActive
-                    }
+                        is_active: preservedIsActive,
+                    },
                 );
                 deviceStreetId = streetInsertResult.id;
             } else {
@@ -493,7 +528,7 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
                 // Delete existing waste type subscriptions
                 await database.deleteData(
                     tables.MULLKALENDER_PUSH_DEVICE_WASTE_TYPES,
-                    { device_street_id: deviceStreetId }
+                    { device_street_id: deviceStreetId },
                 );
             }
         } else {
@@ -504,21 +539,18 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
                     push_device_id: pushDeviceId,
                     city_id: parseInt(cityId),
                     street_id: parseInt(payload.streetId),
-                    is_active: true
-                }
+                    is_active: true,
+                },
             );
             deviceStreetId = streetInsertResult.id;
         }
 
         // Insert waste type subscriptions
         for (const wasteTypeId of payload.wasteTypeIds) {
-            await database.create(
-                tables.MULLKALENDER_PUSH_DEVICE_WASTE_TYPES,
-                {
-                    device_street_id: deviceStreetId,
-                    waste_type_id: parseInt(wasteTypeId)
-                }
-            );
+            await database.create(tables.MULLKALENDER_PUSH_DEVICE_WASTE_TYPES, {
+                device_street_id: deviceStreetId,
+                waste_type_id: parseInt(wasteTypeId),
+            });
         }
         /* eslint-enable camelcase */
 
@@ -527,8 +559,8 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
             data: {
                 deviceStreetId,
                 street: streetResult.rows[0],
-                wasteTypes: wasteTypesResult.rows
-            }
+                wasteTypes: wasteTypesResult.rows,
+            },
         });
     } catch (err) {
         return next(new AppError(err));
@@ -537,5 +569,5 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
 
 module.exports = {
     router,
-    deviceRouter
+    deviceRouter,
 };
