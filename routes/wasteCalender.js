@@ -131,7 +131,7 @@ router.get("/streets/:streetId/pickupDates", async function (req, res, next) {
             response = await database.callQuery(
                 `with street as (select * from mullkalender_streets
                     where id = ? and cityId = ?)
-                    select md.dateofPickup, mwt.name as wastetypeName, md.dateEpoch, mwt.id as wasteTypeId from street mst
+                    select md.dateofPickup, mwt.name as wastetypeName, md.dateEpoch, mwt.id as wasteTypeId, mwt.image, mwt.colour from street mst
                     inner join mullkalender_street_properties_house msph
                     on msph.streetId = mst.id
                     inner join mullkalender_properties mp
