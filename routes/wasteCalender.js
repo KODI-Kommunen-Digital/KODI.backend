@@ -497,14 +497,14 @@ router.post("/pushNotification/subscribe", async function (req, res, next) {
                 );
             }
         } else {
-            // No existing subscription - create new with is_active = true
+            // No existing subscription - create new with is_active = false until enabled via PATCH
             const streetInsertResult = await database.create(
                 tables.MULLKALENDER_PUSH_DEVICE_STREETS,
                 {
                     push_device_id: pushDeviceId,
                     city_id: parseInt(cityId),
                     street_id: parseInt(payload.streetId),
-                    is_active: true
+                    is_active: false
                 }
             );
             deviceStreetId = streetInsertResult.id;
