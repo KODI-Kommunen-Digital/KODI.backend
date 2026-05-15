@@ -1395,9 +1395,7 @@ const deleteUser = async function (userId) {
 
         const userImageList = await getUserImages(userId);
 
-        await imageDeleteAsync.deleteMultiple(
-            userImageList.map((image) => ({ Key: image.Key._text })),
-        );
+        await imageDeleteAsync.deleteMultiple(userImageList);
         for (const cityUser of cityUsers) {
             // await database.callStoredProcedure(
             //     storedProcedures.DELETE_CITY_USER,
