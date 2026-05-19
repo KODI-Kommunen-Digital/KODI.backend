@@ -4,30 +4,45 @@ const database = require("../utils/database");
 const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const crypto = require("crypto");
-const authentication = require("../middlewares/authentication");
 const sendCustomMail = require("../utils/sendCustomMail");
 
-router.post("/", authentication, async (req, res, next) => {
+router.post("/", async (req, res, next) => {
     const payload = req.body;
     const language = payload.language || "de";
-    const userId = req.userId;
 
     try {
-        const { title, description } = payload;
+        const { title, description, email } = payload;
 
-        if (!title || !description || !req.files || !req.files.image) {
+        // check if all mandatory fields are present, currently email and image are not included as mandatory
+        if (!title || !description) {
             return next(new AppError("All fields are mandatory", 400));
         }
 
-        const imageFile = req.files.image;
+        let tag = email;
+        if (!tag) {
+            // if tag is null/undefined then assign current date time in YYYY-MM-DDTHH:MM:SS format.
+            tag = new Date().toISOString().slice(0,-5);
+        }
 
-        const imageHash = crypto
-            .createHash("md5")
-            .update(imageFile.data) // note: `data` instead of `buffer`
-            .digest("hex");
+        const imageFile = req.files?.image;
+        let imageHash = null;
+        const attachments = [];
+
+        if (imageFile) {
+            imageHash = crypto
+                .createHash("md5")
+                .update(imageFile.data) // note: `data` instead of `buffer`
+                .digest("hex");
+
+            attachments.push({
+                filename: `defect_image_${tag}.jpg`,
+                content: imageFile.data, // Buffer
+                contentType: imageFile.mimetype || "image/jpeg",
+            });
+        }
 
         const defectReport = {
-            userId,
+            email,
             title,
             description,
             hashOfImage: imageHash,
@@ -41,13 +56,7 @@ router.post("/", authentication, async (req, res, next) => {
         await sendCustomMail({
             email: process.env.DEFECT_REPORTER_SENDER_EMAIL,
             pass: process.env.DEFECT_REPORTER_SENDER_PASSWORD,
-        },recipients, subject, null, body, [
-            {
-                filename: `defect_image_${userId}.jpg`,
-                content: imageFile.data, // Buffer
-                contentType: imageFile.mimetype || "image/jpeg",
-            },
-        ]);
+        }, recipients, subject, null, body, attachments);
 
         const response = await database.create(tables.DEFECT_REPORTS, defectReport);
 
