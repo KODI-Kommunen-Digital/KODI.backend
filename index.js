@@ -23,7 +23,7 @@ const { router: wasteCalender, deviceRouter: wasteCalenderDevice } = require("./
 const defectReportRouter = require("./routes/defectReporter");
 const fileUpload = require("express-fileupload");
 const headers = require("./middlewares/headers");
-require("./services/pollservice"); // Start the polling service
+// require("./services/pollservice"); // Start the polling service
 
 // defining the Express app
 const app = express();
