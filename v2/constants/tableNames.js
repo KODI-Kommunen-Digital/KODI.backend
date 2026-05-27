@@ -32,6 +32,7 @@ module.exports = {
     MULLKALENDER_WASTE_TYPES: "mullkalender_waste_types",
     POLL_OPTIONS_TABLE: "poll_options",
     DEFECT_REPORTS: "defect_reports",
+    DEFECT_CATEGORY_EMAILS: "defect_category_emails",
     FIREBASE_TOKEN_TABLE: 'firebase_token',
     USER_PREFERENCE_CITIES_TABLE: 'user_preference_cities',
     USER_PREFERENCE_CATEGORIES_TABLE: 'user_preference_categories',

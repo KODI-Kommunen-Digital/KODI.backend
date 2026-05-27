@@ -11,7 +11,7 @@ router.post("/", async (req, res, next) => {
     const language = payload.language || "de";
 
     try {
-        const { title, description, email } = payload;
+        const { title, description, email, category, address } = payload;
 
         // check if all mandatory fields are present, currently email and image are not included as mandatory
         if (!title || !description) {
@@ -45,13 +45,30 @@ router.post("/", async (req, res, next) => {
             email,
             title,
             description,
+            category: category || null,
+            address: address || null,
             hashOfImage: imageHash,
         };
 
-        let recipients = JSON.parse(process.env.DEFECT_REPORTING_EMAILS);
+        // Determine recipients: look up the category in defect_category_emails table.
+        // Fall back to DEFECT_REPORTING_EMAILS env var if no row found.
+        let recipients;
+        if (category) {
+            const { rows } = await database.get(
+                tables.DEFECT_CATEGORY_EMAILS,
+                [{ key: "category", sign: "=", value: category }],
+                "emails"
+            );
+            if (rows.length > 0) {
+                recipients = rows[0].emails;   // already comma-separated string
+            }
+        }
+        if (!recipients) {
+            recipients = JSON.parse(process.env.DEFECT_REPORTING_EMAILS).join(",");
+        }
+
         const defectReportEmail = require(`../emailTemplates/${language}/defectReportEmail`);
         const { subject, body } = defectReportEmail(title, description);
-        recipients = recipients.join(",");
 
         await sendCustomMail({
             email: process.env.DEFECT_REPORTER_SENDER_EMAIL,
