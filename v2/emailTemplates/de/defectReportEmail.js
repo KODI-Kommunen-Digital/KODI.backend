@@ -1,9 +1,10 @@
-module.exports = function (title, description) {
+module.exports = function (title, description, address) {
     return {
         subject: `Neuer Mängelmelder: ${title}`,
         body: `<h1>Mängelmelder</h1>
                 <p><strong>Titel:</strong> ${title},<br>
                 <strong>Beschreibung:</strong> ${description} <br>
+                ${address ? `<strong>Adresse:</strong> ${address} <br>` : ""}
                 Weitere Einzelheiten finden Sie im beigefügten Bild.<br>
                 <br>
                 Liebe Grüße,<br>
