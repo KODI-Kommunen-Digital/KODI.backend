@@ -71,7 +71,7 @@ router.post("/", async (req, res, next) => {
         }
 
         const defectReportEmail = require(`../emailTemplates/${language}/defectReportEmail`);
-        const { subject, body } = defectReportEmail(title, description, address);
+        const { subject, body } = defectReportEmail(title, description, address, email);
 
         await sendCustomMail({
             email: process.env.DEFECT_REPORTER_SENDER_EMAIL,
