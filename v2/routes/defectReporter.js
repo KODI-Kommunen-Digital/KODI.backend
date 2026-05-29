@@ -13,7 +13,6 @@ router.post("/", async (req, res, next) => {
     try {
         const { title, description, email, category, address } = payload;
 
-        // check if all mandatory fields are present, currently email and image are not included as mandatory
         if (!title || !description) {
             return next(new AppError("All fields are mandatory", 400));
         }
@@ -25,6 +24,10 @@ router.post("/", async (req, res, next) => {
         }
 
         const imageFile = req.files?.image;
+        if (!imageFile) {
+            return next(new AppError("Image is mandatory", 400));
+        }
+
         let imageHash = null;
         const attachments = [];
 
