@@ -75,6 +75,15 @@ router.post("/", async (req, res, next) => {
             pass: process.env.DEFECT_REPORTER_SENDER_PASSWORD,
         }, recipients, subject, null, body, attachments);
 
+        if (email) {
+            const confirmationEmail = require(`../emailTemplates/${language}/defectReportConfirmationEmail`);
+            const { subject: confirmSubject, body: confirmBody } = confirmationEmail(title);
+            await sendCustomMail({
+                email: process.env.DEFECT_REPORTER_SENDER_EMAIL,
+                pass: process.env.DEFECT_REPORTER_SENDER_PASSWORD,
+            }, email, confirmSubject, null, confirmBody);
+        }
+
         const response = await database.create(tables.DEFECT_REPORTS, defectReport);
 
         res.status(200).json({
