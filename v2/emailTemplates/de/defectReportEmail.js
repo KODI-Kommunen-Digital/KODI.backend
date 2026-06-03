@@ -10,6 +10,6 @@ module.exports = function (title, description, address, reporterEmail, phoneNumb
                 Weitere Einzelheiten finden Sie im beigefügten Bild.<br>
                 <br>
                 Liebe Grüße,<br>
-                Das Gera-Team</p>`,
+                Das ${process.env.REGION}-Team</p>`,
     };
 };

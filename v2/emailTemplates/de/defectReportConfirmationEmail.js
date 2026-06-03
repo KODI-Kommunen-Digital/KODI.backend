@@ -9,6 +9,6 @@ module.exports = function (title) {
                 Unser Team wird Ihre Meldung prüfen und die erforderlichen Maßnahmen ergreifen.<br>
                 <br>
                 Liebe Grüße,<br>
-                Das Gera-Team</p>`,
+                Das ${process.env.REGION}-Team</p>`,
     };
 };
