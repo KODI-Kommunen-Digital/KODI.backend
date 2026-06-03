@@ -83,10 +83,12 @@ router.post("/", async (req, res, next) => {
         if (email) {
             const confirmationEmail = require(`../emailTemplates/${language}/defectReportConfirmationEmail`);
             const { subject: confirmSubject, body: confirmBody } = confirmationEmail(title);
-            await sendCustomMail({
+            sendCustomMail({
                 email: process.env.DEFECT_REPORTER_SENDER_EMAIL,
                 pass: process.env.DEFECT_REPORTER_SENDER_PASSWORD,
-            }, email, confirmSubject, null, confirmBody);
+            }, email, confirmSubject, null, confirmBody).catch(err => {
+                console.error("Failed to send defect report confirmation email:", err);
+            });
         }
 
         const response = await database.create(tables.DEFECT_REPORTS, defectReport);
