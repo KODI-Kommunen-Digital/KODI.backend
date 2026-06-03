@@ -6,6 +6,6 @@ module.exports = function (firstName, lastName) {
                 You have reset your succesfully verified your account. You can now login to your account.<br>
                 <br>
                 Thank you,<br>
-                Heidi Team</p>`,
+                Gera Team</p>`,
     };
 };

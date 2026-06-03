@@ -7,6 +7,6 @@ module.exports = function (firstName, lastName, token, userId, lang) {
                 <a href="${process.env.WEBSITE_DOMAIN}/VerifyEmail?token=${token}&userId=${userId}&lang=${lang}" target="_blank" rel="noopener noreferrer">Verify email link</a>
                 <br>
                 Thank you,<br>
-                Heidi Team</p>`,
+                Gera Team</p>`,
     };
 };

@@ -9,6 +9,6 @@ module.exports = function (title) {
                 Unser Team wird Ihre Meldung prüfen und die erforderlichen Maßnahmen ergreifen.<br>
                 <br>
                 Liebe Grüße,<br>
-                Das Heidi-Team</p>`,
+                Das Gera-Team</p>`,
     };
 };

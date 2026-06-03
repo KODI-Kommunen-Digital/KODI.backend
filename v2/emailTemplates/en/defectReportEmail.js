@@ -10,6 +10,6 @@ module.exports = function (title, description, address, reporterEmail, phoneNumb
                 See the attached image for more details.<br>
                 <br>
                 Thank you,<br>
-                Heidi Team</p>`,
+                Gera Team</p>`,
     };
 };

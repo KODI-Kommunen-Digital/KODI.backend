@@ -7,6 +7,6 @@ module.exports = function (firstName, lastName, token, userId) {
                 <a href="${process.env.WEBSITE_DOMAIN}/PasswordForgot?token=${token}&userId=${userId}" target="_blank" rel="noopener noreferrer">Forgot password link</a>
                 <br>
                 Thank you,<br>
-                Heidi Team</p>`,
+                Gera Team</p>`,
     };
 };

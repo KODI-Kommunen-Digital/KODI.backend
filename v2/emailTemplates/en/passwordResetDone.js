@@ -6,6 +6,6 @@ module.exports = function (firstName, lastName) {
                 You have succesfully reset the password of your account.<br>
                 <br>
                 Thank you,<br>
-                Heidi Team</p>`,
+                Gera Team</p>`,
     };
 };

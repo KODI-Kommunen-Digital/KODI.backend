@@ -9,6 +9,6 @@ module.exports = function (title) {
                 Our team will review your report and take the necessary action.<br>
                 <br>
                 Thank you,<br>
-                Heidi Team</p>`,
+                Gera Team</p>`,
     };
 };
