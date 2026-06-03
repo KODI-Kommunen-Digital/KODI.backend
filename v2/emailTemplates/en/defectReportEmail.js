@@ -1,4 +1,4 @@
-module.exports = function (title, description, address, reporterEmail) {
+module.exports = function (title, description, address, reporterEmail, phoneNumber) {
     return {
         subject: `New Defect Report: ${title}`,
         body: `<h1>Defect Report</h1>
@@ -6,6 +6,7 @@ module.exports = function (title, description, address, reporterEmail) {
                 <strong>Description:</strong> ${description} <br>
                 ${address ? `<strong>Address:</strong> ${address} <br>` : ""}
                 ${reporterEmail ? `<strong>Reporter Email:</strong> ${reporterEmail} <br>` : ""}
+                ${phoneNumber ? `<strong>Phone Number:</strong> ${phoneNumber} <br>` : ""}
                 See the attached image for more details.<br>
                 <br>
                 Thank you,<br>

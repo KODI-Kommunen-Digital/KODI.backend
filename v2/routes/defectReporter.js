@@ -11,7 +11,7 @@ router.post("/", async (req, res, next) => {
     const language = payload.language || "de";
 
     try {
-        const { title, description, email, category, address } = payload;
+        const { title, description, email, category, address, phoneNumber } = payload;
 
         if (!title || !description) {
             return next(new AppError("All fields are mandatory", 400));
@@ -50,6 +50,8 @@ router.post("/", async (req, res, next) => {
             description,
             category: category || null,
             address: address || null,
+            // eslint-disable-next-line camelcase
+            phone_number: phoneNumber || null,
             hashOfImage: imageHash,
         };
 
@@ -71,7 +73,7 @@ router.post("/", async (req, res, next) => {
         }
 
         const defectReportEmail = require(`../emailTemplates/${language}/defectReportEmail`);
-        const { subject, body } = defectReportEmail(title, description, address, email);
+        const { subject, body } = defectReportEmail(title, description, address, email, phoneNumber);
 
         await sendCustomMail({
             email: process.env.DEFECT_REPORTER_SENDER_EMAIL,
