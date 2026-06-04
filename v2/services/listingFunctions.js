@@ -70,7 +70,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 });
                 throw new AppError(
                     `Invalid City '${invalidCityIds[0]}' given`,
-                    400
+                    400,
                 );
             }
             cities = response.rows;
@@ -112,7 +112,7 @@ async function createListing(cityIds, payload, userId, roleId) {
     } else if (payload.description.length > 65535) {
         throw new AppError(
             `Length of Description cannot exceed 65535 characters`,
-            400
+            400,
         );
     } else {
         insertionData.description = checkDesc(payload.description);
@@ -145,7 +145,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (!response) {
                 throw new AppError(
                     `Invalid Category '${payload.categoryId}' given`,
-                    400
+                    400,
                 );
             }
             if (response.noOfSubcategories > 0) subcategory = true;
@@ -159,7 +159,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         if (!subcategory) {
             throw new AppError(
                 `Invalid Sub Category. Category Id = '${payload.categoryId}' doesn't have a subcategory.`,
-                400
+                400,
             );
         }
         try {
@@ -175,7 +175,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (!subCategoryData) {
                 throw new AppError(
                     `Invalid Sub Category '${payload.subcategoryId}' given`,
-                    400
+                    400,
                 );
             }
         } catch (err) {
@@ -190,10 +190,10 @@ async function createListing(cityIds, payload, userId, roleId) {
         cityIds.map(async (cityId) => {
             cityAdminMap[cityId] =
                 await cityUserRolesRepository.isUserCityAdmin(userId, cityId);
-        })
+        }),
     );
     const isAnAdmin = Object.keys(cityAdminMap).some(
-        (cityId) => cityAdminMap[cityId]
+        (cityId) => cityAdminMap[cityId],
     );
 
     // If user is a moderator, validate city access and category permissions
@@ -204,15 +204,15 @@ async function createListing(cityIds, payload, userId, roleId) {
             columns: ["id", "cityId"],
         });
         const allowedCityIds = new Set(
-            moderatorCities.rows.map((r) => r.cityId)
+            moderatorCities.rows.map((r) => r.cityId),
         );
         const unauthorizedCities = cityIds.filter(
-            (cid) => !allowedCityIds.has(cid)
+            (cid) => !allowedCityIds.has(cid),
         );
         if (unauthorizedCities.length > 0) {
             throw new AppError(
                 `Not authorized for cities: ${unauthorizedCities.join(",")}`,
-                403
+                403,
             );
         }
 
@@ -223,7 +223,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 filters: [{ key: "moderatorId", sign: "=", value: record.id }],
             });
             const permissionIds = new Set(
-                perms.rows.map((p) => p.permissionId)
+                perms.rows.map((p) => p.permissionId),
             );
 
             // Category validation based on requirements
@@ -234,7 +234,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 // create_news permission
                 throw new AppError(
                     "Missing create_news permission for News category",
-                    403
+                    403,
                 );
             }
             if (
@@ -244,7 +244,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 // create_events permission
                 throw new AppError(
                     "Missing create_events permission for Events category",
-                    403
+                    403,
                 );
             }
         }
@@ -268,7 +268,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (!statusData) {
                 throw new AppError(
                     `Invalid Status '${payload.statusId}' given`,
-                    400
+                    400,
                 );
             }
         } catch (err) {
@@ -312,7 +312,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             if (!["http:", "https:"].includes(url.protocol)) {
                 throw new AppError(
                     "Only HTTP/HTTPS protocols are allowed",
-                    400
+                    400,
                 );
             }
             insertionData.website = url.toString();
@@ -346,13 +346,13 @@ async function createListing(cityIds, payload, userId, roleId) {
         if (isNaN(lon)) {
             throw new AppError(
                 "Invalid longitude value, Longitude value should be a Number",
-                400
+                400,
             );
         }
         if (lon < -180 || lon > 180) {
             throw new AppError(
                 "Invalid longitude value, Longitude value should be between -180° to 180°",
-                400
+                400,
             );
         }
         insertionData.longitude = lon;
@@ -366,7 +366,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         if (lat < -90 || lat > 90) {
             throw new AppError(
                 "Invalid latitude value, Latitude value should be between -90° to 90°",
-                400
+                400,
             );
         }
         insertionData.latitude = lat;
@@ -388,7 +388,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 if (isNaN(expiryDate.getTime())) {
                     throw new AppError(
                         'Invalid expiry date format, example format: "2025-01-06T07:47:09.230Z" ',
-                        400
+                        400,
                     );
                 }
                 insertionData.expiryDate = getDateInFormate(expiryDate);
@@ -396,8 +396,8 @@ async function createListing(cityIds, payload, userId, roleId) {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(insertionData.createdAt).getTime() +
-                            1000 * 60 * 60 * 24 * 14
-                    )
+                            1000 * 60 * 60 * 24 * 14,
+                    ),
                 );
             }
         }
@@ -408,7 +408,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                 if (isNaN(startDate.getTime())) {
                     throw new AppError(
                         'Invalid start date format, example format: "2025-01-06T07:47:09.230Z"',
-                        400
+                        400,
                     );
                 }
                 insertionData.startDate = getDateInFormate(startDate);
@@ -421,28 +421,28 @@ async function createListing(cityIds, payload, userId, roleId) {
                 if (isNaN(endDate.getTime())) {
                     throw new AppError(
                         'Invalid end date format, example format: "2025-01-06T07:47:09.230Z" ',
-                        400
+                        400,
                     );
                 }
                 if (endDate < new Date(payload.startDate)) {
                     throw new AppError(
                         "End date cannot be before start date",
-                        400
+                        400,
                     );
                 }
                 insertionData.endDate = getDateInFormate(endDate);
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(payload.endDate).getTime() +
-                            1000 * 60 * 60 * 24
-                    )
+                            1000 * 60 * 60 * 24,
+                    ),
                 );
             } else {
                 insertionData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(payload.startDate).getTime() +
-                            1000 * 60 * 60 * 24
-                    )
+                            1000 * 60 * 60 * 24,
+                    ),
                 );
             }
         }
@@ -468,7 +468,7 @@ async function createListing(cityIds, payload, userId, roleId) {
             {
                 data: insertionData,
             },
-            transaction
+            transaction,
         );
 
         const listingId = response.id;
@@ -490,12 +490,12 @@ async function createListing(cityIds, payload, userId, roleId) {
             } else {
                 // verify that no two poll options have the same title
                 const pollOptions = payload.pollOptions.map(
-                    (option) => option.title
+                    (option) => option.title,
                 );
                 if (new Set(pollOptions).size !== pollOptions.length) {
                     throw new AppError(
                         `Poll Options cannot have the same title`,
-                        400
+                        400,
                     );
                 }
                 // assert polloption.title is not empty, is a string and is less than 255 characters
@@ -516,7 +516,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                                 title: option.title.trim(),
                             },
                         },
-                        transaction
+                        transaction,
                     );
                 }
             }
@@ -554,7 +554,7 @@ async function createListing(cityIds, payload, userId, roleId) {
                         status: mappingStatus,
                     },
                 },
-                transaction
+                transaction,
             );
 
             allResponses.push({
@@ -578,10 +578,16 @@ async function createListing(cityIds, payload, userId, roleId) {
                             "warnings",
                             "Eilmeldung",
                             city.name + " - " + insertionData.title,
-                            { cityId: cityId.toString(), id: listingId.toString() }
+                            {
+                                cityId: cityId.toString(),
+                                id: listingId.toString(),
+                            },
                         );
                     } catch (pushErr) {
-                        console.error(`Failed to send push notification for listing ${listingId}`, pushErr);
+                        console.error(
+                            `Failed to send push notification for listing ${listingId}`,
+                            pushErr,
+                        );
                     }
                 }, 60000); // 1 minute delay for image upload
             }
@@ -610,7 +616,7 @@ async function createListing(cityIds, payload, userId, roleId) {
         //     );
         // }
         console.log(
-            `committing transaction for listing ${listingId} and active listingcities lenght is ${activeListingsCities?.length}`
+            `committing transaction for listing ${listingId} and active listingcities lenght is ${activeListingsCities?.length}`,
         );
         await listingsRepository.commitTransaction(transaction);
         if (
@@ -626,7 +632,8 @@ async function createListing(cityIds, payload, userId, roleId) {
                     const normalUserIds = await userRepo.getNormalUserIds();
 
                     // Build the complete listing data with all related information
-                    const listingData = await buildCompleteListingData(listingId);
+                    const listingData =
+                        await buildCompleteListingData(listingId);
 
                     await sendPushNotification.sendPushNotifications(
                         normalUserIds,
@@ -635,13 +642,16 @@ async function createListing(cityIds, payload, userId, roleId) {
                         {
                             type: "new_listing",
                             data: JSON.stringify(listingData),
-                        }
+                        },
                     );
                     console.log(
-                        `sending push notification to user for listing ${listingId} and users ${normalUserIds}`
+                        `sending push notification to user for listing ${listingId} and users ${normalUserIds}`,
                     );
                 } catch (pushErr) {
-                    console.error(`Failed to send push notification for listing ${listingId}`, pushErr);
+                    console.error(
+                        `Failed to send push notification for listing ${listingId}`,
+                        pushErr,
+                    );
                 }
             }, 60000); // 1 minute delay for image upload
         }
@@ -657,7 +667,7 @@ const updateListing = async (
     cityIds,
     listingData,
     userId,
-    roleId
+    roleId,
 ) => {
     let cities = [];
     const updationData = {};
@@ -702,7 +712,7 @@ const updateListing = async (
         if (!currentListingData) {
             throw new AppError(
                 `Listing with id = ${listingId} does not exist`,
-                404
+                404,
             );
         }
     }
@@ -713,10 +723,10 @@ const updateListing = async (
         cityIds.map(async (cityId) => {
             cityAdminMap[cityId] =
                 await cityUserRolesRepository.isUserCityAdmin(userId, cityId);
-        })
+        }),
     );
     const isAnCityAdmin = Object.keys(cityAdminMap).some(
-        (cityId) => cityAdminMap[cityId]
+        (cityId) => cityAdminMap[cityId],
     );
     const isAdmin = roleId === roles.Admin || isAnCityAdmin;
 
@@ -745,7 +755,7 @@ const updateListing = async (
             if (!categoryData) {
                 throw new AppError(
                     `Invalid Category '${listingData.categoryId}'`,
-                    400
+                    400,
                 );
             }
             if (categoryData.noOfSubcategories > 0) {
@@ -764,7 +774,7 @@ const updateListing = async (
         if (!subcategory) {
             throw new AppError(
                 `Invalid Sub Category. Category Id = '${listingData.categoryId}' doesn't have a subcategory.`,
-                400
+                400,
             );
         }
         try {
@@ -780,7 +790,7 @@ const updateListing = async (
             if (!subCategoryData) {
                 throw new AppError(
                     `Invalid Sub Category '${listingData.subcategoryId}' given`,
-                    400
+                    400,
                 );
             }
         } catch (err) {
@@ -802,20 +812,20 @@ const updateListing = async (
         ) {
             if (listingData.expiryDate && listingData.expiryDate.length > 0) {
                 updationData.expiryDate = getDateInFormate(
-                    new Date(listingData.expiryDate)
+                    new Date(listingData.expiryDate),
                 );
             } else if (!currentListingData.expiryDate) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(updationData.updatedAt).getTime() +
-                            1000 * 60 * 60 * 24 * 14
-                    )
+                            1000 * 60 * 60 * 24 * 14,
+                    ),
                 );
             }
         } else if (parseInt(listingData.categoryId) === categories.Events) {
             if (listingData.startDate && listingData.startDate.length > 0) {
                 updationData.startDate = getDateInFormate(
-                    new Date(listingData.startDate)
+                    new Date(listingData.startDate),
                 );
             } else if (!currentListingData.startDate) {
                 return new AppError(`Start date is not present`, 400);
@@ -823,20 +833,20 @@ const updateListing = async (
 
             if (listingData.endDate && listingData.endDate.length > 0) {
                 updationData.endDate = getDateInFormate(
-                    new Date(listingData.endDate)
+                    new Date(listingData.endDate),
                 );
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(listingData.endDate).getTime() +
-                            1000 * 60 * 60 * 24
-                    )
+                            1000 * 60 * 60 * 24,
+                    ),
                 );
             } else if (!currentListingData.endDate) {
                 updationData.expiryDate = getDateInFormate(
                     new Date(
                         new Date(listingData.startDate).getTime() +
-                            1000 * 60 * 60 * 24
-                    )
+                            1000 * 60 * 60 * 24,
+                    ),
                 );
             }
         } else {
@@ -854,15 +864,14 @@ const updateListing = async (
 
     if (!isAdmin) {
         // Non-admin user restrictions
-        if (currentStatusId === status.Approved) {
-            throw new AppError(
-                `Approved listings cannot be updated by this user`,
-                403
-            );
-        }
-
+        // if (currentStatusId === status.Approved) {
+        //     throw new AppError(
+        //         `Approved listings cannot be updated by this user`,
+        //         403
+        //     );
+        // }
         // Override any user-sent status to Pending
-        updationData.statusId = status.Pending;
+        // updationData.statusId = status.Pending;
     } else {
         // Admin: handle status change if any
         if (listingData.statusId && listingData.statusId !== currentStatusId) {
@@ -879,7 +888,7 @@ const updateListing = async (
                 if (!statusData) {
                     throw new AppError(
                         `Invalid Status '${listingData.statusId}' given`,
-                        400
+                        400,
                     );
                 }
                 updationData.statusId =
@@ -906,7 +915,7 @@ const updateListing = async (
                     },
                 ],
             },
-            transaction
+            transaction,
         );
 
         let responseCityIds;
@@ -918,7 +927,7 @@ const updateListing = async (
                 transaction,
                 roleId,
                 cityAdminMap,
-                listingData.statusId
+                listingData.statusId,
             );
             responseCityIds = cityIds;
         } else {
@@ -932,7 +941,7 @@ const updateListing = async (
                 ],
             });
             responseCityIds = cityMappingData.rows.map(
-                (mapping) => mapping.cityId
+                (mapping) => mapping.cityId,
             );
         }
         const isPollCategory = listingData.categoryId === categories.Polls;
@@ -941,7 +950,7 @@ const updateListing = async (
             await managePollOptions(
                 listingData.pollOptions,
                 listingId,
-                transaction
+                transaction,
             );
         } else {
             updationData.subcategoryId = null;
@@ -994,7 +1003,7 @@ const checkDesc = (inputHtml) => {
 async function addDefaultImage(transaction, listingId, categoryId) {
     const imageOrder = 1;
     const categoryName = Object.keys(categories).find(
-        (key) => categories[key] === +categoryId
+        (key) => categories[key] === +categoryId,
     );
     const countQuery = await listingsImageRepository.getOne({
         filters: [
@@ -1019,7 +1028,7 @@ async function addDefaultImage(transaction, listingId, categoryId) {
                 logo: imageName,
             },
         },
-        transaction
+        transaction,
     );
 }
 
@@ -1067,7 +1076,7 @@ async function getCities(cityIds) {
             });
             throw new AppError(
                 `Invalid City '${invalidCityIds[0]}' given`,
-                400
+                400,
             );
         }
         return response.rows;
@@ -1130,7 +1139,7 @@ async function managePollOptions(pollOptions, listingId, transaction) {
                         },
                     ],
                 },
-                transaction
+                transaction,
             );
         }
     }
@@ -1150,7 +1159,7 @@ async function managePollOptions(pollOptions, listingId, transaction) {
                             },
                         ],
                     },
-                    transaction
+                    transaction,
                 );
             } else {
                 await pollOptionsRepository.createWithTransaction(
@@ -1160,7 +1169,7 @@ async function managePollOptions(pollOptions, listingId, transaction) {
                             title: option.title,
                         },
                     },
-                    transaction
+                    transaction,
                 );
             }
         }
@@ -1198,14 +1207,14 @@ function validateAndAssignListingParameters(updationData, payload, next) {
     if (payload.logo && payload.removeImage) {
         throw new AppError(
             `Invalid Input, logo and removeImage both fields present`,
-            400
+            400,
         );
     }
 
     if (payload.pdf && payload.removePdf) {
         throw new AppError(
             `Invalid Input, pdf and removePdf both fields present`,
-            400
+            400,
         );
     }
 
@@ -1242,7 +1251,7 @@ async function updateCityMappings(
     transaction,
     roleId,
     cityAdminMap = {},
-    statusId
+    statusId,
 ) {
     if (!Array.isArray(updatedCityIds) || updatedCityIds.length === 0) {
         return;
@@ -1266,7 +1275,7 @@ async function updateCityMappings(
 
         await cityListingMappingRepo.deleteWithTransaction(
             { filters: [{ key: "listingId", sign: "=", value: listingId }] },
-            transaction
+            transaction,
         );
         const data = updatedCityIds.map((cityId, index) => {
             const mappingStatus =
@@ -1286,9 +1295,9 @@ async function updateCityMappings(
                 async (cityListingsMapping) =>
                     await cityListingMappingRepo.createWithTransaction(
                         { data: cityListingsMapping },
-                        transaction
-                    )
-            )
+                        transaction,
+                    ),
+            ),
         );
 
         const activeListeningCityIds = data
@@ -1320,9 +1329,9 @@ async function updateCityMappings(
                         notification.topic,
                         notification.title,
                         notification.message,
-                        notification.payload
-                    )
-                )
+                        notification.payload,
+                    ),
+                ),
             );
         }
     } catch (err) {
@@ -1349,7 +1358,7 @@ async function buildCompleteListingData(listingId) {
         if (!data) {
             throw new AppError(
                 `Listing with id ${listingId} does not exist`,
-                404
+                404,
             );
         }
 
@@ -1366,7 +1375,7 @@ async function buildCompleteListingData(listingId) {
         });
 
         const allCities = cityListingMappings.rows.map(
-            (mapping) => mapping.cityId
+            (mapping) => mapping.cityId,
         );
         data.allCities = allCities;
         data.cityId = allCities.length > 0 ? allCities[0] : null;
@@ -1408,7 +1417,7 @@ async function buildCompleteListingData(listingId) {
             if (cityInfo) {
                 // Get listing status for this specific city
                 const cityMapping = cityListingMappings.rows.find(
-                    (m) => m.cityId === cityId
+                    (m) => m.cityId === cityId,
                 );
                 cityData.push({
                     id: cityInfo.id,
