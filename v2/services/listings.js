@@ -129,6 +129,18 @@ const getAllListings = async ({
             sign: "=",
             value: categoryId,
         });
+
+        if (parseInt(categoryId) === categories.News) {
+            const now = new Date()
+                .toISOString()
+                .replace("T", " ")
+                .split(".")[0];
+            filters.push({
+                key: "expiryDate",
+                sign: ">=",
+                value: now,
+            });
+        }
     }
 
     if (dateFilter) {

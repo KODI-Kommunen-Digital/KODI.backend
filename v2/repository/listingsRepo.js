@@ -187,16 +187,19 @@ class ListingsRepo extends BaseRepo {
 
         filters.forEach((filter) => {
             if (filter.value !== undefined) {
+                const sign = filter.sign.toUpperCase();
                 if (
-                    filter.sign.toUpperCase() === "IN" &&
+                    sign === "IN" &&
                     Array.isArray(filter.value) &&
                     filter.value.length > 0
                 ) {
-                    // Expand the IN clause to the correct number of placeholders
                     query += ` AND L.${filter.key} IN (${filter.value
                         .map(() => "?")
                         .join(",")})`;
                     queryParams.push(...filter.value);
+                } else if (sign === ">=") {
+                    query += ` AND (L.${filter.key} IS NULL OR L.${filter.key} >= ?)`;
+                    queryParams.push(filter.value);
                 } else {
                     query += ` AND L.${filter.key} = ?`;
                     queryParams.push(filter.value);
