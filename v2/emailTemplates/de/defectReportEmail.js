@@ -1,7 +1,8 @@
 module.exports = function (title, description, address, reporterEmail, phoneNumber) {
     return {
         subject: `Neuer Mängelmelder: ${title}`,
-        body: `<h1>Mängelmelder</h1>
+        body: `<div style="margin: 10px;">
+                <h1>Mängelmelder</h1>
                 <p><strong>Titel:</strong> ${title},<br>
                 <strong>Beschreibung:</strong> ${description} <br>
                 ${address ? `<strong>Adresse:</strong> ${address} <br>` : ""}
@@ -10,6 +11,7 @@ module.exports = function (title, description, address, reporterEmail, phoneNumb
                 Weitere Einzelheiten finden Sie im beigefügten Bild.<br>
                 <br>
                 Liebe Grüße,<br>
-                Das ${process.env.REGION}-Team</p>`,
+                Das ${process.env.REGION}-Team</p>
+                </div>`,
     };
 };
