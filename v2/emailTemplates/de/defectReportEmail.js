@@ -27,9 +27,7 @@ module.exports = function (
                 Weitere Einzelheiten finden Sie im beigefügten Bild.<br>
                 <br>
                 Mit freundlichen Grüßen<br>
-                <br>
                 im Auftrag<br>
-                <br>
                 <br>
                 Stadtverwaltung Gera<br>
                 Kornmarkt 12<br>

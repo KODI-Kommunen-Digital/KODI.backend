@@ -10,9 +10,7 @@ module.exports = function (title) {
                 Unser Team wird Ihre Meldung prüfen und die erforderlichen Maßnahmen ergreifen.<br>
                 <br>
                 Mit freundlichen Grüßen<br>
-                <br>
                 im Auftrag<br>
-                <br>
                 <br>
                 Stadtverwaltung Gera<br>
                 Kornmarkt 12<br>
