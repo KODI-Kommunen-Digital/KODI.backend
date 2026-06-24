@@ -9,8 +9,16 @@ module.exports = function (title) {
                 <br>
                 Our team will review your report and take the necessary action.<br>
                 <br>
-                Thank you,<br>
-                Gera Team</p>
+                Kind regards<br>
+                <br>
+                On behalf of<br>
+                <br>
+                <br>
+                City Administration Gera<br>
+                Kornmarkt 12<br>
+                07545 Gera<br>
+                Phone: 0365 838 0<br>
+                Email: <a href="mailto:stadt@gera.de">stadt@gera.de</a></p>
                 </div>`,
     };
 };

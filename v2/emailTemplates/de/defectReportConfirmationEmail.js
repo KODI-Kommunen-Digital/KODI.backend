@@ -9,8 +9,16 @@ module.exports = function (title) {
                 <br>
                 Unser Team wird Ihre Meldung prüfen und die erforderlichen Maßnahmen ergreifen.<br>
                 <br>
-                Liebe Grüße,<br>
-                Das ${process.env.REGION}-Team</p>
+                Mit freundlichen Grüßen<br>
+                <br>
+                im Auftrag<br>
+                <br>
+                <br>
+                Stadtverwaltung Gera<br>
+                Kornmarkt 12<br>
+                07545 Gera<br>
+                Fon: 0365 838 0<br>
+                E-Mail: <a href="mailto:stadt@gera.de">stadt@gera.de</a></p>
                 </div>`,
     };
 };
