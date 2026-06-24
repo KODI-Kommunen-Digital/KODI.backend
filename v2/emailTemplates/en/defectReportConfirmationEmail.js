@@ -10,9 +10,7 @@ module.exports = function (title) {
                 Our team will review your report and take the necessary action.<br>
                 <br>
                 Kind regards<br>
-                <br>
                 On behalf of<br>
-                <br>
                 <br>
                 City Administration Gera<br>
                 Kornmarkt 12<br>

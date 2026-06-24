@@ -27,9 +27,7 @@ module.exports = function (
                 See the attached image for more details.<br>
                 <br>
                 Kind regards<br>
-                <br>
                 On behalf of<br>
-                <br>
                 <br>
                 City Administration Gera<br>
                 Kornmarkt 12<br>
