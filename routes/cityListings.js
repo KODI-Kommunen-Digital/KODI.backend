@@ -847,111 +847,121 @@ router.post(
             return;
         }
 
-        let response = await database.get(
-            tables.USER_CITYUSER_MAPPING_TABLE,
-            { userId: req.userId, cityId },
-            "cityUserId"
-        );
-
-        // The current user might not be in the city db
-        const cityUserId =
-            response.rows && response.rows.length > 0
-                ? response.rows[0].cityUserId
-                : null;
-
-        response = await database.get(
-            tables.LISTINGS_TABLE,
-            { id: listingId },
-            null,
-            cityId
-        );
-        if (!response.rows || response.rows.length === 0) {
-            return next(
-                new AppError(`Listing with id ${listingId} does not exist`, 404)
+        try {
+            let response = await database.get(
+                tables.USER_CITYUSER_MAPPING_TABLE,
+                { userId: req.userId, cityId },
+                "cityUserId"
             );
-        }
-        const currentListingData = response.rows[0];
 
-        if (
-            currentListingData.userId !== cityUserId &&
-            req.roleId !== roles.Admin
-        ) {
-            return next(
-                new AppError(`You are not allowed to access this resource`, 403)
+            // The current user might not be in the city db
+            const cityUserId =
+                response.rows && response.rows.length > 0
+                    ? response.rows[0].cityUserId
+                    : null;
+
+            response = await database.get(
+                tables.LISTINGS_TABLE,
+                { id: listingId },
+                null,
+                cityId
             );
-        }
-        if (currentListingData.pdf && currentListingData.pdf.length > 0) {
-            return next(
-                new AppError(`Pdf is present in listing So can not upload image.`, 403)
+            if (!response.rows || response.rows.length === 0) {
+                return next(
+                    new AppError(`Listing with id ${listingId} does not exist`, 404)
+                );
+            }
+            const currentListingData = response.rows[0];
+
+            if (
+                currentListingData.userId !== cityUserId &&
+                req.roleId !== roles.Admin
+            ) {
+                return next(
+                    new AppError(`You are not allowed to access this resource`, 403)
+                );
+            }
+            if (currentListingData.pdf && currentListingData.pdf.length > 0) {
+                return next(
+                    new AppError(`Pdf is present in listing So can not upload image.`, 403)
+                );
+            }
+
+            const image = req.files?.image;
+            const imageArr = image ? (image.length > 1 ? image : [image]) : [];
+
+            const hasIncorrectMime = imageArr.some(
+                (i) => !i.mimetype.includes("image/")
             );
-        }
+            if (hasIncorrectMime) {
+                return next(new AppError(`Invalid Image type`, 403));
+            }
 
-        const image = req.files?.image;
-        const imageArr = image ? (image.length > 1 ? image : [image]) : [];
+            let imageOrder = 0;
+            response = await database.get(
+                tables.LISTINGS_IMAGES_TABLE,
+                { listingId },
+                null,
+                cityId
+            );
 
-        const hasIncorrectMime = imageArr.some(
-            (i) => !i.mimetype.includes("image/")
-        );
-        if (hasIncorrectMime) {
-            return next(new AppError(`Invalid Image type`, 403));
-        }
-
-        let imageOrder = 0;
-        response = await database.get(
-            tables.LISTINGS_IMAGES_TABLE,
-            { listingId },
-            null,
-            cityId
-        );
-
-        if (response.rows && response.rows.length > 0) {
-            if (response.rows[0].logo.startsWith("admin/")) {
-                await database.deleteData(
-                    tables.LISTINGS_IMAGES_TABLE,
-                    { listingId },
-                    cityId
-                );
-            } else {
-                const existingImages = response.rows;
-                const imagesToRetain = existingImages.filter((value) =>
-                    (req.body.image || []).includes(value.logo)
-                );
-                const imagesToDelete = existingImages.filter(
-                    (value) => !imagesToRetain.map((i2r) => i2r.logo).includes(value.logo)
-                );
-
-                if (imagesToDelete && imagesToDelete.length > 0) {
-                    await imageDeleteAsync.deleteMultiple(
-                        imagesToDelete.map((i) => i.logo)
-                    );
+            if (response.rows && response.rows.length > 0) {
+                if (response.rows[0].logo.startsWith("admin/")) {
                     await database.deleteData(
                         tables.LISTINGS_IMAGES_TABLE,
-                        { id: imagesToDelete.map((i) => i.id) },
+                        { listingId },
                         cityId
                     );
-                }
+                } else {
+                    const existingImages = response.rows;
+                    const imagesToRetain = existingImages.filter((value) =>
+                        (req.body.image || []).includes(value.logo)
+                    );
+                    const imagesToDelete = existingImages.filter(
+                        (value) => !imagesToRetain.map((i2r) => i2r.logo).includes(value.logo)
+                    );
 
-                if (imagesToRetain && imagesToRetain.length > 0) {
-                    for (const imageToRetain of imagesToRetain) {
-                        await database.update(
+                    if (imagesToDelete && imagesToDelete.length > 0) {
+                        // Removing the old objects from OBS is best-effort cleanup.
+                        // If they are already missing (or OBS errors), we still
+                        // want to drop the DB rows and continue with the upload.
+                        try {
+                            await imageDeleteAsync.deleteMultiple(
+                                imagesToDelete.map((i) => i.logo)
+                            );
+                        } catch (err) {
+                            console.error(
+                                "Failed to delete old images from OBS, continuing with upload",
+                                err
+                            );
+                        }
+                        await database.deleteData(
                             tables.LISTINGS_IMAGES_TABLE,
-                            { imageOrder: ++imageOrder },
-                            { id: imageToRetain.id },
+                            { id: imagesToDelete.map((i) => i.id) },
                             cityId
                         );
                     }
-                }
-                if (imagesToRetain.length === 0 && imageArr.length === 0) {
-                    await addDefaultImage(
-                        cityId,
-                        listingId,
-                        currentListingData.categoryId
-                    );
+
+                    if (imagesToRetain && imagesToRetain.length > 0) {
+                        for (const imageToRetain of imagesToRetain) {
+                            await database.update(
+                                tables.LISTINGS_IMAGES_TABLE,
+                                { imageOrder: ++imageOrder },
+                                { id: imageToRetain.id },
+                                cityId
+                            );
+                        }
+                    }
+                    if (imagesToRetain.length === 0 && imageArr.length === 0) {
+                        await addDefaultImage(
+                            cityId,
+                            listingId,
+                            currentListingData.categoryId
+                        );
+                    }
                 }
             }
-        }
 
-        try {
             for (const individualImage of imageArr) {
                 imageOrder++;
                 const filePath = `user_${req.userId}/city_${cityId}_listing_${listingId}_${imageOrder}_${Date.now()}`;

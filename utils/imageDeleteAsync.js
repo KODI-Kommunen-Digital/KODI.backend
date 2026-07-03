@@ -21,7 +21,12 @@ async function deleteImage(path) {
             if (!err && result.CommonMsg.Status < 300) {
                 resolve(result);
             } else {
-                reject(err)
+                reject(
+                    err ||
+                    new Error(
+                        `OBS deleteObject failed with status ${result?.CommonMsg?.Status} for key ${path}`
+                    )
+                );
             }
         });
     })
@@ -38,7 +43,7 @@ async function deleteMultiple(paths) {
     return new Promise((resolve, reject) => {
         
         if (paths.length === 0) {
-            resolve();
+            return resolve();
         }
 
         const params = {
@@ -51,7 +56,12 @@ async function deleteMultiple(paths) {
             if (!err && result.CommonMsg.Status < 300) {
                 resolve(result);
             } else {
-                reject(err)
+                reject(
+                    err ||
+                    new Error(
+                        `OBS deleteObjects failed with status ${result?.CommonMsg?.Status} for keys ${paths.join(", ")}`
+                    )
+                );
             }
         });
     })
