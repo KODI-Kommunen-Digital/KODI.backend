@@ -24,6 +24,16 @@ const rateLimit = require('express-rate-limit');
 
 const DEFAULTIMAGE = "Defaultimage";
 
+// Prepend the OBS bucket URL to an image key.
+// Only images (keys starting with "user") on listings whose sourceId is not 1
+// (i.e. not a user entry) are stored as bare object keys that need the bucket URL.
+const buildImageUrl = (logo, sourceId) => {
+    if (sourceId !== 1 && typeof logo === "string" && logo.startsWith("user")) {
+        return `https://${process.env.BUCKET_NAME}.${process.env.BUCKET_HOST}/${logo}`;
+    }
+    return logo;
+};
+
 const rateLogger = rateLimit({
     windowMs: 5 * 1000, // 5 seconds
     max: 1, // Max 1 request per 5 seconds
@@ -293,9 +303,20 @@ router.get("/:id", rateLogger, async function (req, res, next) {
             }
 
             delete data[0].viewCount;
+
+            const listingSourceId = data[0].sourceId;
+            const otherlogos = (listingImagesList.rows || []).map((image) => ({
+                ...image,
+                logo: buildImageUrl(image.logo, listingSourceId),
+            }));
+
             res.status(200).json({
                 status: "success",
-                data: { ...data[0], logo, otherlogos: listingImagesList.rows },
+                data: {
+                    ...data[0],
+                    logo: buildImageUrl(logo, listingSourceId),
+                    otherlogos,
+                },
             });
         })
         .catch((err) => {
