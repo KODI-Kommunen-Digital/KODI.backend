@@ -8,6 +8,16 @@ const deepl = require("deepl-node");
 const authentication = require("../middlewares/authentication");
 const { createListing } = require('../services/listingFunctions')
 
+// Prepend the OBS bucket URL to an image key.
+// Only images (keys starting with "user") on listings whose sourceId is not 1
+// (i.e. not a user entry) are stored as bare object keys that need the bucket URL.
+const buildImageUrl = (logo, sourceId) => {
+    if (sourceId !== 1 && typeof logo === "string" && logo.startsWith("user")) {
+        return `https://${process.env.BUCKET_NAME}.${process.env.BUCKET_HOST}/${logo}`;
+    }
+    return logo;
+};
+
 router.get("/", async function (req, res, next) {
     const params = req.query;
     const pageNo = Number(params.pageNo) || 1;
@@ -288,6 +298,7 @@ router.get("/", async function (req, res, next) {
             status: "success",
             data: listings.map(listing => ({
                 ...listing,
+                logo: buildImageUrl(listing.logo, listing.sourceId),
                 firstname: "****",
                 lastname: '****',
                 viewCount: undefined, // Exclude viewCount
@@ -409,7 +420,10 @@ router.get("/search", async function (req, res, next) {
     try {
         const response = await database.callQuery(combinedQuery, combinedParams);
         const listings = response.rows;
-        listings.forEach(listing => delete listing.viewCount);
+        listings.forEach(listing => {
+            delete listing.viewCount;
+            listing.logo = buildImageUrl(listing.logo, listing.sourceId);
+        });
 
         res.json({
             status: "success",

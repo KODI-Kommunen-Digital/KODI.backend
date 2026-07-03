@@ -5,6 +5,16 @@ const tables = require("../constants/tableNames");
 const AppError = require("../utils/appError");
 const authentication = require("../middlewares/authentication");
 
+// Prepend the OBS bucket URL to an image key.
+// Only images (keys starting with "user") on listings whose sourceId is not 1
+// (i.e. not a user entry) are stored as bare object keys that need the bucket URL.
+const buildImageUrl = (logo, sourceId) => {
+    if (sourceId !== 1 && typeof logo === "string" && logo.startsWith("user")) {
+        return `https://${process.env.BUCKET_NAME}.${process.env.BUCKET_HOST}/${logo}`;
+    }
+    return logo;
+};
+
 // To get the favorite ID  of a user
 router.get("/", authentication, async function (req, res, next) {
     const userId = parseInt(req.paramUserId);
@@ -121,7 +131,10 @@ router.get("/listings", authentication, async function (req, res, next) {
             WHERE 1=1 AND L.id IN (${listingFilter.id.join()}) ${listingFilter.categoryId ? "AND L.categoryId = ? " : ""}
             GROUP BY L.id, sub.logo, sub.logoCount, U.username, U.firstname, U.lastname, U.image`
             response = await database.callQuery(query, listingFilter.categoryId ? listingFilter.categoryId : null , null)
-            response.rows.forEach((l) => (l.cityId = cityId));
+            response.rows.forEach((l) => {
+                l.cityId = cityId;
+                l.logo = buildImageUrl(l.logo, l.sourceId);
+            });
             listings.push(...response.rows);
         }
     } catch (err) {
